@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: stocktracker-backend
+  profiles:
+    active: dev
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# JWT Configuration
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-here-make-it-long-enough-for-security}
+  expiration: 86400000  # 24 hours in milliseconds
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.stocktracker: DEBUG
+    org.springframework.security: DEBUG
