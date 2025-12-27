@@ -4,7 +4,7 @@ INSERT INTO users (name, email, password, enabled, role, created_at, updated_at)
 VALUES (
     'Demo User',
     'demo@stocktracker.com',
-    '$2a$10$rS.FGqk9S6yNqX8N8fNQO.WK4YfxG5QnJqQCFHOvJvqEK0hLiKkCi',
+    '$2b$10$UnijFso2x5Rjuu6wcoDHMu694i2Tz4GDC.X5BwAYKy2L/g1uLfvMy',
     true,
     'USER',
     CURRENT_TIMESTAMP,
@@ -16,7 +16,7 @@ INSERT INTO users (name, email, password, enabled, role, created_at, updated_at)
 VALUES (
     'Admin User',
     'admin@stocktracker.com',
-    '$2a$10$dN.5C3H9oJQ1qJHd0X0vYOGN0q5rB4G7vS0hL8F9mQT4kP5xL2cZy',
+    '$2b$10$DA5Jl5UBW2mXv683j8jiIOUf5/EOQ2sObeUBZ0cPzWfUPGeMJzLV2',
     true,
     'ADMIN',
     CURRENT_TIMESTAMP,

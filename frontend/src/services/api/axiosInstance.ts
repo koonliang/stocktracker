@@ -26,7 +26,8 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    // Only redirect to login on 401 if it's not the login endpoint itself
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('authToken')
       window.location.href = '/login'
     }

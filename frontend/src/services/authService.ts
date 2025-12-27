@@ -6,26 +6,32 @@ const USER_KEY = 'user'
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    const response = await api.post<ApiResponse<AuthResponse>>(
-      '/auth/login',
-      credentials
-    )
-
-    if (response.data.success && response.data.data) {
-      const authData = response.data.data
-      localStorage.setItem(TOKEN_KEY, authData.token)
-      localStorage.setItem(
-        USER_KEY,
-        JSON.stringify({
-          id: authData.userId,
-          email: authData.email,
-          name: authData.name,
-        })
+    try {
+      const response = await api.post<ApiResponse<AuthResponse>>(
+        '/auth/login',
+        credentials
       )
-      return authData
-    }
 
-    throw new Error(response.data.message || 'Login failed')
+      if (response.data.success && response.data.data) {
+        const authData = response.data.data
+        localStorage.setItem(TOKEN_KEY, authData.token)
+        localStorage.setItem(
+          USER_KEY,
+          JSON.stringify({
+            id: authData.userId,
+            email: authData.email,
+            name: authData.name,
+          })
+        )
+        return authData
+      }
+
+      throw new Error(response.data.message || 'Login failed')
+    } catch (error: any) {
+      // Extract error message from backend response
+      const message = error.response?.data?.message || error.message || 'Login failed'
+      throw new Error(message)
+    }
   },
 
   logout(): void {
