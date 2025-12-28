@@ -22,3 +22,14 @@ VALUES (
     CURRENT_TIMESTAMP,
     CURRENT_TIMESTAMP
 );
+
+-- Sample holdings for demo user (id = 1)
+-- Note: id column auto-increments, so we don't specify it
+INSERT INTO holdings (user_id, symbol, company_name, shares, average_cost, created_at, updated_at)
+VALUES
+    (1, 'AAPL', 'Apple Inc.', 50.0000, 142.50, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'MSFT', 'Microsoft Corporation', 25.0000, 285.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'GOOGL', 'Alphabet Inc.', 10.0000, 125.30, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'TSLA', 'Tesla, Inc.', 15.0000, 248.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'NVDA', 'NVIDIA Corporation', 20.0000, 450.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    (1, 'AMZN', 'Amazon.com, Inc.', 30.0000, 135.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
