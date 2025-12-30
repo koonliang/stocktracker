@@ -1,6 +1,7 @@
 package com.stocktracker.controller;
 
 import com.stocktracker.dto.response.ApiResponse;
+import com.stocktracker.dto.response.PortfolioPerformancePoint;
 import com.stocktracker.dto.response.PortfolioResponse;
 import com.stocktracker.entity.User;
 import com.stocktracker.repository.UserRepository;
@@ -15,7 +16,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/portfolio")
@@ -46,6 +50,16 @@ public class PortfolioController {
 
         PortfolioResponse portfolio = portfolioService.getPortfolio(userId);
         return ResponseEntity.ok(ApiResponse.success(portfolio));
+    }
+
+    @GetMapping("/performance")
+    @Operation(summary = "Get portfolio performance history for charting")
+    public ResponseEntity<ApiResponse<List<PortfolioPerformancePoint>>> getPerformanceHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(defaultValue = "1y") String range) {
+        Long userId = getUserId(userDetails);
+        List<PortfolioPerformancePoint> performance = portfolioService.getPerformanceHistory(userId, range);
+        return ResponseEntity.ok(ApiResponse.success(performance));
     }
 
     @CacheEvict(value = "portfolio", key = "#userId")
