@@ -23,9 +23,7 @@ const Home = () => {
                 <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded-full">
                   NEW
                 </span>
-                <span className="text-sm text-slate-600">
-                  v2.0 is now live
-                </span>
+                <span className="text-sm text-slate-600">v2.0 is now live</span>
               </div>
 
               {/* Hero Headline */}
@@ -38,9 +36,8 @@ const Home = () => {
 
               {/* Hero Subtext */}
               <p className="text-lg text-slate-600 max-w-xl leading-relaxed">
-                Stock Tracker brings your portfolio together with powerful tools
-                designed to streamline workflows, boost productivity, and drive
-                results.
+                Stock Tracker brings your portfolio together with powerful tools designed to
+                streamline workflows, boost productivity, and drive results.
               </p>
 
               {/* CTA Buttons */}
@@ -65,12 +62,7 @@ const Home = () => {
                   </svg>
                 </Link>
                 <button className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-slate-700 font-medium rounded-full border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all duration-200">
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -89,9 +81,7 @@ const Home = () => {
               </div>
 
               {/* Trust Badge */}
-              <p className="text-sm text-slate-500">
-                No credit card required · 14-day free trial
-              </p>
+              <p className="text-sm text-slate-500">No credit card required · 14-day free trial</p>
             </div>
 
             {/* Right Column - Visual Element */}
@@ -126,9 +116,7 @@ const Home = () => {
                         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
                         <div>
                           <p className="text-xs text-slate-500">Status</p>
-                          <p className="text-sm font-semibold text-slate-900">
-                            System Optimal
-                          </p>
+                          <p className="text-sm font-semibold text-slate-900">System Optimal</p>
                         </div>
                       </div>
                     </div>
@@ -145,30 +133,20 @@ const Home = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-slate-900">
-                500k+
-              </div>
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">500k+</div>
               <div className="text-sm text-slate-500 mt-2">Active Users</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-slate-900">
-                99.99%
-              </div>
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">99.99%</div>
               <div className="text-sm text-slate-500 mt-2">Uptime SLA</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-slate-900">
-                24/7
-              </div>
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">24/7</div>
               <div className="text-sm text-slate-500 mt-2">Support Access</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-bold text-slate-900">
-                $10M+
-              </div>
-              <div className="text-sm text-slate-500 mt-2">
-                Customer Savings
-              </div>
+              <div className="text-3xl md:text-4xl font-bold text-slate-900">$10M+</div>
+              <div className="text-sm text-slate-500 mt-2">Customer Savings</div>
             </div>
           </div>
         </div>

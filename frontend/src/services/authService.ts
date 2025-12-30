@@ -7,10 +7,7 @@ const USER_KEY = 'user'
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await api.post<ApiResponse<AuthResponse>>(
-        '/auth/login',
-        credentials
-      )
+      const response = await api.post<ApiResponse<AuthResponse>>('/auth/login', credentials)
 
       if (response.data.success && response.data.data) {
         const authData = response.data.data
@@ -27,9 +24,13 @@ export const authService = {
       }
 
       throw new Error(response.data.message || 'Login failed')
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Extract error message from backend response
-      const message = error.response?.data?.message || error.message || 'Login failed'
+      const message =
+        (error as { response?: { data?: { message?: string } }; message?: string }).response?.data
+          ?.message ||
+        (error as { message?: string }).message ||
+        'Login failed'
       throw new Error(message)
     }
   },

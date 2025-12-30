@@ -1,12 +1,14 @@
-import { DashboardNavigation } from '@components/layout';
-import { usePortfolio } from '../../hooks/usePortfolio';
-import { PortfolioTable } from '../../components/dashboard/PortfolioTable';
-import { formatCurrency, formatPercent, getReturnColorClass } from '../../utils/stockFormatters';
+import { DashboardNavigation } from '@components/layout'
+import { usePortfolio } from '../../hooks/usePortfolio'
+import { usePortfolioPerformance } from '../../hooks/usePortfolioPerformance'
+import { PortfolioTable } from '../../components/dashboard/PortfolioTable'
+import { PerformanceChart } from '../../components/dashboard/PerformanceChart'
+import { formatCurrency, formatPercent, getReturnColorClass } from '../../utils/stockFormatters'
 
 interface SummaryCardProps {
-  label: string;
-  value: string;
-  className?: string;
+  label: string
+  value: string
+  className?: string
 }
 
 function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
@@ -15,11 +17,17 @@ function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
       <p className="text-sm font-medium text-slate-600">{label}</p>
       <p className={`mt-2 text-2xl font-bold ${className || 'text-slate-900'}`}>{value}</p>
     </div>
-  );
+  )
 }
 
 const Dashboard = () => {
-  const { portfolio, loading, error, refresh } = usePortfolio();
+  const { portfolio, loading, error, refresh } = usePortfolio()
+  const {
+    data: performanceData,
+    range,
+    loading: chartLoading,
+    changeRange,
+  } = usePortfolioPerformance('1y')
 
   if (loading) {
     return (
@@ -29,7 +37,7 @@ const Dashboard = () => {
           <p className="text-slate-600">Loading portfolio...</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -40,7 +48,7 @@ const Dashboard = () => {
           <p className="text-red-500">{error}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -76,12 +84,25 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* NEW: Performance Chart Widget */}
+        <section className="mb-8">
+          <PerformanceChart
+            data={performanceData}
+            range={range}
+            onRangeChange={changeRange}
+            loading={chartLoading}
+          />
+        </section>
+
         {/* Holdings Table */}
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Your Holdings</h2>
             <span className="text-sm text-slate-500">
-              Prices updated: {portfolio?.pricesUpdatedAt ? new Date(portfolio.pricesUpdatedAt).toLocaleTimeString() : '-'}
+              Prices updated:{' '}
+              {portfolio?.pricesUpdatedAt
+                ? new Date(portfolio.pricesUpdatedAt).toLocaleTimeString()
+                : '-'}
             </span>
           </div>
           {portfolio?.holdings.length ? (
@@ -92,7 +113,7 @@ const Dashboard = () => {
         </section>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Dashboard;
+export default Dashboard

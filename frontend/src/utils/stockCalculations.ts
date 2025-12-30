@@ -1,15 +1,16 @@
-import type { StockHolding, StockTableRow } from '../types/stock'
+import type { HoldingResponse, StockTableRow } from '../types/stock'
 
 /**
  * Calculate derived values for table display from a stock holding
  */
-export function calculateStockTableRow(holding: StockHolding): StockTableRow {
+export function calculateStockTableRow(holding: HoldingResponse): StockTableRow {
   const currentValue = holding.lastPrice * holding.shares
   const costBasis = holding.averageCost * holding.shares
   const totalReturnDollars = currentValue - costBasis
   const totalReturnPercent = ((holding.lastPrice - holding.averageCost) / holding.averageCost) * 100
 
   return {
+    id: holding.id,
     symbol: holding.symbol,
     companyName: holding.companyName,
     lastPrice: holding.lastPrice,

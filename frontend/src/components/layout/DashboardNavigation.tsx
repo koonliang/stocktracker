@@ -33,14 +33,12 @@ const DashboardNavigation = () => {
                   />
                 </svg>
               </div>
-              <span className="text-lg font-bold text-slate-900">
-                Stock Tracker
-              </span>
+              <span className="text-lg font-bold text-slate-900">Stock Tracker</span>
             </Link>
 
             {/* Navigation Links */}
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.map((link) => (
+              {navLinks.map(link => (
                 <Link
                   key={link.path}
                   to={link.path}
@@ -51,12 +49,7 @@ const DashboardNavigation = () => {
                   }`}
                 >
                   {link.icon === 'dashboard' && (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -66,12 +59,7 @@ const DashboardNavigation = () => {
                     </svg>
                   )}
                   {link.icon === 'portfolio' && (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -81,12 +69,7 @@ const DashboardNavigation = () => {
                     </svg>
                   )}
                   {link.icon === 'watchlist' && (
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -104,12 +87,7 @@ const DashboardNavigation = () => {
           {/* User Menu */}
           <div className="flex items-center gap-4">
             <button className="p-2 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 rounded-lg transition-all duration-200">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
