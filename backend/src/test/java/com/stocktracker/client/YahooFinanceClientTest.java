@@ -6,6 +6,8 @@ import com.stocktracker.client.dto.HistoricalPrice;
 import com.stocktracker.client.dto.StockQuote;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.*;
  * Integration test for YahooFinanceClient using v8 chart endpoint.
  */
 class YahooFinanceClientTest {
+
+    private static final Logger log = LoggerFactory.getLogger(YahooFinanceClientTest.class);
 
     private YahooFinanceClient yahooFinanceClient;
     private static final String YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart";
@@ -36,7 +40,7 @@ class YahooFinanceClientTest {
         List<String> symbols = Arrays.asList("AAPL");
         Map<String, StockQuote> quotes = yahooFinanceClient.getQuotes(symbols);
 
-        System.out.println("=== Test: Single Symbol (AAPL) ===");
+        log.debug("=== Test: Single Symbol (AAPL) ===");
         printQuotes(quotes);
 
         assertNotNull(quotes);
@@ -44,7 +48,7 @@ class YahooFinanceClientTest {
             assertTrue(quotes.containsKey("AAPL"));
             StockQuote quote = quotes.get("AAPL");
             assertNotNull(quote.getRegularMarketPrice());
-            System.out.println("✓ SUCCESS: Fetched AAPL @ $" + quote.getRegularMarketPrice());
+            log.debug("✓ SUCCESS: Fetched AAPL @ ${}", quote.getRegularMarketPrice());
         }
     }
 
@@ -53,16 +57,16 @@ class YahooFinanceClientTest {
         List<String> symbols = Arrays.asList("AAPL", "MSFT", "GOOGL", "TSLA", "NVDA", "AMZN");
         Map<String, StockQuote> quotes = yahooFinanceClient.getQuotes(symbols);
 
-        System.out.println("=== Test: Multiple Symbols ===");
+        log.debug("=== Test: Multiple Symbols ===");
         printQuotes(quotes);
 
         assertNotNull(quotes);
-        System.out.println("✓ Fetched " + quotes.size() + " out of " + symbols.size() + " quotes");
+        log.debug("✓ Fetched {} out of {} quotes", quotes.size(), symbols.size());
     }
 
     @Test
     void testRawApiCall_V8Chart() {
-        System.out.println("=== Direct V8 Chart API Test ===");
+        log.debug("=== Direct V8 Chart API Test ===");
 
         try {
             RestTemplate restTemplate = new RestTemplateBuilder()
@@ -70,23 +74,23 @@ class YahooFinanceClientTest {
                     .build();
             String url = YAHOO_CHART_URL + "/AAPL?interval=1d&range=1d";
 
-            System.out.println("URL: " + url);
+            log.debug("URL: {}", url);
             String response = restTemplate.getForObject(url, String.class);
 
             assertNotNull(response);
             assertTrue(response.contains("regularMarketPrice"));
-            System.out.println("✓ V8 Chart API working!");
-            System.out.println("Response preview: " + response.substring(0, Math.min(200, response.length())) + "...");
+            log.debug("✓ V8 Chart API working!");
+            log.debug("Response preview: {}...", response.substring(0, Math.min(200, response.length())));
 
         } catch (Exception e) {
-            System.out.println("✗ API call failed: " + e.getMessage());
+            log.debug("✗ API call failed: {}", e.getMessage());
             fail("V8 Chart API should work");
         }
     }
 
     @Test
     void testGetHistoricalData_7Days() {
-        System.out.println("=== Test: Historical Data 7 Days (AAPL) ===");
+        log.debug("=== Test: Historical Data 7 Days (AAPL) ===");
 
         HistoricalData historicalData = yahooFinanceClient.getHistoricalData("AAPL", "7d");
 
@@ -96,9 +100,9 @@ class YahooFinanceClientTest {
         assertNotNull(historicalData.getPrices(), "Prices list should not be null");
         assertFalse(historicalData.getPrices().isEmpty(), "Should have historical prices");
 
-        System.out.println("Symbol: " + historicalData.getSymbol());
-        System.out.println("Current Price: $" + historicalData.getCurrentPrice());
-        System.out.println("Number of data points: " + historicalData.getPrices().size());
+        log.debug("Symbol: {}", historicalData.getSymbol());
+        log.debug("Current Price: ${}", historicalData.getCurrentPrice());
+        log.debug("Number of data points: {}", historicalData.getPrices().size());
 
         // Verify we have roughly 5-7 days of data (weekdays only)
         assertTrue(historicalData.getPrices().size() >= 3, "Should have at least 3 trading days");
@@ -110,13 +114,13 @@ class YahooFinanceClientTest {
         assertNotNull(firstPrice.getClose(), "Close price should not be null");
         assertTrue(firstPrice.getClose().compareTo(BigDecimal.ZERO) > 0, "Close price should be positive");
 
-        System.out.println("First data point: " + firstPrice.getDate() + " @ $" + firstPrice.getClose());
-        System.out.println("✓ SUCCESS: 7-day historical data fetched");
+        log.debug("First data point: {} @ ${}", firstPrice.getDate(), firstPrice.getClose());
+        log.debug("✓ SUCCESS: 7-day historical data fetched");
     }
 
     @Test
     void testGetHistoricalData_1Year() {
-        System.out.println("=== Test: Historical Data 1 Year (MSFT) ===");
+        log.debug("=== Test: Historical Data 1 Year (MSFT) ===");
 
         HistoricalData historicalData = yahooFinanceClient.getHistoricalData("MSFT", "1y");
 
@@ -125,8 +129,8 @@ class YahooFinanceClientTest {
         assertNotNull(historicalData.getPrices(), "Prices list should not be null");
         assertFalse(historicalData.getPrices().isEmpty(), "Should have historical prices");
 
-        System.out.println("Symbol: " + historicalData.getSymbol());
-        System.out.println("Number of data points: " + historicalData.getPrices().size());
+        log.debug("Symbol: {}", historicalData.getSymbol());
+        log.debug("Number of data points: {}", historicalData.getPrices().size());
 
         // Verify we have roughly 252 trading days (1 year)
         assertTrue(historicalData.getPrices().size() >= 200, "Should have at least 200 trading days");
@@ -139,14 +143,14 @@ class YahooFinanceClientTest {
                     "Data should be sorted with oldest date first");
         }
 
-        System.out.println("Date range: " + prices.get(0).getDate() + " to " +
+        log.debug("Date range: {} to {}", prices.get(0).getDate(),
                 prices.get(prices.size() - 1).getDate());
-        System.out.println("✓ SUCCESS: 1-year historical data fetched");
+        log.debug("✓ SUCCESS: 1-year historical data fetched");
     }
 
     @Test
     void testGetHistoricalDataBatch_MultipleSymbols() {
-        System.out.println("=== Test: Historical Data Batch (AAPL, MSFT, GOOGL) ===");
+        log.debug("=== Test: Historical Data Batch (AAPL, MSFT, GOOGL) ===");
 
         List<String> symbols = Arrays.asList("AAPL", "MSFT", "GOOGL");
         Map<String, HistoricalData> historicalDataMap =
@@ -155,8 +159,8 @@ class YahooFinanceClientTest {
         assertNotNull(historicalDataMap, "Historical data map should not be null");
         assertFalse(historicalDataMap.isEmpty(), "Should have data for at least some symbols");
 
-        System.out.println("Fetched historical data for " + historicalDataMap.size() + " out of " +
-                symbols.size() + " symbols");
+        log.debug("Fetched historical data for {} out of {} symbols", historicalDataMap.size(),
+                symbols.size());
 
         // Verify each symbol's data
         historicalDataMap.forEach((symbol, data) -> {
@@ -164,18 +168,16 @@ class YahooFinanceClientTest {
             assertEquals(symbol, data.getSymbol());
             assertFalse(data.getPrices().isEmpty(), symbol + " should have price data");
 
-            System.out.printf("%s: %d data points, Current: $%.2f\n",
-                    symbol,
-                    data.getPrices().size(),
+            log.debug("{}: {} data points, Current: ${}", symbol, data.getPrices().size(),
                     data.getCurrentPrice());
         });
 
-        System.out.println("✓ SUCCESS: Batch historical data fetched");
+        log.debug("✓ SUCCESS: Batch historical data fetched");
     }
 
     @Test
     void testGetHistoricalData_InvalidSymbol() {
-        System.out.println("=== Test: Invalid Symbol ===");
+        log.debug("=== Test: Invalid Symbol ===");
 
         HistoricalData historicalData = yahooFinanceClient.getHistoricalData("INVALID_SYMBOL_XYZ", "1mo");
 
@@ -185,12 +187,12 @@ class YahooFinanceClientTest {
                     "Invalid symbol should have no price data");
         }
 
-        System.out.println("✓ SUCCESS: Invalid symbol handled gracefully");
+        log.debug("✓ SUCCESS: Invalid symbol handled gracefully");
     }
 
     @Test
     void testGetHistoricalData_EmptySymbolsList() {
-        System.out.println("=== Test: Empty Symbols List ===");
+        log.debug("=== Test: Empty Symbols List ===");
 
         List<String> emptyList = Arrays.asList();
         Map<String, HistoricalData> result = yahooFinanceClient.getHistoricalDataBatch(emptyList, "1mo");
@@ -198,12 +200,12 @@ class YahooFinanceClientTest {
         assertNotNull(result, "Result should not be null");
         assertTrue(result.isEmpty(), "Result should be empty for empty input");
 
-        System.out.println("✓ SUCCESS: Empty list handled correctly");
+        log.debug("✓ SUCCESS: Empty list handled correctly");
     }
 
     @Test
     void testGetHistoricalData_PriceFields() {
-        System.out.println("=== Test: Price Fields Validation ===");
+        log.debug("=== Test: Price Fields Validation ===");
 
         HistoricalData historicalData = yahooFinanceClient.getHistoricalData("AAPL", "7d");
 
@@ -227,19 +229,19 @@ class YahooFinanceClientTest {
         assertTrue(price.getLow().compareTo(price.getClose()) <= 0,
                 "Low should be <= Close");
 
-        System.out.printf("Sample OHLCV: O:$%.2f H:$%.2f L:$%.2f C:$%.2f V:%d\n",
+        log.debug("Sample OHLCV: O:${} H:${} L:${} C:${} V:{}",
                 price.getOpen(), price.getHigh(), price.getLow(), price.getClose(),
                 price.getVolume() != null ? price.getVolume() : 0L);
-        System.out.println("✓ SUCCESS: All price fields validated");
+        log.debug("✓ SUCCESS: All price fields validated");
     }
 
     private void printQuotes(Map<String, StockQuote> quotes) {
         if (quotes.isEmpty()) {
-            System.out.println("No quotes returned!");
+            log.debug("No quotes returned!");
             return;
         }
         quotes.forEach((symbol, quote) -> {
-            System.out.printf("%s (%s): $%.2f | Prev: $%.2f | Change: %.2f%%\n",
+            log.debug("{} ({}): ${} | Prev: ${} | Change: {}%",
                     symbol,
                     quote.getShortName(),
                     quote.getRegularMarketPrice(),

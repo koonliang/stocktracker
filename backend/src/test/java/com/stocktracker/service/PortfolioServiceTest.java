@@ -15,6 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -33,6 +35,8 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class PortfolioServiceTest {
+
+    private static final Logger log = LoggerFactory.getLogger(PortfolioServiceTest.class);
 
     @Mock
     private HoldingRepository holdingRepository;
@@ -153,9 +157,9 @@ class PortfolioServiceTest {
         assertEquals(expectedAAPLWeight.setScale(2, BigDecimal.ROUND_HALF_UP),
                      aaplHolding.getWeight().setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("AAPL 7D Return: " + aaplHolding.getSevenDayReturnPercent() + "%");
-        System.out.println("AAPL Weight: " + aaplHolding.getWeight() + "%");
-        System.out.println("AAPL Sparkline points: " + aaplHolding.getSparklineData().size());
+        log.debug("AAPL 7D Return: {}%", aaplHolding.getSevenDayReturnPercent());
+        log.debug("AAPL Weight: {}%", aaplHolding.getWeight());
+        log.debug("AAPL Sparkline points: {}", aaplHolding.getSparklineData().size());
     }
 
     @Test
@@ -197,7 +201,7 @@ class PortfolioServiceTest {
         BigDecimal expectedReturnDollars = new BigDecimal("1000.00");
         assertEquals(expectedReturnDollars, holding.getSevenDayReturnDollars().setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("✓ 7-day return calculation verified");
+        log.debug("✓ 7-day return calculation verified");
     }
 
     @Test
@@ -226,7 +230,7 @@ class PortfolioServiceTest {
         assertEquals(BigDecimal.ZERO, holding.getSevenDayReturnPercent());
         assertEquals(BigDecimal.ZERO, holding.getSevenDayReturnDollars());
 
-        System.out.println("✓ Missing historical data handled correctly");
+        log.debug("✓ Missing historical data handled correctly");
     }
 
     @Test
@@ -274,7 +278,7 @@ class PortfolioServiceTest {
         BigDecimal totalWeight = aaplHolding.getWeight().add(msftHolding.getWeight());
         assertEquals(new BigDecimal("100.00"), totalWeight.setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("✓ Weight calculation verified: AAPL=" + aaplHolding.getWeight() + "%, MSFT=" + msftHolding.getWeight() + "%");
+        log.debug("✓ Weight calculation verified: AAPL={}%, MSFT={}%", aaplHolding.getWeight(), msftHolding.getWeight());
     }
 
     @Test
@@ -321,7 +325,7 @@ class PortfolioServiceTest {
             assertTrue(price.compareTo(BigDecimal.ZERO) > 0, "All sparkline prices should be positive");
         }
 
-        System.out.println("✓ Sparkline data extracted: " + sparklineData.size() + " points from 252 data points");
+        log.debug("✓ Sparkline data extracted: {} points from 252 data points", sparklineData.size());
     }
 
     @Test
@@ -362,7 +366,7 @@ class PortfolioServiceTest {
         assertEquals(new BigDecimal("8750.00"), point2.getTotalValue().setScale(2, BigDecimal.ROUND_HALF_UP));
         assertEquals(new BigDecimal("250.00"), point2.getDailyChange().setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("✓ Performance history calculated correctly");
+        log.debug("✓ Performance history calculated correctly");
     }
 
     @Test
@@ -409,7 +413,7 @@ class PortfolioServiceTest {
         // Daily change: 19500 - 18700 = 800
         assertEquals(new BigDecimal("800.00"), point2.getDailyChange().setScale(2, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("✓ Multi-holding performance aggregation verified");
+        log.debug("✓ Multi-holding performance aggregation verified");
     }
 
     @Test
@@ -426,7 +430,7 @@ class PortfolioServiceTest {
         assertNotNull(performance);
         assertTrue(performance.isEmpty());
 
-        System.out.println("✓ Empty portfolio handled correctly");
+        log.debug("✓ Empty portfolio handled correctly");
     }
 
     @Test
@@ -464,7 +468,7 @@ class PortfolioServiceTest {
         BigDecimal expectedChangePercent = new BigDecimal("10.0000");
         assertEquals(expectedChangePercent, performance.get(1).getDailyChangePercent().setScale(4, BigDecimal.ROUND_HALF_UP));
 
-        System.out.println("✓ Daily change percentage calculated correctly: " + performance.get(1).getDailyChangePercent() + "%");
+        log.debug("✓ Daily change percentage calculated correctly: {}%", performance.get(1).getDailyChangePercent());
     }
 
     // Helper methods

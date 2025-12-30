@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,6 +34,8 @@ import static org.mockito.Mockito.*;
  */
 @ExtendWith(MockitoExtension.class)
 class PortfolioControllerTest {
+
+    private static final Logger log = LoggerFactory.getLogger(PortfolioControllerTest.class);
 
     @Mock
     private PortfolioService portfolioService;
@@ -78,7 +82,7 @@ class PortfolioControllerTest {
         assertEquals(5, response.getBody().getData().size());
 
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "1y");
-        System.out.println("✓ Default 1Y range works correctly");
+        log.debug("✓ Default 1Y range works correctly");
     }
 
     @Test
@@ -97,7 +101,7 @@ class PortfolioControllerTest {
         assertEquals(7, response.getBody().getData().size());
 
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "7d");
-        System.out.println("✓ 7D range parameter works correctly");
+        log.debug("✓ 7D range parameter works correctly");
     }
 
     @Test
@@ -116,7 +120,7 @@ class PortfolioControllerTest {
         assertEquals(22, response.getBody().getData().size());
 
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "1mo");
-        System.out.println("✓ 1M range parameter works correctly");
+        log.debug("✓ 1M range parameter works correctly");
     }
 
     @Test
@@ -135,7 +139,7 @@ class PortfolioControllerTest {
         assertEquals(65, response.getBody().getData().size());
 
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "3mo");
-        System.out.println("✓ 3M range parameter works correctly");
+        log.debug("✓ 3M range parameter works correctly");
     }
 
     @Test
@@ -154,7 +158,7 @@ class PortfolioControllerTest {
         assertEquals(100, response.getBody().getData().size());
 
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "ytd");
-        System.out.println("✓ YTD range parameter works correctly");
+        log.debug("✓ YTD range parameter works correctly");
     }
 
     @Test
@@ -171,7 +175,7 @@ class PortfolioControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().getData().isEmpty());
 
-        System.out.println("✓ Empty portfolio returns empty performance data");
+        log.debug("✓ Empty portfolio returns empty performance data");
     }
 
     @Test
@@ -217,7 +221,7 @@ class PortfolioControllerTest {
         assertEquals(new BigDecimal("500.00"), point2.getDailyChange());
         assertEquals(new BigDecimal("5.00"), point2.getDailyChangePercent());
 
-        System.out.println("✓ Performance data contains all required fields");
+        log.debug("✓ Performance data contains all required fields");
     }
 
     @Test
@@ -234,7 +238,7 @@ class PortfolioControllerTest {
         verify(userRepository, times(1)).findByEmail(TEST_EMAIL);
         verify(portfolioService, times(1)).getPerformanceHistory(TEST_USER_ID, "1y");
 
-        System.out.println("✓ User ID correctly extracted from UserDetails");
+        log.debug("✓ User ID correctly extracted from UserDetails");
     }
 
     @Test
@@ -261,7 +265,7 @@ class PortfolioControllerTest {
         assertNotNull(response.getBody());
 
         verify(portfolioService, times(1)).getPortfolio(TEST_USER_ID);
-        System.out.println("✓ Existing /portfolio endpoint still works");
+        log.debug("✓ Existing /portfolio endpoint still works");
     }
 
     @Test
@@ -288,7 +292,7 @@ class PortfolioControllerTest {
 
         // Verify cache eviction method was called
         verify(portfolioService, times(1)).getPortfolio(TEST_USER_ID);
-        System.out.println("✓ Refresh endpoint works with cache eviction");
+        log.debug("✓ Refresh endpoint works with cache eviction");
     }
 
     @Test
@@ -307,7 +311,7 @@ class PortfolioControllerTest {
         assertNotNull(response.getBody().getData(), "Response should contain data");
         assertNull(response.getBody().getMessage(), "Response should not contain error message");
 
-        System.out.println("✓ Response follows ApiResponse structure correctly");
+        log.debug("✓ Response follows ApiResponse structure correctly");
     }
 
     @Test
@@ -337,7 +341,7 @@ class PortfolioControllerTest {
                     "Performance data should be in chronological order");
         }
 
-        System.out.println("✓ Performance data is in chronological order");
+        log.debug("✓ Performance data is in chronological order");
     }
 
     // Helper methods
