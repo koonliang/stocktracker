@@ -8,7 +8,10 @@ import com.stocktracker.dto.response.HoldingResponse;
 import com.stocktracker.dto.response.PortfolioPerformancePoint;
 import com.stocktracker.dto.response.PortfolioResponse;
 import com.stocktracker.entity.Holding;
+import com.stocktracker.entity.Transaction;
+import com.stocktracker.entity.TransactionType;
 import com.stocktracker.repository.HoldingRepository;
+import com.stocktracker.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 public class PortfolioService {
 
     private final HoldingRepository holdingRepository;
+    private final TransactionRepository transactionRepository;
     private final YahooFinanceClient yahooFinanceClient;
 
     /**
@@ -234,6 +238,7 @@ public class PortfolioService {
      */
     @Cacheable(value = "performanceHistory", key = "#userId + '-' + #range")
     public List<PortfolioPerformancePoint> getPerformanceHistory(Long userId, String range) {
+        log.debug("getPerformanceHistory.. userId={}, range={}", userId, range);
         List<Holding> holdings = holdingRepository.findByUserIdOrderBySymbolAsc(userId);
 
         if (holdings.isEmpty()) {
@@ -248,17 +253,153 @@ public class PortfolioService {
         Map<String, HistoricalData> historicalDataMap = yahooFinanceClient.getHistoricalDataBatch(symbols, range);
 
         // Aggregate daily portfolio values
-        return aggregatePortfolioPerformance(holdings, historicalDataMap);
+        return aggregatePortfolioPerformance(userId, holdings, historicalDataMap);
     }
 
     /**
      * Aggregate historical prices into portfolio performance points.
+     * FIXED: Now uses transaction history to calculate shares owned at each date.
+     * Falls back to current holdings if no transaction history exists (backward compatibility).
      */
     private List<PortfolioPerformancePoint> aggregatePortfolioPerformance(
+            Long userId,
+            List<Holding> holdings,
+            Map<String, HistoricalData> historicalDataMap) {
+
+        if (holdings.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Fetch all transactions ordered by date
+        List<Transaction> allTransactions = transactionRepository
+            .findByUserIdOrderBySymbolAscTransactionDateAsc(userId);
+
+        log.debug("Fetching transactions for userId={}, found {} transactions", userId,
+                  allTransactions != null ? allTransactions.size() : 0);
+
+        // If no transaction history, fall back to old behavior (use current holdings)
+        if (allTransactions == null || allTransactions.isEmpty()) {
+            log.warn("No transaction history found for userId={}. Using fallback calculation with current holdings. " +
+                     "This may produce inaccurate historical performance.", userId);
+            return aggregatePortfolioPerformanceWithCurrentHoldings(holdings, historicalDataMap);
+        }
+
+        log.debug("Using transaction-based calculation for userId={} with {} transactions",
+                  userId, allTransactions.size());
+
+        // Build a map of all unique dates from historical data
+        // Exclude today's date as historical data may be incomplete
+        LocalDate today = LocalDate.now();
+        Set<LocalDate> allDates = new TreeSet<>();
+        for (HistoricalData data : historicalDataMap.values()) {
+            if (data != null && data.getPrices() != null) {
+                data.getPrices().stream()
+                    .filter(price -> price.getDate().isBefore(today))
+                    .forEach(price -> allDates.add(price.getDate()));
+            }
+        }
+
+        // For each date, calculate portfolio value based on shares owned at that time
+        Map<LocalDate, BigDecimal> dailyValues = new TreeMap<>();
+
+        for (LocalDate date : allDates) {
+            // Calculate shares owned at this date for each symbol
+            Map<String, BigDecimal> sharesAtDate = calculateSharesAtDate(allTransactions, date);
+
+            // Calculate total portfolio value at this date
+            BigDecimal totalValue = BigDecimal.ZERO;
+
+            for (Map.Entry<String, BigDecimal> entry : sharesAtDate.entrySet()) {
+                String symbol = entry.getKey();
+                BigDecimal shares = entry.getValue();
+
+                // Get historical price for this symbol on this date
+                HistoricalData data = historicalDataMap.get(symbol);
+                if (data != null && data.getPrices() != null) {
+                    // Find the price for this specific date
+                    BigDecimal priceAtDate = data.getPrices().stream()
+                        .filter(p -> p.getDate().equals(date))
+                        .findFirst()
+                        .map(HistoricalPrice::getClose)
+                        .orElse(null);
+
+                    if (priceAtDate != null && shares.compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal holdingValue = shares.multiply(priceAtDate);
+                        totalValue = totalValue.add(holdingValue);
+                    }
+                }
+            }
+
+            if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
+                dailyValues.put(date, totalValue);
+            }
+        }
+
+        // Convert to PortfolioPerformancePoint list with daily changes
+        List<PortfolioPerformancePoint> performance = new ArrayList<>();
+        BigDecimal previousValue = null;
+
+        for (Map.Entry<LocalDate, BigDecimal> entry : dailyValues.entrySet()) {
+            BigDecimal currentValue = entry.getValue();
+            BigDecimal dailyChange = previousValue != null
+                ? currentValue.subtract(previousValue)
+                : BigDecimal.ZERO;
+            BigDecimal dailyChangePercent = previousValue != null && previousValue.compareTo(BigDecimal.ZERO) > 0
+                ? dailyChange.divide(previousValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+                : BigDecimal.ZERO;
+
+            performance.add(PortfolioPerformancePoint.builder()
+                .date(entry.getKey())
+                .totalValue(currentValue)
+                .dailyChange(dailyChange)
+                .dailyChangePercent(dailyChangePercent)
+                .build());
+
+            previousValue = currentValue;
+        }
+
+        return performance;
+    }
+
+    /**
+     * Calculate shares owned at a specific date based on transaction history.
+     * Only counts transactions on or before the given date.
+     */
+    private Map<String, BigDecimal> calculateSharesAtDate(List<Transaction> transactions, LocalDate date) {
+        Map<String, BigDecimal> sharesMap = new HashMap<>();
+
+        for (Transaction tx : transactions) {
+            // Only consider transactions on or before this date
+            if (tx.getTransactionDate().isAfter(date)) {
+                continue;
+            }
+
+            String symbol = tx.getSymbol();
+            BigDecimal shares = tx.getShares();
+
+            // Add for BUY, subtract for SELL
+            if (tx.getType() == TransactionType.BUY) {
+                sharesMap.merge(symbol, shares, BigDecimal::add);
+            } else if (tx.getType() == TransactionType.SELL) {
+                sharesMap.merge(symbol, shares.negate(), BigDecimal::add);
+            }
+        }
+
+        return sharesMap;
+    }
+
+    /**
+     * Fallback method: Use current holdings to calculate historical performance.
+     * This is the old behavior, used when no transaction history exists.
+     * WARNING: This approach is less accurate as it uses current shares for all dates.
+     */
+    private List<PortfolioPerformancePoint> aggregatePortfolioPerformanceWithCurrentHoldings(
             List<Holding> holdings,
             Map<String, HistoricalData> historicalDataMap) {
 
         // Build a map of date -> sum of (shares * close price)
+        // Exclude today's date as historical data may be incomplete
+        LocalDate today = LocalDate.now();
         Map<LocalDate, BigDecimal> dailyValues = new TreeMap<>();
 
         for (Holding holding : holdings) {
@@ -266,8 +407,11 @@ public class PortfolioService {
             if (data == null || data.getPrices().isEmpty()) continue;
 
             for (HistoricalPrice price : data.getPrices()) {
-                BigDecimal holdingValue = holding.getShares().multiply(price.getClose());
-                dailyValues.merge(price.getDate(), holdingValue, BigDecimal::add);
+                // Skip today's date as historical prices may be incomplete
+                if (price.getDate().isBefore(today)) {
+                    BigDecimal holdingValue = holding.getShares().multiply(price.getClose());
+                    dailyValues.merge(price.getDate(), holdingValue, BigDecimal::add);
+                }
             }
         }
 

@@ -9,6 +9,7 @@ import com.stocktracker.dto.response.PortfolioPerformancePoint;
 import com.stocktracker.dto.response.PortfolioResponse;
 import com.stocktracker.entity.Holding;
 import com.stocktracker.repository.HoldingRepository;
+import com.stocktracker.repository.TransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ class PortfolioServiceTest {
 
     @Mock
     private HoldingRepository holdingRepository;
+
+    @Mock
+    private TransactionRepository transactionRepository;
 
     @Mock
     private YahooFinanceClient yahooFinanceClient;
@@ -86,6 +90,11 @@ class PortfolioServiceTest {
                 .regularMarketChange(new BigDecimal("5.00"))
                 .regularMarketChangePercent(new BigDecimal("1.45"))
                 .build();
+
+        // Default mock: return empty transaction list (tests will use fallback behavior)
+        // Using lenient() since not all tests call this method
+        lenient().when(transactionRepository.findByUserIdOrderBySymbolAscTransactionDateAsc(anyLong()))
+                .thenReturn(Collections.emptyList());
     }
 
     @Test
