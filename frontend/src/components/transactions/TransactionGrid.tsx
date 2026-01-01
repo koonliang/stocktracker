@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { TransactionResponse, TransactionRequest } from '../../services/api/transactionApi'
 import { TransactionGridRow } from './TransactionGridRow'
+import { TransactionCard } from './TransactionCard'
 import { TransactionForm } from './TransactionForm'
 import { formatCurrency } from '../../utils/stockFormatters'
 
@@ -107,8 +108,8 @@ export function TransactionGrid({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <select
             value={filterSymbol}
             onChange={e => setFilterSymbol(e.target.value)}
@@ -132,8 +133,41 @@ export function TransactionGrid({
         </div>
       </div>
 
-      {/* Grid Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-soft">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {sortedTransactions.map(transaction => (
+          <TransactionCard
+            key={transaction.id}
+            transaction={transaction}
+            isEditing={editingId === transaction.id}
+            onEdit={() => setEditingId(transaction.id)}
+            onSave={request => handleSave(transaction.id, request)}
+            onCancel={() => setEditingId(null)}
+            onDelete={() => handleDelete(transaction.id)}
+          />
+        ))}
+
+        {/* Add New Card */}
+        {showAddRow ? (
+          <div className="rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 p-4">
+            <h3 className="text-sm font-medium text-indigo-900 mb-3">New Transaction</h3>
+            <TransactionForm onSubmit={handleCreate} onCancel={() => setShowAddRow(false)} />
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowAddRow(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed
+                     border-slate-300 py-4 text-slate-500 transition-colors hover:border-indigo-400
+                     hover:text-indigo-600"
+          >
+            <span className="text-xl">+</span>
+            <span>Add Transaction</span>
+          </button>
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-soft">
         <table className="w-full">
           <thead className="bg-slate-50">
             <tr>

@@ -203,25 +203,25 @@ export function TransactionForm({
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3">
-        <button
-          type="submit"
-          disabled={submitting || validating}
-          className="rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white
-                   hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {submitting ? 'Saving...' : isEditing ? 'Update' : 'Add Transaction'}
-        </button>
+      <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 pt-3">
         {onCancel && (
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700
+            className="w-full sm:w-auto rounded-lg border border-slate-300 px-4 py-2 font-medium text-slate-700
                      hover:bg-slate-50"
           >
             Cancel
           </button>
         )}
+        <button
+          type="submit"
+          disabled={submitting || validating}
+          className="w-full sm:w-auto rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white
+                   hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {submitting ? 'Saving...' : isEditing ? 'Update' : 'Add Transaction'}
+        </button>
       </div>
     </form>
   )

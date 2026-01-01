@@ -18,9 +18,9 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
-      <p className="text-sm font-medium text-slate-600">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${className || 'text-slate-900'}`}>{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-soft">
+      <p className="text-xs sm:text-sm font-medium text-slate-600">{label}</p>
+      <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${className || 'text-slate-900'}`}>{value}</p>
     </div>
   )
 }
@@ -88,25 +88,27 @@ const Dashboard = () => {
       <DashboardNavigation />
 
       <div className="container mx-auto px-4 py-8">
-        <header className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">Portfolio Overview</h1>
-          <div className="flex gap-3">
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Portfolio Overview</h1>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
               onClick={() => setShowTransactions(!showTransactions)}
-              className={`rounded-lg px-4 py-2 font-medium transition-colors
+              className={`flex-1 sm:flex-none rounded-lg px-3 sm:px-4 py-2 text-sm sm:text-base font-medium transition-colors
                 ${
                   showTransactions
                     ? 'bg-indigo-100 text-indigo-700'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
             >
-              {showTransactions ? 'Hide Transactions' : 'Manage Transactions'}
+              <span className="hidden sm:inline">{showTransactions ? 'Hide Transactions' : 'Manage Transactions'}</span>
+              <span className="sm:hidden">{showTransactions ? 'Hide' : 'Transactions'}</span>
             </button>
             <button
               onClick={refresh}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+              className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700"
             >
-              Refresh Prices
+              <span className="hidden sm:inline">Refresh Prices</span>
+              <span className="sm:hidden">Refresh</span>
             </button>
           </div>
         </header>

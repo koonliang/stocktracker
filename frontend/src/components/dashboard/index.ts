@@ -1,4 +1,5 @@
 export { PortfolioTable } from './PortfolioTable'
 export { PortfolioTableRow } from './PortfolioTableRow'
+export { HoldingCard } from './HoldingCard'
 export { PerformanceChart } from './PerformanceChart'
 export { Sparkline } from './Sparkline'
