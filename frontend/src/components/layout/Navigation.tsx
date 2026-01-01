@@ -22,9 +22,7 @@ const Navigation = () => {
                 />
               </svg>
             </div>
-            <span className="text-lg font-bold text-slate-900">
-              Stock Tracker
-            </span>
+            <span className="text-lg font-bold text-slate-900">Stock Tracker</span>
           </div>
 
           {/* Navigation Links */}

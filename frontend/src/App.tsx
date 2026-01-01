@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { Home, Login, Dashboard, Portfolios, Watchlist } from '@pages/index'
+import { Home, Login, Logout, Dashboard, Portfolios, Watchlist } from '@pages/index'
+import { ProtectedRoute } from '@components/auth/ProtectedRoute'
 
 function App() {
   return (
@@ -7,9 +8,31 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/portfolios" element={<Portfolios />} />
-        <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/logout" element={<Logout />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portfolios"
+          element={
+            <ProtectedRoute>
+              <Portfolios />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/watchlist"
+          element={
+            <ProtectedRoute>
+              <Watchlist />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   )

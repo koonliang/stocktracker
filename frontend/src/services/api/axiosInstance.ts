@@ -26,11 +26,26 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   response => response,
   error => {
-    // Only redirect to login on 401 if it's not the login endpoint itself
-    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
+    const status = error.response?.status
+    const url = error.config?.url
+
+    // Handle 401 Unauthorized - Invalid/expired token
+    if (status === 401 && !url?.includes('/auth/login') && !url?.includes('/auth/logout')) {
       localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
       window.location.href = '/login'
+      return Promise.reject(error)
     }
+
+    // Handle 403 Forbidden - Insufficient permissions
+    if (status === 403) {
+      // Clear auth data and redirect to home page
+      localStorage.removeItem('authToken')
+      localStorage.removeItem('user')
+      window.location.href = '/'
+      return Promise.reject(error)
+    }
+
     return Promise.reject(error)
   }
 )

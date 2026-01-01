@@ -1,14 +1,18 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { authService } from '@services/authService'
 import styles from './Login.module.css'
 
 const Login = () => {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+
+  // Get the page user tried to access before being redirected to login
+  const from = location.state?.from?.pathname || '/dashboard'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -29,7 +33,7 @@ const Login = () => {
 
     try {
       await authService.login({ email, password })
-      navigate('/dashboard')
+      navigate(from, { replace: true }) // Redirect to original destination
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
@@ -82,11 +86,7 @@ const Login = () => {
             />
           </div>
 
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={isLoading}
-          >
+          <button type="submit" className={styles.button} disabled={isLoading}>
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
