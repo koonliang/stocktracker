@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import type { TransactionResponse, TransactionRequest } from '../../services/api/transactionApi'
 import { TransactionGridRow } from './TransactionGridRow'
 import { TransactionCard } from './TransactionCard'
-import { TransactionForm } from './TransactionForm'
 import { formatCurrency } from '../../utils/stockFormatters'
 
 interface TransactionGridProps {
@@ -30,10 +29,8 @@ export function TransactionGrid({
   transactions,
   onUpdate,
   onDelete,
-  onCreate,
 }: TransactionGridProps) {
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [showAddRow, setShowAddRow] = useState(false)
   const [sortField, setSortField] = useState<SortField>('transactionDate')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [filterSymbol, setFilterSymbol] = useState<string>('')
@@ -80,14 +77,6 @@ export function TransactionGrid({
     [onUpdate]
   )
 
-  const handleCreate = useCallback(
-    async (request: TransactionRequest) => {
-      await onCreate(request)
-      setShowAddRow(false)
-    },
-    [onCreate]
-  )
-
   const handleDelete = useCallback(
     async (id: number) => {
       if (window.confirm('Are you sure you want to delete this transaction?')) {
@@ -115,7 +104,7 @@ export function TransactionGrid({
             onChange={e => setFilterSymbol(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
-            <option value="">All Symbols</option>
+            <option value="">All</option>
             {uniqueSymbols.map(symbol => (
               <option key={symbol} value={symbol}>
                 {symbol}
@@ -146,24 +135,6 @@ export function TransactionGrid({
             onDelete={() => handleDelete(transaction.id)}
           />
         ))}
-
-        {/* Add New Card */}
-        {showAddRow ? (
-          <div className="rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50 p-4">
-            <h3 className="text-sm font-medium text-indigo-900 mb-3">New Transaction</h3>
-            <TransactionForm onSubmit={handleCreate} onCancel={() => setShowAddRow(false)} />
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowAddRow(true)}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed
-                     border-slate-300 py-4 text-slate-500 transition-colors hover:border-indigo-400
-                     hover:text-indigo-600"
-          >
-            <span className="text-xl">+</span>
-            <span>Add Transaction</span>
-          </button>
-        )}
       </div>
 
       {/* Desktop Table View */}
@@ -225,29 +196,6 @@ export function TransactionGrid({
                 onDelete={() => handleDelete(transaction.id)}
               />
             ))}
-
-            {/* Add New Row */}
-            {showAddRow ? (
-              <tr>
-                <td colSpan={7} className="bg-indigo-50 p-4">
-                  <TransactionForm onSubmit={handleCreate} onCancel={() => setShowAddRow(false)} />
-                </td>
-              </tr>
-            ) : (
-              <tr>
-                <td colSpan={7} className="p-4">
-                  <button
-                    onClick={() => setShowAddRow(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed
-                             border-slate-300 py-3 text-slate-500 transition-colors hover:border-indigo-400
-                             hover:text-indigo-600"
-                  >
-                    <span className="text-xl">+</span>
-                    <span>Add Transaction</span>
-                  </button>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
