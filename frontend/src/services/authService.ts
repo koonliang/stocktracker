@@ -35,9 +35,18 @@ export const authService = {
     }
   },
 
-  logout(): void {
-    localStorage.removeItem(TOKEN_KEY)
-    localStorage.removeItem(USER_KEY)
+  async logout(): Promise<void> {
+    try {
+      // Call backend logout endpoint (if implemented)
+      await api.post('/auth/logout', {}, { timeout: 3000 })
+    } catch (error) {
+      // Log error for debugging but don't block logout
+      console.warn('Backend logout failed, proceeding with local cleanup:', error)
+    } finally {
+      // ALWAYS clear local data regardless of backend response
+      localStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(USER_KEY)
+    }
   },
 
   getToken(): string | null {

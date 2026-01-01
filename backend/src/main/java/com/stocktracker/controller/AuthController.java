@@ -21,4 +21,12 @@ public class AuthController {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestHeader(value = "Authorization", required = false) String authHeader) {
+        // For stateless JWT, client-side logout is sufficient
+        // Backend logout is primarily for logging/auditing
+        // Return 200 OK even if token is invalid to prevent information leakage
+        return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
+    }
 }
