@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/portfolio")
+@RequestMapping("/api/portfolio")
 @RequiredArgsConstructor
 @Tag(name = "Portfolio", description = "Portfolio management endpoints")
 public class PortfolioController {

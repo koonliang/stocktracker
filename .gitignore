@@ -1,0 +1,19 @@
+# Environment configuration files with sensitive data
+scripts/.env.production
+
+# Build artifacts
+backend/target/
+frontend/dist/
+frontend/build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

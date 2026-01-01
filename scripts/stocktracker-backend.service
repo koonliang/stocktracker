@@ -1,0 +1,42 @@
+[Unit]
+Description=Stock Tracker Full Stack Application
+Documentation=https://github.com/koonliang/stocktracker
+After=network.target mysql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stocktracker
+Group=stocktracker
+WorkingDirectory=/opt/stocktracker
+
+# Load environment variables from .env file
+EnvironmentFile=/opt/stocktracker/.env
+
+# Java execution with memory limits
+ExecStart=/usr/bin/java -Xms512m -Xmx1024m -jar stocktracker.jar
+
+# Restart configuration
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=stocktracker
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/stocktracker
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

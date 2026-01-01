@@ -33,9 +33,21 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                // Static resources (frontend)
                 .requestMatchers(
-                    "/auth/**",
-                    "/health",
+                    "/",
+                    "/index.html",
+                    "/*.js",
+                    "/*.css",
+                    "/*.ico",
+                    "/*.png",
+                    "/*.svg",
+                    "/assets/**"
+                ).permitAll()
+                // API endpoints that don't require authentication
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/api/health",
                     "/h2-console/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
