@@ -61,8 +61,12 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
       {/* Header with range toggles */}
       <div className="mb-4 sm:mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base sm:text-lg font-semibold text-slate-900">Portfolio Performance</h2>
-          <div className={`text-xl sm:text-2xl font-bold ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+          <h2 className="text-base sm:text-lg font-semibold text-slate-900">
+            Portfolio Performance
+          </h2>
+          <div
+            className={`text-xl sm:text-2xl font-bold ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}
+          >
             {isPositive ? '+' : ''}
             {formatCurrency(periodReturn.dollars)}
             <span className="ml-1 sm:ml-2 text-sm sm:text-base font-medium">

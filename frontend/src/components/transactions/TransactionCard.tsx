@@ -1,5 +1,9 @@
 import { useState } from 'react'
-import type { TransactionResponse, TransactionRequest, TransactionType } from '../../services/api/transactionApi'
+import type {
+  TransactionResponse,
+  TransactionRequest,
+  TransactionType,
+} from '../../services/api/transactionApi'
 import { useTickerValidation } from '../../hooks/useTransactions'
 import { formatCurrency } from '../../utils/stockFormatters'
 
@@ -67,11 +71,15 @@ export function TransactionCard({
             </span>
             <div>
               <span className="font-semibold text-slate-900">{transaction.symbol}</span>
-              <span className="text-xs text-slate-500 ml-1 hidden sm:inline">{transaction.companyName}</span>
+              <span className="text-xs text-slate-500 ml-1 hidden sm:inline">
+                {transaction.companyName}
+              </span>
             </div>
           </div>
           <div className="text-right">
-            <div className="font-semibold text-slate-900">{formatCurrency(transaction.totalAmount)}</div>
+            <div className="font-semibold text-slate-900">
+              {formatCurrency(transaction.totalAmount)}
+            </div>
             <div className="text-xs text-slate-500">
               {new Date(transaction.transactionDate).toLocaleDateString()}
             </div>
@@ -80,7 +88,9 @@ export function TransactionCard({
 
         <div className="flex items-center justify-between text-sm">
           <div className="text-slate-600">
-            <span className="font-medium">{transaction.shares.toFixed(4).replace(/\.?0+$/, '')}</span>
+            <span className="font-medium">
+              {transaction.shares.toFixed(4).replace(/\.?0+$/, '')}
+            </span>
             <span className="text-slate-400"> shares @ </span>
             <span className="font-medium">{formatCurrency(transaction.pricePerShare)}</span>
           </div>

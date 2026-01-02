@@ -25,11 +25,7 @@ function SortIcon({ field, sortField, sortDirection }: SortIconProps) {
   return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 }
 
-export function TransactionGrid({
-  transactions,
-  onUpdate,
-  onDelete,
-}: TransactionGridProps) {
+export function TransactionGrid({ transactions, onUpdate, onDelete }: TransactionGridProps) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [sortField, setSortField] = useState<SortField>('transactionDate')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')

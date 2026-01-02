@@ -62,10 +62,7 @@ export function TransactionModal({
                     Cancel
                   </button>
                 </div>
-                <TransactionForm
-                  onSubmit={handleCreate}
-                  onCancel={() => setShowAddForm(false)}
-                />
+                <TransactionForm onSubmit={handleCreate} onCancel={() => setShowAddForm(false)} />
               </div>
             ) : (
               <button

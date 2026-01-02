@@ -19,7 +19,9 @@ function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-soft">
       <p className="text-xs sm:text-sm font-medium text-slate-600">{label}</p>
-      <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${className || 'text-slate-900'}`}>{value}</p>
+      <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${className || 'text-slate-900'}`}>
+        {value}
+      </p>
     </div>
   )
 }
@@ -40,7 +42,12 @@ const Dashboard = () => {
     deleteTransaction,
   } = useTransactions()
 
-  const { isOpen: showTransactions, isClosing, open: openTransactions, close: closeTransactions } = useModal()
+  const {
+    isOpen: showTransactions,
+    isClosing,
+    open: openTransactions,
+    close: closeTransactions,
+  } = useModal()
 
   const handleCreateTransaction = async (request: TransactionRequest) => {
     await createTransaction(request)
