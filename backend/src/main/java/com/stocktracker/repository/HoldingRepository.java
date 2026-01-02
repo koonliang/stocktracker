@@ -24,4 +24,9 @@ public interface HoldingRepository extends JpaRepository<Holding, Long> {
      * Check if a user already has a holding for a specific symbol.
      */
     boolean existsByUserIdAndSymbol(Long userId, String symbol);
+
+    /**
+     * Delete all holdings for a user (used for demo account cleanup).
+     */
+    void deleteByUserId(Long userId);
 }

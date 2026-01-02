@@ -21,6 +21,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsService userDetailsService;
+    private final DemoAccountService demoAccountService;
 
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
@@ -39,6 +40,23 @@ public class AuthService {
             .userId(user.getId())
             .email(user.getEmail())
             .name(user.getName())
+            .build();
+    }
+
+    public AuthResponse demoLogin() {
+        // Create a new demo account with seeded data
+        User demoUser = demoAccountService.createDemoAccount();
+
+        // Generate JWT token for the demo user
+        UserDetails userDetails = userDetailsService.loadUserByUsername(demoUser.getEmail());
+        String token = jwtTokenProvider.generateToken(userDetails);
+
+        return AuthResponse.builder()
+            .token(token)
+            .type("Bearer")
+            .userId(demoUser.getId())
+            .email(demoUser.getEmail())
+            .name(demoUser.getName())
             .build();
     }
 }

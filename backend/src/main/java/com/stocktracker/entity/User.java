@@ -37,6 +37,10 @@ public class User extends BaseEntity {
     @Builder.Default
     private boolean enabled = true;
 
+    @Column(name = "is_demo_account", nullable = false)
+    @Builder.Default
+    private boolean isDemoAccount = false;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
