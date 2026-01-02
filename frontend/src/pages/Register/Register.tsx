@@ -52,8 +52,7 @@ const Register = () => {
   }
 
   const handleGoogleSignIn = () => {
-    const oauthBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
-    window.location.href = `${oauthBaseUrl}/oauth2/authorize/google`
+    window.location.href = '/oauth2/authorize/google'
   }
 
   return (
