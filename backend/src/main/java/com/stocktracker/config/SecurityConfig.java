@@ -1,6 +1,9 @@
 package com.stocktracker.config;
 
 import com.stocktracker.security.JwtAuthenticationFilter;
+import com.stocktracker.security.oauth2.CustomOAuth2UserService;
+import com.stocktracker.security.oauth2.OAuth2AuthenticationFailureHandler;
+import com.stocktracker.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +30,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsService userDetailsService;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -47,6 +53,8 @@ public class SecurityConfig {
                 // API endpoints that don't require authentication
                 .requestMatchers(
                     "/api/auth/**",
+                    "/oauth2/**",
+                    "/login/oauth2/**",
                     "/api/health",
                     "/h2-console/**",
                     "/swagger-ui/**",
@@ -58,6 +66,20 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            // Add OAuth2 Login configuration
+            .oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(authorization -> authorization
+                    .baseUri("/oauth2/authorize")
+                )
+                .redirectionEndpoint(redirection -> redirection
+                    .baseUri("/api/auth/oauth2/callback/*")
+                )
+                .userInfoEndpoint(userInfo -> userInfo
+                    .oidcUserService(customOAuth2UserService)
+                )
+                .successHandler(oAuth2SuccessHandler)
+                .failureHandler(oAuth2FailureHandler)
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)

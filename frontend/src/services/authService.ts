@@ -1,5 +1,5 @@
 import api from './api'
-import type { LoginRequest, AuthResponse, ApiResponse } from '@/types/auth'
+import type { LoginRequest, SignupRequest, AuthResponse, ApiResponse } from '@/types/auth'
 
 const TOKEN_KEY = 'authToken'
 const USER_KEY = 'user'
@@ -89,6 +89,52 @@ export const authService = {
 
   isAuthenticated(): boolean {
     return !!this.getToken()
+  },
+
+  async register(data: SignupRequest): Promise<AuthResponse> {
+    try {
+      const response = await api.post<ApiResponse<AuthResponse>>('/auth/register', data)
+
+      if (response.data.success && response.data.data) {
+        const authData = response.data.data
+        localStorage.setItem(TOKEN_KEY, authData.token)
+        localStorage.setItem(
+          USER_KEY,
+          JSON.stringify({
+            id: authData.userId,
+            email: authData.email,
+            name: authData.name,
+          })
+        )
+        return authData
+      }
+
+      throw new Error(response.data.message || 'Registration failed')
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } }; message?: string }).response?.data
+          ?.message ||
+        (error as { message?: string }).message ||
+        'Registration failed'
+      throw new Error(message)
+    }
+  },
+
+  storeOAuthCredentials(data: {
+    token: string
+    userId: number
+    email: string
+    name: string
+  }): void {
+    localStorage.setItem(TOKEN_KEY, data.token)
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify({
+        id: data.userId,
+        email: data.email,
+        name: data.name,
+      })
+    )
   },
 }
 

@@ -13,4 +13,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     List<User> findByIsDemoAccountTrueAndCreatedAtBefore(LocalDateTime cutoffTime);
+    Optional<User> findByOauthProviderIdAndAuthProvider(String oauthProviderId, User.AuthProvider authProvider);
 }

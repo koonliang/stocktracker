@@ -182,7 +182,7 @@
   border-radius: 8px;
 }
 
-/* Divider */
+/* Divider for "or" separator */
 .divider {
   display: flex;
   align-items: center;
@@ -201,10 +201,9 @@
   padding: 0 1rem;
   font-size: 0.875rem;
   color: #94a3b8;
-  font-weight: 500;
 }
 
-/* Google OAuth Button */
+/* Google OAuth button */
 .googleButton {
   width: 100%;
   display: flex;
@@ -222,14 +221,12 @@
   cursor: pointer;
   transition:
     background-color 0.2s,
-    border-color 0.2s,
-    box-shadow 0.2s;
+    border-color 0.2s;
 }
 
 .googleButton:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .googleButton:disabled {
@@ -242,24 +239,21 @@
   height: 1.25rem;
 }
 
-/* Footer with registration link */
+/* Footer with link */
 .footer {
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.875rem;
   color: #64748b;
-  font-weight: 400;
 }
 
 .link {
   color: #4f46e5;
   text-decoration: none;
-  font-weight: 600;
-  transition: color 0.2s;
+  font-weight: 500;
 }
 
 .link:hover {
-  color: #7c3aed;
   text-decoration: underline;
 }
 

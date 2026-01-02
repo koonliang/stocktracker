@@ -22,3 +22,19 @@ export interface User {
   email: string
   name: string
 }
+
+export interface SignupRequest {
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+export interface PasswordValidation {
+  minLength: boolean
+  hasUppercase: boolean
+  hasLowercase: boolean
+  hasNumber: boolean
+  hasSymbol: boolean
+  isValid: boolean
+}
