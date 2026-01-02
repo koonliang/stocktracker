@@ -24,9 +24,9 @@ public class DemoAccountCleanupScheduler {
 
     /**
      * Clean up demo accounts older than 24 hours.
-     * Runs daily at 2:00 AM.
+     * Runs every day at 0 second 0 minute of every hour.
      */
-    @Scheduled(cron = "0 0 2 * * *")
+    @Scheduled(cron = "0 0 * * * *")
     @Transactional
     public void cleanupOldDemoAccounts() {
         log.info("Starting demo account cleanup...");

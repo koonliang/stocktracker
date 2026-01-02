@@ -28,9 +28,8 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @NotBlank
     @Size(max = 255)
-    @Column(nullable = false)
+    @Column(nullable = true)  // Allow null for OAuth users
     private String password;
 
     @Column(nullable = false)
@@ -46,7 +45,23 @@ public class User extends BaseEntity {
     @Builder.Default
     private Role role = Role.USER;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider", nullable = false)
+    @Builder.Default
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
+    @Column(name = "oauth_provider_id")
+    private String oauthProviderId;  // Google's unique user ID
+
+    @Column(name = "profile_image_url", length = 500)
+    private String profileImageUrl;
+
     public enum Role {
         USER, ADMIN
+    }
+
+    public enum AuthProvider {
+        LOCAL,    // Email/password registration
+        GOOGLE    // Google OAuth
     }
 }

@@ -3,6 +3,25 @@ spring:
     name: stocktracker-backend
   profiles:
     active: dev
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+              - openid
+            redirect-uri: "{baseUrl}/api/auth/oauth2/callback/{registrationId}"
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
+            jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+            user-name-attribute: sub
 
 server:
   port: 8080
@@ -18,6 +37,11 @@ jwt:
 yahoo:
   finance:
     chart-url: https://query1.finance.yahoo.com/v8/finance/chart
+
+# OAuth2 Configuration
+app:
+  oauth2:
+    redirectUri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/redirect}
 
 # Logging
 logging:
