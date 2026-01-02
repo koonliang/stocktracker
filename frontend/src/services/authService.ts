@@ -120,7 +120,12 @@ export const authService = {
     }
   },
 
-  storeOAuthCredentials(data: { token: string; userId: number; email: string; name: string }): void {
+  storeOAuthCredentials(data: {
+    token: string
+    userId: number
+    email: string
+    name: string
+  }): void {
     localStorage.setItem(TOKEN_KEY, data.token)
     localStorage.setItem(
       USER_KEY,

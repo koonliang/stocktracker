@@ -8,8 +8,12 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: #F8FAFC;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f8fafc;
+  font-family:
+    'Plus Jakarta Sans',
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   position: relative;
   overflow: hidden;
   box-sizing: border-box;
@@ -23,7 +27,7 @@
   right: -200px;
   width: 500px;
   height: 500px;
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   border-radius: 50%;
   filter: blur(120px);
   opacity: 0.15;
@@ -37,7 +41,7 @@
   left: -150px;
   width: 400px;
   height: 400px;
-  background: linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
   border-radius: 50%;
   filter: blur(100px);
   opacity: 0.1;
@@ -45,21 +49,24 @@
 }
 
 .card {
-  background: #FFFFFF;
+  background: #ffffff;
   border-radius: 12px;
   padding: 2.5rem;
   width: 100%;
   max-width: 400px;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   box-shadow: 0 4px 20px -2px rgba(79, 70, 229, 0.1);
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transition:
+    transform 0.2s ease-out,
+    box-shadow 0.2s ease-out;
   position: relative;
   z-index: 1;
 }
 
 .card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.15),
+  box-shadow:
+    0 10px 25px -5px rgba(79, 70, 229, 0.15),
     0 8px 10px -6px rgba(79, 70, 229, 0.1);
 }
 
@@ -68,7 +75,7 @@
   font-weight: 800;
   text-align: center;
   margin: 0 0 0.5rem;
-  color: #0F172A;
+  color: #0f172a;
   letter-spacing: -0.02em;
   line-height: 1.1;
 }
@@ -76,7 +83,7 @@
 .subtitle {
   font-size: 0.875rem;
   text-align: center;
-  color: #64748B;
+  color: #64748b;
   margin: 0 0 2rem;
   font-weight: 400;
   line-height: 1.6;
@@ -104,27 +111,29 @@
   padding: 0.75rem 1rem;
   font-size: 1rem;
   font-family: inherit;
-  border: 1px solid #E2E8F0;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
-  background: #FFFFFF;
-  color: #0F172A;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #ffffff;
+  color: #0f172a;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .input:focus {
   outline: none;
-  border-color: #4F46E5;
+  border-color: #4f46e5;
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
 }
 
 .input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: #F8FAFC;
+  background: #f8fafc;
 }
 
 .input::placeholder {
-  color: #94A3B8;
+  color: #94a3b8;
 }
 
 .button {
@@ -133,13 +142,15 @@
   font-size: 1rem;
   font-weight: 600;
   font-family: inherit;
-  color: #FFFFFF;
-  background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   border: none;
   border-radius: 8px;
   cursor: pointer;
   box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.3);
-  transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+  transition:
+    transform 0.2s ease-out,
+    box-shadow 0.2s ease-out;
 }
 
 .button:hover:not(:disabled) {
@@ -165,9 +176,9 @@
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: #DC2626;
-  background: #FEF2F2;
-  border: 1px solid #FECACA;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
 }
 
@@ -183,13 +194,13 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #E2E8F0;
+  background: #e2e8f0;
 }
 
 .divider span {
   padding: 0 1rem;
   font-size: 0.875rem;
-  color: #94A3B8;
+  color: #94a3b8;
 }
 
 /* Google OAuth button */
@@ -204,16 +215,18 @@
   font-weight: 500;
   font-family: inherit;
   color: #334155;
-  background: #FFFFFF;
-  border: 1px solid #E2E8F0;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s;
 }
 
 .googleButton:hover:not(:disabled) {
-  background: #F8FAFC;
-  border-color: #CBD5E1;
+  background: #f8fafc;
+  border-color: #cbd5e1;
 }
 
 .googleButton:disabled {
@@ -231,11 +244,11 @@
   text-align: center;
   margin-top: 1.5rem;
   font-size: 0.875rem;
-  color: #64748B;
+  color: #64748b;
 }
 
 .link {
-  color: #4F46E5;
+  color: #4f46e5;
   text-decoration: none;
   font-weight: 500;
 }

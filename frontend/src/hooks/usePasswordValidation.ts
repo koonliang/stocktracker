@@ -5,7 +5,7 @@ const MIN_LENGTH = 8
 const UPPERCASE_REGEX = /[A-Z]/
 const LOWERCASE_REGEX = /[a-z]/
 const NUMBER_REGEX = /\d/
-const SYMBOL_REGEX = /[!@#$%^&*()_+\-=\[\]{}|;':",./<>?]/
+const SYMBOL_REGEX = /[!@#$%^&*()_+\-=[\]{}|;':",./<>?]/
 
 export function usePasswordValidation(password: string): PasswordValidation {
   return useMemo(() => {

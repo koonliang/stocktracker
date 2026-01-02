@@ -1,5 +1,14 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { Home, Login, Logout, Dashboard, Portfolios, Watchlist, Register, OAuth2Redirect } from '@pages/index'
+import {
+  Home,
+  Login,
+  Logout,
+  Dashboard,
+  Portfolios,
+  Watchlist,
+  Register,
+  OAuth2Redirect,
+} from '@pages/index'
 import { ProtectedRoute } from '@components/auth/ProtectedRoute'
 
 function App() {
