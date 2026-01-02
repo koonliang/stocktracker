@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type {
   TransactionResponse,
   TransactionRequest,
@@ -31,7 +31,21 @@ export function TransactionGridRow({
   const [price, setPrice] = useState(transaction.pricePerShare.toString())
   const [saving, setSaving] = useState(false)
 
+  const rowRef = useRef<HTMLTableRowElement>(null)
   const { validating, validation, validateTicker } = useTickerValidation()
+
+  // Scroll into view when editing starts
+  useEffect(() => {
+    if (isEditing && rowRef.current) {
+      // Small delay to ensure the row has expanded before scrolling
+      setTimeout(() => {
+        rowRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+        })
+      }, 100)
+    }
+  }, [isEditing])
 
   const handleSymbolChange = async (value: string) => {
     const upperValue = value.toUpperCase()
@@ -72,7 +86,7 @@ export function TransactionGridRow({
   if (!isEditing) {
     // Display mode
     return (
-      <tr className="transition-colors hover:bg-slate-50">
+      <tr ref={rowRef} className="transition-colors hover:bg-slate-50">
         <td className="px-4 py-3">
           <span
             className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold
@@ -124,77 +138,106 @@ export function TransactionGridRow({
   const totalAmount = parseFloat(shares || '0') * parseFloat(price || '0')
 
   return (
-    <tr className="bg-indigo-50" onKeyDown={handleKeyDown}>
-      <td className="px-4 py-3">
-        <select
-          value={type}
-          onChange={e => setType(e.target.value as TransactionType)}
-          className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
-        >
-          <option value="BUY">BUY</option>
-          <option value="SELL">SELL</option>
-        </select>
-      </td>
-      <td className="px-4 py-3">
-        <input
-          type="text"
-          value={symbol}
-          onChange={e => handleSymbolChange(e.target.value)}
-          className={`w-full rounded border px-2 py-1 text-sm uppercase
-            ${validation?.valid === false ? 'border-red-300' : 'border-slate-300'}`}
-        />
-        {validating && <span className="text-xs text-slate-400">Validating...</span>}
-        {validation?.valid === false && (
-          <span className="text-xs text-red-500">{validation.errorMessage}</span>
-        )}
-      </td>
-      <td className="px-4 py-3">
-        <input
-          type="date"
-          value={date}
-          onChange={e => setDate(e.target.value)}
-          max={new Date().toISOString().split('T')[0]}
-          className="w-full rounded border border-slate-300 px-2 py-1 text-sm"
-        />
-      </td>
-      <td className="px-4 py-3">
-        <input
-          type="number"
-          value={shares}
-          onChange={e => setShares(e.target.value)}
-          min="0.0001"
-          step="0.0001"
-          className="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm"
-        />
-      </td>
-      <td className="px-4 py-3">
-        <input
-          type="number"
-          value={price}
-          onChange={e => setPrice(e.target.value)}
-          min="0.01"
-          step="0.01"
-          className="w-full rounded border border-slate-300 px-2 py-1 text-right text-sm"
-        />
-      </td>
-      <td className="px-4 py-3 text-right font-medium text-slate-700">
-        {formatCurrency(totalAmount)}
-      </td>
-      <td className="px-4 py-3 text-center">
-        <button
-          onClick={handleSave}
-          disabled={saving || validating}
-          className="mr-2 rounded bg-indigo-600 px-2 py-1 text-sm text-white hover:bg-indigo-700
-                   disabled:opacity-50"
-        >
-          {saving ? '...' : 'Save'}
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded border border-slate-300 px-2 py-1 text-sm text-slate-600 hover:bg-slate-100"
-        >
-          Cancel
-        </button>
+    <tr ref={rowRef} className="bg-indigo-50" onKeyDown={handleKeyDown}>
+      <td colSpan={7} className="px-4 py-4">
+        <div className="space-y-3">
+          {/* Form Fields */}
+          <div className="grid grid-cols-12 gap-3 items-end">
+            {/* Type */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Type</label>
+              <select
+                value={type}
+                onChange={e => setType(e.target.value as TransactionType)}
+                className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+              >
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+              </select>
+            </div>
+
+            {/* Ticker */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Ticker</label>
+              <input
+                type="text"
+                value={symbol}
+                onChange={e => handleSymbolChange(e.target.value)}
+                className={`w-full rounded border px-2 py-1.5 text-sm uppercase
+                  ${validation?.valid === false ? 'border-red-300' : 'border-slate-300'}`}
+              />
+              {validating && <span className="text-xs text-slate-400">Validating...</span>}
+              {validation?.valid === false && (
+                <span className="text-xs text-red-500">{validation.errorMessage}</span>
+              )}
+            </div>
+
+            {/* Date */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={e => setDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+              />
+            </div>
+
+            {/* Shares */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Shares</label>
+              <input
+                type="number"
+                value={shares}
+                onChange={e => setShares(e.target.value)}
+                min="0.0001"
+                step="0.0001"
+                className="w-full rounded border border-slate-300 px-2 py-1.5 text-right text-sm"
+              />
+            </div>
+
+            {/* Price */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Price</label>
+              <input
+                type="number"
+                value={price}
+                onChange={e => setPrice(e.target.value)}
+                min="0.01"
+                step="0.01"
+                className="w-full rounded border border-slate-300 px-2 py-1.5 text-right text-sm"
+              />
+            </div>
+
+            {/* Total (read-only) */}
+            <div className="col-span-2">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Total</label>
+              <div className="rounded bg-slate-100 px-2 py-1.5 text-right text-sm font-medium text-slate-700">
+                {formatCurrency(totalAmount)}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons Row */}
+          <div className="flex justify-end gap-2 pt-2 border-t border-indigo-200">
+            <button
+              onClick={onCancel}
+              className="rounded border border-slate-300 px-4 py-1.5 text-sm font-medium
+                       text-slate-600 hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving || validating}
+              className="rounded bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white
+                       hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </div>
+        </div>
       </td>
     </tr>
   )

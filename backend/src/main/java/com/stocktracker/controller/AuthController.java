@@ -29,4 +29,10 @@ public class AuthController {
         // Return 200 OK even if token is invalid to prevent information leakage
         return ResponseEntity.ok(ApiResponse.success("Logged out successfully", null));
     }
+
+    @PostMapping("/demo-login")
+    public ResponseEntity<ApiResponse<AuthResponse>> demoLogin() {
+        AuthResponse response = authService.demoLogin();
+        return ResponseEntity.ok(ApiResponse.success("Demo account created", response));
+    }
 }

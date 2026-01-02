@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react'
 import type { TransactionResponse, TransactionRequest } from '../../services/api/transactionApi'
 import { TransactionGridRow } from './TransactionGridRow'
-import { TransactionForm } from './TransactionForm'
+import { TransactionCard } from './TransactionCard'
 import { formatCurrency } from '../../utils/stockFormatters'
 
 interface TransactionGridProps {
@@ -25,14 +25,8 @@ function SortIcon({ field, sortField, sortDirection }: SortIconProps) {
   return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 }
 
-export function TransactionGrid({
-  transactions,
-  onUpdate,
-  onDelete,
-  onCreate,
-}: TransactionGridProps) {
+export function TransactionGrid({ transactions, onUpdate, onDelete }: TransactionGridProps) {
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [showAddRow, setShowAddRow] = useState(false)
   const [sortField, setSortField] = useState<SortField>('transactionDate')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
   const [filterSymbol, setFilterSymbol] = useState<string>('')
@@ -79,14 +73,6 @@ export function TransactionGrid({
     [onUpdate]
   )
 
-  const handleCreate = useCallback(
-    async (request: TransactionRequest) => {
-      await onCreate(request)
-      setShowAddRow(false)
-    },
-    [onCreate]
-  )
-
   const handleDelete = useCallback(
     async (id: number) => {
       if (window.confirm('Are you sure you want to delete this transaction?')) {
@@ -107,14 +93,14 @@ export function TransactionGrid({
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
           <select
             value={filterSymbol}
             onChange={e => setFilterSymbol(e.target.value)}
             className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
           >
-            <option value="">All Symbols</option>
+            <option value="">All</option>
             {uniqueSymbols.map(symbol => (
               <option key={symbol} value={symbol}>
                 {symbol}
@@ -132,8 +118,23 @@ export function TransactionGrid({
         </div>
       </div>
 
-      {/* Grid Table */}
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-soft">
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {sortedTransactions.map(transaction => (
+          <TransactionCard
+            key={transaction.id}
+            transaction={transaction}
+            isEditing={editingId === transaction.id}
+            onEdit={() => setEditingId(transaction.id)}
+            onSave={request => handleSave(transaction.id, request)}
+            onCancel={() => setEditingId(null)}
+            onDelete={() => handleDelete(transaction.id)}
+          />
+        ))}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-soft">
         <table className="w-full">
           <thead className="bg-slate-50">
             <tr>
@@ -191,29 +192,6 @@ export function TransactionGrid({
                 onDelete={() => handleDelete(transaction.id)}
               />
             ))}
-
-            {/* Add New Row */}
-            {showAddRow ? (
-              <tr>
-                <td colSpan={7} className="bg-indigo-50 p-4">
-                  <TransactionForm onSubmit={handleCreate} onCancel={() => setShowAddRow(false)} />
-                </td>
-              </tr>
-            ) : (
-              <tr>
-                <td colSpan={7} className="p-4">
-                  <button
-                    onClick={() => setShowAddRow(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed
-                             border-slate-300 py-3 text-slate-500 transition-colors hover:border-indigo-400
-                             hover:text-indigo-600"
-                  >
-                    <span className="text-xl">+</span>
-                    <span>Add Transaction</span>
-                  </button>
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>

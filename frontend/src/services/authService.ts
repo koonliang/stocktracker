@@ -35,6 +35,35 @@ export const authService = {
     }
   },
 
+  async demoLogin(): Promise<AuthResponse> {
+    try {
+      const response = await api.post<ApiResponse<AuthResponse>>('/auth/demo-login')
+
+      if (response.data.success && response.data.data) {
+        const authData = response.data.data
+        localStorage.setItem(TOKEN_KEY, authData.token)
+        localStorage.setItem(
+          USER_KEY,
+          JSON.stringify({
+            id: authData.userId,
+            email: authData.email,
+            name: authData.name,
+          })
+        )
+        return authData
+      }
+
+      throw new Error(response.data.message || 'Demo login failed')
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } }; message?: string }).response?.data
+          ?.message ||
+        (error as { message?: string }).message ||
+        'Demo login failed'
+      throw new Error(message)
+    }
+  },
+
   async logout(): Promise<void> {
     try {
       // Call backend logout endpoint (if implemented)

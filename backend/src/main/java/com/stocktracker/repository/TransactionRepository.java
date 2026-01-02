@@ -67,4 +67,9 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Find transaction by id and user (for security).
      */
     Transaction findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * Delete all transactions for a user (used for demo account cleanup).
+     */
+    void deleteByUserId(Long userId);
 }

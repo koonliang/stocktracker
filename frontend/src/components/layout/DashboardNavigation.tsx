@@ -6,6 +6,7 @@ const DashboardNavigation = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const user = authService.getUser()
 
@@ -70,28 +71,57 @@ const DashboardNavigation = () => {
     <nav className="bg-white border-b border-slate-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Logo & Hamburger */}
           <div className="flex items-center gap-8">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center">
-                <svg
-                  className="w-5 h-5 text-white"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                  />
+            <div className="flex items-center gap-3">
+              {/* Mobile Hamburger Menu */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 text-slate-600 hover:text-indigo-600 rounded-lg"
+                aria-label="Toggle menu"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {isMobileMenuOpen ? (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  ) : (
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 6h16M4 12h16M4 18h16"
+                    />
+                  )}
                 </svg>
-              </div>
-              <span className="text-lg font-bold text-slate-900">Stock Tracker</span>
-            </Link>
+              </button>
 
-            {/* Navigation Links */}
+              <Link to="/dashboard" className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-5 h-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+                    />
+                  </svg>
+                </div>
+                <span className="hidden sm:inline text-lg font-bold text-slate-900">
+                  Stock Tracker
+                </span>
+              </Link>
+            </div>
+
+            {/* Desktop Navigation Links */}
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map(link => (
                 <Link
@@ -232,6 +262,58 @@ const DashboardNavigation = () => {
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-100 bg-white">
+            <div className="px-4 py-2 space-y-1">
+              {navLinks.map(link => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
+                    isActive(link.path)
+                      ? 'bg-indigo-50 text-indigo-600'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {link.icon === 'dashboard' && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                      />
+                    </svg>
+                  )}
+                  {link.icon === 'portfolio' && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                      />
+                    </svg>
+                  )}
+                  {link.icon === 'watchlist' && (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
+                      />
+                    </svg>
+                  )}
+                  {link.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   )

@@ -2,13 +2,12 @@ import { DashboardNavigation } from '@components/layout'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { usePortfolioPerformance } from '../../hooks/usePortfolioPerformance'
 import { useTransactions } from '../../hooks/useTransactions'
+import { useModal } from '../../hooks/useModal'
 import { PortfolioTable } from '../../components/dashboard/PortfolioTable'
 import { PerformanceChart } from '../../components/dashboard/PerformanceChart'
-import { TransactionForm } from '../../components/transactions/TransactionForm'
-import { TransactionGrid } from '../../components/transactions/TransactionGrid'
+import { TransactionModal } from '../../components/transactions/TransactionModal'
 import type { TransactionRequest } from '../../services/api/transactionApi'
 import { formatCurrency, formatPercent, getReturnColorClass } from '../../utils/stockFormatters'
-import { useState } from 'react'
 
 interface SummaryCardProps {
   label: string
@@ -18,9 +17,11 @@ interface SummaryCardProps {
 
 function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
-      <p className="text-sm font-medium text-slate-600">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${className || 'text-slate-900'}`}>{value}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-soft">
+      <p className="text-xs sm:text-sm font-medium text-slate-600">{label}</p>
+      <p className={`mt-1 sm:mt-2 text-xl sm:text-2xl font-bold ${className || 'text-slate-900'}`}>
+        {value}
+      </p>
     </div>
   )
 }
@@ -41,12 +42,15 @@ const Dashboard = () => {
     deleteTransaction,
   } = useTransactions()
 
-  const [showTransactions, setShowTransactions] = useState(false)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const {
+    isOpen: showTransactions,
+    isClosing,
+    open: openTransactions,
+    close: closeTransactions,
+  } = useModal()
 
   const handleCreateTransaction = async (request: TransactionRequest) => {
     await createTransaction(request)
-    setShowAddForm(false)
     // Refresh portfolio to reflect changes
     refresh()
   }
@@ -88,25 +92,22 @@ const Dashboard = () => {
       <DashboardNavigation />
 
       <div className="container mx-auto px-4 py-8">
-        <header className="mb-8 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900">Portfolio Overview</h1>
-          <div className="flex gap-3">
+        <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Portfolio Overview</h1>
+          <div className="flex flex-wrap gap-2 sm:gap-3">
             <button
-              onClick={() => setShowTransactions(!showTransactions)}
-              className={`rounded-lg px-4 py-2 font-medium transition-colors
-                ${
-                  showTransactions
-                    ? 'bg-indigo-100 text-indigo-700'
-                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+              onClick={openTransactions}
+              className="flex-1 sm:flex-none rounded-lg bg-slate-100 px-3 sm:px-4 py-2 text-sm sm:text-base font-medium text-slate-700 transition-colors hover:bg-slate-200"
             >
-              {showTransactions ? 'Hide Transactions' : 'Manage Transactions'}
+              <span className="hidden sm:inline">Manage Transactions</span>
+              <span className="sm:hidden">Transactions</span>
             </button>
             <button
               onClick={refresh}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700"
+              className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700 font-medium"
             >
-              Refresh Prices
+              <span className="hidden sm:inline">Refresh Prices</span>
+              <span className="sm:hidden">Refresh</span>
             </button>
           </div>
         </header>
@@ -127,49 +128,6 @@ const Dashboard = () => {
               className={getReturnColorClass(portfolio.totalReturnPercent)}
             />
           </div>
-        )}
-
-        {/* Transaction Management Section */}
-        {showTransactions && (
-          <section className="mb-8">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-soft">
-              <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-slate-900">Transactions</h2>
-                {!showAddForm && (
-                  <button
-                    onClick={() => setShowAddForm(true)}
-                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white
-                             hover:bg-indigo-700"
-                  >
-                    + Add Transaction
-                  </button>
-                )}
-              </div>
-
-              {/* Quick Add Form */}
-              {showAddForm && (
-                <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
-                  <h3 className="mb-3 font-medium text-indigo-900">New Transaction</h3>
-                  <TransactionForm
-                    onSubmit={handleCreateTransaction}
-                    onCancel={() => setShowAddForm(false)}
-                  />
-                </div>
-              )}
-
-              {/* Transaction Grid */}
-              {txLoading ? (
-                <p className="text-slate-500">Loading transactions...</p>
-              ) : (
-                <TransactionGrid
-                  transactions={transactions}
-                  onCreate={handleCreateTransaction}
-                  onUpdate={handleUpdateTransaction}
-                  onDelete={handleDeleteTransaction}
-                />
-              )}
-            </div>
-          </section>
         )}
 
         {/* Performance Chart Widget */}
@@ -200,6 +158,41 @@ const Dashboard = () => {
           )}
         </section>
       </div>
+
+      {/* Transaction Modal */}
+      <TransactionModal
+        isOpen={showTransactions}
+        onClose={closeTransactions}
+        isClosing={isClosing}
+        transactions={transactions}
+        onCreateTransaction={handleCreateTransaction}
+        onUpdateTransaction={handleUpdateTransaction}
+        onDeleteTransaction={handleDeleteTransaction}
+        loading={txLoading}
+      />
+
+      {/* Floating Action Button */}
+      <button
+        onClick={openTransactions}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-indigo-600 text-white shadow-lg
+                   transition-all duration-200 hover:bg-indigo-700 hover:shadow-xl hover:scale-110
+                   focus:outline-none focus:ring-4 focus:ring-indigo-300
+                   sm:h-16 sm:w-16"
+        aria-label="Quick add transaction"
+        title="Manage Transactions"
+      >
+        <svg
+          className="h-6 w-6 sm:h-8 sm:w-8 mx-auto"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.5"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </div>
   )
 }
