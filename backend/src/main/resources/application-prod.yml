@@ -17,6 +17,10 @@ spring:
     init:
       mode: always
 
+# This tells Spring to trust X-Forwarded-* headers from your proxy, so it will correctly detect the base URL as HTTPS.
+server:
+  forward-headers-strategy: native
+
 logging:
   level:
     root: WARN
