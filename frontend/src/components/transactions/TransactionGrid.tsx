@@ -9,6 +9,7 @@ interface TransactionGridProps {
   onUpdate: (id: number, request: TransactionRequest) => Promise<void>
   onDelete: (id: number) => Promise<void>
   onCreate: (request: TransactionRequest) => Promise<void>
+  showToolbar?: boolean
 }
 
 type SortField = 'transactionDate' | 'symbol' | 'type' | 'totalAmount'
@@ -25,7 +26,12 @@ function SortIcon({ field, sortField, sortDirection }: SortIconProps) {
   return <span className="ml-1">{sortDirection === 'asc' ? '↑' : '↓'}</span>
 }
 
-export function TransactionGrid({ transactions, onUpdate, onDelete }: TransactionGridProps) {
+export function TransactionGrid({
+  transactions,
+  onUpdate,
+  onDelete,
+  showToolbar = true,
+}: TransactionGridProps) {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [sortField, setSortField] = useState<SortField>('transactionDate')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -93,30 +99,32 @@ export function TransactionGrid({ transactions, onUpdate, onDelete }: Transactio
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <select
-            value={filterSymbol}
-            onChange={e => setFilterSymbol(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">All</option>
-            {uniqueSymbols.map(symbol => (
-              <option key={symbol} value={symbol}>
-                {symbol}
-              </option>
-            ))}
-          </select>
-          <span className="text-sm text-slate-500">
-            {sortedTransactions.length} transaction{sortedTransactions.length !== 1 ? 's' : ''}
-          </span>
+      {showToolbar && (
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <select
+              value={filterSymbol}
+              onChange={e => setFilterSymbol(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="">All</option>
+              {uniqueSymbols.map(symbol => (
+                <option key={symbol} value={symbol}>
+                  {symbol}
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-slate-500">
+              {sortedTransactions.length} transaction{sortedTransactions.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="text-sm text-slate-600">
+            <span className="text-green-600">Bought: {formatCurrency(totalBuys)}</span>
+            <span className="mx-2">|</span>
+            <span className="text-red-600">Sold: {formatCurrency(totalSells)}</span>
+          </div>
         </div>
-        <div className="text-sm text-slate-600">
-          <span className="text-green-600">Bought: {formatCurrency(totalBuys)}</span>
-          <span className="mx-2">|</span>
-          <span className="text-red-600">Sold: {formatCurrency(totalSells)}</span>
-        </div>
-      </div>
+      )}
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-3">

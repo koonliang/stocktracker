@@ -8,6 +8,7 @@ import {
   Watchlist,
   Register,
   OAuth2Redirect,
+  Transactions,
 } from '@pages/index'
 import { ProtectedRoute } from '@components/auth/ProtectedRoute'
 
@@ -25,6 +26,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/transactions"
+          element={
+            <ProtectedRoute>
+              <Transactions />
             </ProtectedRoute>
           }
         />
