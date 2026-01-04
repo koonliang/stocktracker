@@ -75,7 +75,7 @@ export function TransactionPagination({
           id="page-size"
           value={pageSize}
           onChange={e => onPageSizeChange(Number(e.target.value))}
-          className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm
+          className="min-w-[100px] rounded-lg border border-slate-300 px-2 py-1.5 text-sm
                    focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500
                    bg-white truncate"
         >

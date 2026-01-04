@@ -21,14 +21,17 @@ export function TransactionFilters({
     <div className="flex flex-col sm:flex-row gap-3">
       {/* Symbol Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-        <label htmlFor="symbol-filter" className="text-sm font-medium text-slate-700 whitespace-nowrap">
+        <label
+          htmlFor="symbol-filter"
+          className="text-sm font-medium text-slate-700 whitespace-nowrap"
+        >
           Symbol:
         </label>
         <select
           id="symbol-filter"
           value={filterSymbol}
           onChange={e => onFilterSymbolChange(e.target.value)}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm
+          className="min-w-[120px] rounded-lg border border-slate-300 px-3 py-2 text-sm
                    focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500
                    bg-white"
         >
@@ -43,14 +46,17 @@ export function TransactionFilters({
 
       {/* Type Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-        <label htmlFor="type-filter" className="text-sm font-medium text-slate-700 whitespace-nowrap">
+        <label
+          htmlFor="type-filter"
+          className="text-sm font-medium text-slate-700 whitespace-nowrap"
+        >
           Type:
         </label>
         <select
           id="type-filter"
           value={filterType}
           onChange={e => onFilterTypeChange(e.target.value as 'ALL' | 'BUY' | 'SELL')}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm
+          className="min-w-[120px] rounded-lg border border-slate-300 px-3 py-2 text-sm
                    focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500
                    bg-white"
         >

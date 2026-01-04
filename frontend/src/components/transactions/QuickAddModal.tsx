@@ -174,7 +174,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
                          }`}
               />
               {validating && (
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">...</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  ...
+                </span>
               )}
             </div>
             {validation?.valid && validation.companyName && (
