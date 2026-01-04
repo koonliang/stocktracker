@@ -1,12 +1,11 @@
+import { Link } from 'react-router-dom'
 import { DashboardNavigation } from '@components/layout'
 import { usePortfolio } from '../../hooks/usePortfolio'
 import { usePortfolioPerformance } from '../../hooks/usePortfolioPerformance'
-import { useTransactions } from '../../hooks/useTransactions'
 import { useModal } from '../../hooks/useModal'
 import { PortfolioTable } from '../../components/dashboard/PortfolioTable'
 import { PerformanceChart } from '../../components/dashboard/PerformanceChart'
-import { TransactionModal } from '../../components/transactions/TransactionModal'
-import type { TransactionRequest } from '../../services/api/transactionApi'
+import { QuickAddModal } from '../../components/transactions/QuickAddModal'
 import { formatCurrency, formatPercent, getReturnColorClass } from '../../utils/stockFormatters'
 
 interface SummaryCardProps {
@@ -34,34 +33,11 @@ const Dashboard = () => {
     loading: chartLoading,
     changeRange,
   } = usePortfolioPerformance('1y')
-  const {
-    transactions,
-    loading: txLoading,
-    createTransaction,
-    updateTransaction,
-    deleteTransaction,
-  } = useTransactions()
 
-  const {
-    isOpen: showTransactions,
-    isClosing,
-    open: openTransactions,
-    close: closeTransactions,
-  } = useModal()
+  const { isOpen: showQuickAdd, open: openQuickAdd, close: closeQuickAdd } = useModal()
 
-  const handleCreateTransaction = async (request: TransactionRequest) => {
-    await createTransaction(request)
+  const handleQuickAddSuccess = () => {
     // Refresh portfolio to reflect changes
-    refresh()
-  }
-
-  const handleUpdateTransaction = async (id: number, request: TransactionRequest) => {
-    await updateTransaction(id, request)
-    refresh()
-  }
-
-  const handleDeleteTransaction = async (id: number) => {
-    await deleteTransaction(id)
     refresh()
   }
 
@@ -95,13 +71,13 @@ const Dashboard = () => {
         <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900">Portfolio Overview</h1>
           <div className="flex flex-wrap gap-2 sm:gap-3">
-            <button
-              onClick={openTransactions}
-              className="flex-1 sm:flex-none rounded-lg bg-slate-100 px-3 sm:px-4 py-2 text-sm sm:text-base font-medium text-slate-700 transition-colors hover:bg-slate-200"
+            <Link
+              to="/dashboard/transactions"
+              className="flex-1 sm:flex-none rounded-lg bg-slate-100 px-3 sm:px-4 py-2 text-sm sm:text-base font-medium text-slate-700 transition-colors hover:bg-slate-200 text-center"
             >
               <span className="hidden sm:inline">Manage Transactions</span>
               <span className="sm:hidden">Transactions</span>
-            </button>
+            </Link>
             <button
               onClick={refresh}
               className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700 font-medium"
@@ -159,27 +135,22 @@ const Dashboard = () => {
         </section>
       </div>
 
-      {/* Transaction Modal */}
-      <TransactionModal
-        isOpen={showTransactions}
-        onClose={closeTransactions}
-        isClosing={isClosing}
-        transactions={transactions}
-        onCreateTransaction={handleCreateTransaction}
-        onUpdateTransaction={handleUpdateTransaction}
-        onDeleteTransaction={handleDeleteTransaction}
-        loading={txLoading}
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        isOpen={showQuickAdd}
+        onClose={closeQuickAdd}
+        onSuccess={handleQuickAddSuccess}
       />
 
       {/* Floating Action Button */}
       <button
-        onClick={openTransactions}
+        onClick={openQuickAdd}
         className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-indigo-600 text-white shadow-lg
                    transition-all duration-200 hover:bg-indigo-700 hover:shadow-xl hover:scale-110
                    focus:outline-none focus:ring-4 focus:ring-indigo-300
                    sm:h-16 sm:w-16"
-        aria-label="Quick add transaction"
-        title="Manage Transactions"
+        aria-label="Add transaction"
+        title="Add Transaction"
       >
         <svg
           className="h-6 w-6 sm:h-8 sm:w-8 mx-auto"
