@@ -94,7 +94,7 @@ const FileUploadStep: React.FC<FileUploadStepProps> = ({ onFileUploaded }) => {
           }
 
           const headers = results.meta.fields
-          const rows = results.data.map((row: Record<string, string>, index: number) => ({
+          const rows = (results.data as Record<string, string>[]).map((row, index) => ({
             values: row,
             rowNumber: index + 1,
           }))
