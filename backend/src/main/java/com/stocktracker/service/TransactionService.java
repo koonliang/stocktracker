@@ -111,6 +111,7 @@ public class TransactionService {
                 .transactionDate(request.getTransactionDate())
                 .shares(request.getShares())
                 .pricePerShare(request.getPricePerShare())
+                .brokerFee(request.getBrokerFee())
                 .notes(request.getNotes())
                 .build();
 
@@ -164,6 +165,7 @@ public class TransactionService {
         transaction.setTransactionDate(request.getTransactionDate());
         transaction.setShares(request.getShares());
         transaction.setPricePerShare(request.getPricePerShare());
+        transaction.setBrokerFee(request.getBrokerFee());
         transaction.setNotes(request.getNotes());
         transaction.calculateTotalAmount();
 
@@ -245,10 +247,48 @@ public class TransactionService {
                 .transactionDate(transaction.getTransactionDate())
                 .shares(transaction.getShares())
                 .pricePerShare(transaction.getPricePerShare())
+                .brokerFee(transaction.getBrokerFee())
                 .totalAmount(transaction.getTotalAmount())
                 .notes(transaction.getNotes())
                 .createdAt(transaction.getCreatedAt())
                 .updatedAt(transaction.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Export all transactions for a user as CSV.
+     */
+    public byte[] exportTransactionsAsCsv(Long userId) {
+        log.debug("Exporting transactions as CSV for user: {}", userId);
+        List<Transaction> transactions = transactionRepository.findByUserIdOrderByTransactionDateDesc(userId);
+
+        StringBuilder csv = new StringBuilder();
+        // Header row
+        csv.append("Type,Symbol,Company Name,Date,Shares,Price Per Share,Broker Fee,Total Amount,Notes\n");
+
+        // Data rows
+        for (Transaction tx : transactions) {
+            csv.append(String.format("%s,%s,\"%s\",%s,%s,%s,%s,%s,\"%s\"\n",
+                tx.getType(),
+                tx.getSymbol(),
+                escapeCSV(tx.getCompanyName()),
+                tx.getTransactionDate(),
+                tx.getShares(),
+                tx.getPricePerShare(),
+                tx.getBrokerFee() != null ? tx.getBrokerFee() : "",
+                tx.getTotalAmount(),
+                escapeCSV(tx.getNotes())
+            ));
+        }
+
+        return csv.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Escape CSV values to prevent injection and format issues.
+     */
+    private String escapeCSV(String value) {
+        if (value == null) return "";
+        return value.replace("\"", "\"\"");
     }
 }

@@ -9,9 +9,12 @@ import com.stocktracker.entity.User;
 import com.stocktracker.repository.HoldingRepository;
 import com.stocktracker.repository.TransactionRepository;
 import com.stocktracker.repository.UserRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -30,6 +33,7 @@ public class HoldingRecalculationService {
     private final HoldingRepository holdingRepository;
     private final UserRepository userRepository;
     private final YahooFinanceClient yahooFinanceClient;
+    private final EntityManager entityManager;
 
     /**
      * Recalculate holding for a specific symbol based on all transactions.
@@ -87,31 +91,71 @@ public class HoldingRecalculationService {
         // Calculate weighted average cost
         BigDecimal averageCost = totalCost.divide(totalShares, 2, RoundingMode.HALF_UP);
 
-        // Update or create holding
-        Optional<Holding> existingHolding = holdingRepository.findByUserIdAndSymbol(userId, symbol);
+        // Flush and clear entity manager to ensure we see the latest database state
+        entityManager.flush();
+        entityManager.clear();
 
-        if (existingHolding.isPresent()) {
-            Holding holding = existingHolding.get();
-            holding.setShares(totalShares);
-            holding.setAverageCost(averageCost);
-            holding.setCompanyName(companyName);
-            holdingRepository.save(holding);
-            log.info("Updated holding for user {} symbol {}: {} shares @ ${}",
-                    userId, symbol, totalShares, averageCost);
-        } else {
-            User user = userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+        // Update or create holding with retry logic for concurrent imports
+        updateOrCreateHolding(userId, symbol, companyName, totalShares, averageCost);
+    }
 
-            Holding holding = Holding.builder()
-                    .user(user)
-                    .symbol(symbol)
-                    .companyName(companyName)
-                    .shares(totalShares)
-                    .averageCost(averageCost)
-                    .build();
-            holdingRepository.save(holding);
-            log.info("Created holding for user {} symbol {}: {} shares @ ${}",
-                    userId, symbol, totalShares, averageCost);
+    /**
+     * Update or create holding with proper handling of duplicate key errors.
+     * This handles the case where multiple transactions are being imported concurrently
+     * for the same symbol.
+     */
+    private void updateOrCreateHolding(Long userId, String symbol, String companyName,
+                                       BigDecimal totalShares, BigDecimal averageCost) {
+        try {
+            // Try to find and update existing holding
+            Optional<Holding> existingHolding = holdingRepository.findByUserIdAndSymbol(userId, symbol);
+
+            if (existingHolding.isPresent()) {
+                Holding holding = existingHolding.get();
+                holding.setShares(totalShares);
+                holding.setAverageCost(averageCost);
+                holding.setCompanyName(companyName);
+                holdingRepository.save(holding);
+                log.info("Updated holding for user {} symbol {}: {} shares @ ${}",
+                        userId, symbol, totalShares, averageCost);
+            } else {
+                // Create new holding
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+
+                Holding holding = Holding.builder()
+                        .user(user)
+                        .symbol(symbol)
+                        .companyName(companyName)
+                        .shares(totalShares)
+                        .averageCost(averageCost)
+                        .build();
+                holdingRepository.save(holding);
+                log.info("Created holding for user {} symbol {}: {} shares @ ${}",
+                        userId, symbol, totalShares, averageCost);
+            }
+        } catch (DataIntegrityViolationException e) {
+            // Duplicate key error - another transaction created the holding
+            // Retry by fetching the existing holding and updating it
+            log.warn("Duplicate key detected for user {} symbol {}, retrying with update", userId, symbol);
+
+            // Clear entity manager and retry
+            entityManager.clear();
+
+            Optional<Holding> existingHolding = holdingRepository.findByUserIdAndSymbol(userId, symbol);
+            if (existingHolding.isPresent()) {
+                Holding holding = existingHolding.get();
+                holding.setShares(totalShares);
+                holding.setAverageCost(averageCost);
+                holding.setCompanyName(companyName);
+                holdingRepository.save(holding);
+                log.info("Updated holding (after retry) for user {} symbol {}: {} shares @ ${}",
+                        userId, symbol, totalShares, averageCost);
+            } else {
+                // This shouldn't happen, but log it
+                log.error("Failed to find holding after duplicate key error for user {} symbol {}", userId, symbol);
+                throw new RuntimeException("Failed to update holding after duplicate key error");
+            }
         }
     }
 

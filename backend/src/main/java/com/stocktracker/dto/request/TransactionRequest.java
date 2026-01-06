@@ -32,6 +32,9 @@ public class TransactionRequest {
     @Positive(message = "Price must be positive")
     private BigDecimal pricePerShare;
 
+    @PositiveOrZero(message = "Fees cannot be negative")
+    private BigDecimal brokerFee;
+
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     private String notes;
 }

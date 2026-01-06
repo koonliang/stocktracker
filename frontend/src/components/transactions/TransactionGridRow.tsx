@@ -29,10 +29,23 @@ export function TransactionGridRow({
   const [date, setDate] = useState(transaction.transactionDate)
   const [shares, setShares] = useState(transaction.shares.toString())
   const [price, setPrice] = useState(transaction.pricePerShare.toString())
+  const [brokerFee, setBrokerFee] = useState(transaction.brokerFee?.toString() || '')
   const [saving, setSaving] = useState(false)
 
   const rowRef = useRef<HTMLTableRowElement>(null)
   const { validating, validation, validateTicker } = useTickerValidation()
+
+  // Sync state when transaction changes or editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setType(transaction.type)
+      setSymbol(transaction.symbol)
+      setDate(transaction.transactionDate)
+      setShares(transaction.shares.toString())
+      setPrice(transaction.pricePerShare.toString())
+      setBrokerFee(transaction.brokerFee?.toString() || '')
+    }
+  }, [isEditing, transaction])
 
   // Scroll into view when editing starts
   useEffect(() => {
@@ -69,6 +82,7 @@ export function TransactionGridRow({
         transactionDate: date,
         shares: parseFloat(shares),
         pricePerShare: parseFloat(price),
+        brokerFee: brokerFee ? parseFloat(brokerFee) : undefined,
       })
     } finally {
       setSaving(false)
@@ -135,16 +149,17 @@ export function TransactionGridRow({
   }
 
   // Edit mode
-  const totalAmount = parseFloat(shares || '0') * parseFloat(price || '0')
+  const totalAmount =
+    parseFloat(shares || '0') * parseFloat(price || '0') + parseFloat(brokerFee || '0')
 
   return (
     <tr ref={rowRef} className="bg-indigo-50" onKeyDown={handleKeyDown}>
       <td colSpan={7} className="px-4 py-4">
         <div className="space-y-3">
           {/* Form Fields */}
-          <div className="grid grid-cols-12 gap-3 items-end">
+          <div className="grid grid-cols-12 gap-2 items-end">
             {/* Type */}
-            <div className="col-span-2">
+            <div className="col-span-1">
               <label className="block text-xs font-medium text-slate-600 mb-1">Type</label>
               <select
                 value={type}
@@ -206,6 +221,20 @@ export function TransactionGridRow({
                 onChange={e => setPrice(e.target.value)}
                 min="0.01"
                 step="0.01"
+                className="w-full rounded border border-slate-300 px-2 py-1.5 text-right text-sm"
+              />
+            </div>
+
+            {/* Broker Fee */}
+            <div className="col-span-1">
+              <label className="block text-xs font-medium text-slate-600 mb-1">Fees</label>
+              <input
+                type="number"
+                value={brokerFee}
+                onChange={e => setBrokerFee(e.target.value)}
+                min="0"
+                step="0.01"
+                placeholder="0"
                 className="w-full rounded border border-slate-300 px-2 py-1.5 text-right text-sm"
               />
             </div>

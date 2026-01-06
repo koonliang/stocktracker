@@ -1,17 +1,20 @@
 package com.stocktracker.controller;
 
+import com.stocktracker.dto.request.CsvImportRequest;
+import com.stocktracker.dto.request.CsvMappingSuggestionRequest;
 import com.stocktracker.dto.request.TransactionRequest;
-import com.stocktracker.dto.response.ApiResponse;
-import com.stocktracker.dto.response.TickerValidationResponse;
-import com.stocktracker.dto.response.TransactionResponse;
+import com.stocktracker.dto.response.*;
 import com.stocktracker.entity.User;
 import com.stocktracker.repository.UserRepository;
+import com.stocktracker.service.CsvImportService;
 import com.stocktracker.service.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,6 +30,7 @@ import java.util.List;
 public class TransactionController {
 
     private final TransactionService transactionService;
+    private final CsvImportService csvImportService;
     private final UserRepository userRepository;
 
     @GetMapping
@@ -75,6 +79,48 @@ public class TransactionController {
         Long userId = getUserId(userDetails);
         transactionService.deleteTransaction(userId, id);
         return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PostMapping("/import/suggest-mapping")
+    @Operation(summary = "Suggest field mappings for CSV import based on headers")
+    public ResponseEntity<ApiResponse<CsvMappingSuggestionResponse>> suggestMapping(
+            @Valid @RequestBody CsvMappingSuggestionRequest request) {
+        CsvMappingSuggestionResponse response = csvImportService.suggestMappings(request.getHeaders());
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/import/preview")
+    @Operation(summary = "Preview CSV import with validation")
+    public ResponseEntity<ApiResponse<CsvImportPreviewResponse>> previewImport(
+            @Valid @RequestBody CsvImportRequest request) {
+        CsvImportPreviewResponse response = csvImportService.previewImport(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/import")
+    @Operation(summary = "Import transactions from CSV")
+    public ResponseEntity<ApiResponse<CsvImportResultResponse>> importTransactions(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody CsvImportRequest request) {
+        Long userId = getUserId(userDetails);
+        CsvImportResultResponse response = csvImportService.executeImport(userId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "Export all transactions as CSV")
+    public ResponseEntity<byte[]> exportTransactions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = getUserId(userDetails);
+        byte[] csvData = transactionService.exportTransactionsAsCsv(userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDispositionFormData("attachment", "transactions.csv");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(csvData);
     }
 
     private Long getUserId(UserDetails userDetails) {

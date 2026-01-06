@@ -57,6 +57,10 @@ public class Transaction extends BaseEntity {
     @Column(name = "total_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
+    @PositiveOrZero(message = "Fees cannot be negative")
+    @Column(name = "broker_fee", precision = 10, scale = 2)
+    private BigDecimal brokerFee;
+
     @Size(max = 500, message = "Notes must not exceed 500 characters")
     @Column(length = 500)
     private String notes;
@@ -66,6 +70,9 @@ public class Transaction extends BaseEntity {
     public void calculateTotalAmount() {
         if (shares != null && pricePerShare != null) {
             this.totalAmount = shares.multiply(pricePerShare);
+            if (brokerFee != null) {
+                this.totalAmount = this.totalAmount.add(brokerFee);
+            }
         }
     }
 }

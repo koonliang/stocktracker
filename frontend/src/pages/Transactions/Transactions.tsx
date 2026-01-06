@@ -6,12 +6,25 @@ import { usePortfolio } from '../../hooks/usePortfolio'
 import { TransactionGrid } from '../../components/transactions/TransactionGrid'
 import { TransactionFilters } from '../../components/transactions/TransactionFilters'
 import { TransactionPagination } from '../../components/transactions/TransactionPagination'
+import { ImportModal } from '../../components/import'
 import { formatCurrency } from '../../utils/stockFormatters'
 import type { TransactionRequest } from '../../services/api/transactionApi'
 
 const Transactions = () => {
-  const { transactions, loading, updateTransaction, deleteTransaction } = useTransactions()
+  const {
+    transactions,
+    loading,
+    updateTransaction,
+    deleteTransaction,
+    refresh: refreshTransactions,
+  } = useTransactions()
   const { refresh } = usePortfolio()
+
+  // Import modal state
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+
+  // Export state
+  const [exporting, setExporting] = useState(false)
 
   // Filter state
   const [filterSymbol, setFilterSymbol] = useState<string>('')
@@ -104,6 +117,33 @@ const Transactions = () => {
     refresh()
   }
 
+  const handleImportComplete = async () => {
+    await refreshTransactions()
+    refresh()
+    setIsImportModalOpen(false)
+  }
+
+  const handleExport = async () => {
+    setExporting(true)
+    try {
+      const { transactionApi } = await import('../../services/api/transactionApi')
+      const blob = await transactionApi.exportTransactions()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Export failed:', error)
+      // TODO: Show error notification if you have a toast system
+    } finally {
+      setExporting(false)
+    }
+  }
+
   const clearFilters = () => {
     setFilterSymbol('')
     setFilterType('ALL')
@@ -148,16 +188,66 @@ const Transactions = () => {
             <>
               {/* Toolbar */}
               <div className="border-b border-slate-200 p-4 sm:p-6 space-y-4">
-                {/* Filters */}
-                <TransactionFilters
-                  symbols={uniqueSymbols}
-                  filterSymbol={filterSymbol}
-                  filterType={filterType}
-                  searchQuery={searchQuery}
-                  onFilterSymbolChange={handleFilterSymbolChange}
-                  onFilterTypeChange={handleFilterTypeChange}
-                  onSearchChange={handleSearchChange}
-                />
+                {/* Import/Export Buttons and Filters */}
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setIsImportModalOpen(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg
+                               hover:bg-indigo-700 transition-colors text-sm font-medium whitespace-nowrap"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      Import CSV
+                    </button>
+
+                    <button
+                      onClick={handleExport}
+                      disabled={exporting || transactions.length === 0}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg
+                               hover:bg-slate-200 transition-colors text-sm font-medium whitespace-nowrap
+                               disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <svg
+                        className="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                        />
+                      </svg>
+                      {exporting ? 'Exporting...' : 'Export CSV'}
+                    </button>
+                  </div>
+
+                  <div className="flex-1">
+                    <TransactionFilters
+                      symbols={uniqueSymbols}
+                      filterSymbol={filterSymbol}
+                      filterType={filterType}
+                      searchQuery={searchQuery}
+                      onFilterSymbolChange={handleFilterSymbolChange}
+                      onFilterTypeChange={handleFilterTypeChange}
+                      onSearchChange={handleSearchChange}
+                    />
+                  </div>
+                </div>
 
                 {/* Summary Row */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2">
@@ -275,6 +365,13 @@ const Transactions = () => {
           )}
         </div>
       </div>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportComplete={handleImportComplete}
+      />
     </div>
   )
 }
