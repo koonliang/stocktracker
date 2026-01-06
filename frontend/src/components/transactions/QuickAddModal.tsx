@@ -16,6 +16,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
+  const [brokerFee, setBrokerFee] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +38,10 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
   }, [symbol, validateTicker, clearValidation])
 
   // Calculate total amount
-  const totalAmount = shares && price ? parseFloat(shares) * parseFloat(price) : 0
+  const totalAmount =
+    shares && price
+      ? parseFloat(shares) * parseFloat(price) + (brokerFee ? parseFloat(brokerFee) : 0)
+      : 0
 
   // Reset form when modal closes
   useEffect(() => {
@@ -49,6 +53,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
         setDate(new Date().toISOString().split('T')[0])
         setShares('')
         setPrice('')
+        setBrokerFee('')
         setNotes('')
         setError(null)
         clearValidation()
@@ -68,14 +73,29 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
     e.preventDefault()
     setError(null)
 
-    // Validation
-    if (!symbol || !date || !shares || !price) {
-      setError('All fields are required except notes')
+    // Validation - Check each required field specifically
+    if (!symbol) {
+      setError('Ticker is required')
       return
     }
 
     if (validation && !validation.valid) {
       setError(validation.errorMessage || 'Invalid ticker symbol')
+      return
+    }
+
+    if (!date) {
+      setError('Date is required')
+      return
+    }
+
+    if (!shares) {
+      setError('Shares is required')
+      return
+    }
+
+    if (!price) {
+      setError('Price is required')
       return
     }
 
@@ -97,6 +117,15 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
       return
     }
 
+    // Validate broker fee if provided
+    if (brokerFee) {
+      const brokerFeeNum = parseFloat(brokerFee)
+      if (isNaN(brokerFeeNum) || brokerFeeNum < 0) {
+        setError('Broker fee must be a non-negative number')
+        return
+      }
+    }
+
     try {
       setSubmitting(true)
       const request: TransactionRequest = {
@@ -105,6 +134,7 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
         transactionDate: date,
         shares: sharesNum,
         pricePerShare: priceNum,
+        brokerFee: brokerFee ? parseFloat(brokerFee) : undefined,
         notes: notes || undefined,
       }
 
@@ -141,7 +171,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Type */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Type <span className="text-red-500">*</span>
+            </label>
             <select
               value={type}
               onChange={e => setType(e.target.value as TransactionType)}
@@ -156,7 +188,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
 
           {/* Ticker */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Ticker</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Ticker <span className="text-red-500">*</span>
+            </label>
             <div className="relative">
               <input
                 type="text"
@@ -199,7 +233,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
 
           {/* Date */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Date <span className="text-red-500">*</span>
+            </label>
             <input
               type="date"
               value={date}
@@ -212,7 +248,9 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
 
           {/* Shares */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Shares</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Shares <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               value={shares}
@@ -227,13 +265,32 @@ export function QuickAddModal({ isOpen, onClose, onSuccess }: QuickAddModalProps
 
           {/* Price */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Price</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Price <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               value={price}
               onChange={e => setPrice(e.target.value)}
               placeholder="150.00"
               min="0.01"
+              step="0.01"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2
+                       focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          {/* Broker/Clearing/Tax */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Broker/Clearing/Tax
+            </label>
+            <input
+              type="number"
+              value={brokerFee}
+              onChange={e => setBrokerFee(e.target.value)}
+              placeholder="0.00"
+              min="0"
               step="0.01"
               className="block w-full rounded-lg border border-slate-300 px-3 py-2
                        focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"

@@ -12,7 +12,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -103,6 +105,22 @@ public class TransactionController {
         Long userId = getUserId(userDetails);
         CsvImportResultResponse response = csvImportService.executeImport(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(response));
+    }
+
+    @GetMapping("/export")
+    @Operation(summary = "Export all transactions as CSV")
+    public ResponseEntity<byte[]> exportTransactions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = getUserId(userDetails);
+        byte[] csvData = transactionService.exportTransactionsAsCsv(userId);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDispositionFormData("attachment", "transactions.csv");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(csvData);
     }
 
     private Long getUserId(UserDetails userDetails) {

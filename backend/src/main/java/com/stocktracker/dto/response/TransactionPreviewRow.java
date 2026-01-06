@@ -12,6 +12,7 @@ public class TransactionPreviewRow {
     private LocalDate transactionDate;
     private BigDecimal shares;
     private BigDecimal pricePerShare;
+    private BigDecimal brokerFee;
     private String notes;
     private boolean valid;
     private List<CsvImportError> errors;
@@ -65,6 +66,14 @@ public class TransactionPreviewRow {
 
     public void setPricePerShare(BigDecimal pricePerShare) {
         this.pricePerShare = pricePerShare;
+    }
+
+    public BigDecimal getBrokerFee() {
+        return brokerFee;
+    }
+
+    public void setBrokerFee(BigDecimal brokerFee) {
+        this.brokerFee = brokerFee;
     }
 
     public String getNotes() {

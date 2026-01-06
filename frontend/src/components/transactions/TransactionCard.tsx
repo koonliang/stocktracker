@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type {
   TransactionResponse,
   TransactionRequest,
@@ -29,9 +29,22 @@ export function TransactionCard({
   const [date, setDate] = useState(transaction.transactionDate)
   const [shares, setShares] = useState(transaction.shares.toString())
   const [price, setPrice] = useState(transaction.pricePerShare.toString())
+  const [brokerFee, setBrokerFee] = useState(transaction.brokerFee?.toString() || '')
   const [saving, setSaving] = useState(false)
 
   const { validating, validation, validateTicker } = useTickerValidation()
+
+  // Sync state when transaction changes or editing starts
+  useEffect(() => {
+    if (isEditing) {
+      setType(transaction.type)
+      setSymbol(transaction.symbol)
+      setDate(transaction.transactionDate)
+      setShares(transaction.shares.toString())
+      setPrice(transaction.pricePerShare.toString())
+      setBrokerFee(transaction.brokerFee?.toString() || '')
+    }
+  }, [isEditing, transaction])
 
   const handleSymbolChange = async (value: string) => {
     const upperValue = value.toUpperCase()
@@ -51,6 +64,7 @@ export function TransactionCard({
         transactionDate: date,
         shares: parseFloat(shares),
         pricePerShare: parseFloat(price),
+        brokerFee: brokerFee ? parseFloat(brokerFee) : undefined,
       })
     } finally {
       setSaving(false)
@@ -93,6 +107,13 @@ export function TransactionCard({
             </span>
             <span className="text-slate-400"> shares @ </span>
             <span className="font-medium">{formatCurrency(transaction.pricePerShare)}</span>
+            {transaction.brokerFee && transaction.brokerFee > 0 && (
+              <>
+                <span className="text-slate-400"> + </span>
+                <span className="font-medium">{formatCurrency(transaction.brokerFee)}</span>
+                <span className="text-slate-400"> fee</span>
+              </>
+            )}
           </div>
           <div className="flex gap-2">
             <button
@@ -114,7 +135,8 @@ export function TransactionCard({
   }
 
   // Edit Mode Card
-  const totalAmount = parseFloat(shares || '0') * parseFloat(price || '0')
+  const totalAmount =
+    parseFloat(shares || '0') * parseFloat(price || '0') + parseFloat(brokerFee || '0')
 
   return (
     <div className="rounded-xl border-2 border-indigo-300 bg-indigo-50 p-4">
@@ -184,6 +206,22 @@ export function TransactionCard({
               className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
+        </div>
+
+        {/* Broker Fee Row */}
+        <div>
+          <label className="block text-xs font-medium text-slate-600 mb-1">
+            Broker Fee (Optional)
+          </label>
+          <input
+            type="number"
+            value={brokerFee}
+            onChange={e => setBrokerFee(e.target.value)}
+            min="0"
+            step="0.01"
+            placeholder="0.00"
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          />
         </div>
 
         {/* Total & Actions */}

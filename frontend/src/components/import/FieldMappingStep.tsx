@@ -36,6 +36,12 @@ const STANDARD_FIELDS: StandardField[] = [
     hint: 'Negative values indicate SELL',
   },
   { value: 'pricePerShare', label: 'Price Per Share', required: true },
+  {
+    value: 'brokerFee',
+    label: 'Broker/Clearing/Tax',
+    required: false,
+    hint: 'Optional - Maps to IBKR IBCommission, commission, fees, etc.',
+  },
   { value: 'notes', label: 'Notes', required: false },
   { value: 'skip', label: 'Skip this column', required: false },
 ]

@@ -35,6 +35,7 @@ public class CsvImportService {
         Map.entry("transactionDate", Arrays.asList("date", "trade date", "transaction date", "settlement date", "exec date", "execution date", "activity date", "tradedate")),
         Map.entry("shares", Arrays.asList("shares", "quantity", "qty", "units", "amount", "volume", "share quantity")),
         Map.entry("pricePerShare", Arrays.asList("price", "share price", "unit price", "execution price", "trade price", "cost per share", "price per share", "t. price")),
+        Map.entry("brokerFee", Arrays.asList("ibcommission", "commission", "fee", "fees", "broker fee", "brokerage", "brokerage fee", "trading fee", "transaction fee", "clearing fee", "tax", "stamp duty", "transaction cost", "cost")),
         Map.entry("notes", Arrays.asList("notes", "memo", "description", "comment", "remarks"))
     );
 
@@ -231,6 +232,7 @@ public class CsvImportService {
                     .transactionDate(previewRow.getTransactionDate())
                     .shares(previewRow.getShares())
                     .pricePerShare(previewRow.getPricePerShare())
+                    .brokerFee(previewRow.getBrokerFee())
                     .notes(previewRow.getNotes())
                     .build();
 
@@ -308,6 +310,7 @@ public class CsvImportService {
             String symbol = parseSymbol(mappedValues.get("symbol"), exchange, rowData.getRowNumber(), rowErrors);
             LocalDate transactionDate = parseDate(mappedValues.get("transactionDate"), rowData.getRowNumber(), rowErrors);
             BigDecimal pricePerShare = parsePrice(mappedValues.get("pricePerShare"), rowData.getRowNumber(), rowErrors);
+            BigDecimal brokerFee = parseBrokerFee(mappedValues.get("brokerFee"), rowData.getRowNumber(), rowErrors);
             String notes = mappedValues.get("notes");
 
             previewRow.setType(type);
@@ -315,6 +318,7 @@ public class CsvImportService {
             previewRow.setTransactionDate(transactionDate);
             previewRow.setShares(shares);
             previewRow.setPricePerShare(pricePerShare);
+            previewRow.setBrokerFee(brokerFee);
             previewRow.setNotes(notes);
             previewRow.setValid(rowErrors.isEmpty());
             previewRow.setErrors(rowErrors);
@@ -555,6 +559,46 @@ public class CsvImportService {
                 rowNumber,
                 "pricePerShare",
                 "Invalid number format for price",
+                value
+            ));
+            return null;
+        }
+    }
+
+    /**
+     * Parse broker fee (optional, can be negative in some exports - convert to absolute value).
+     */
+    private BigDecimal parseBrokerFee(String value, Integer rowNumber, List<CsvImportError> errors) {
+        if (value == null || value.isEmpty()) {
+            return null; // Optional field
+        }
+
+        try {
+            // Remove currency symbols, commas, and whitespace
+            String cleaned = value.replaceAll("[$€£,\\s]", "");
+            BigDecimal fee = new BigDecimal(cleaned);
+
+            // IBKR and some brokers report fees as negative values
+            // Convert to positive (absolute value) for storage
+            fee = fee.abs();
+
+            // Validation: fee cannot be negative after abs() - this handles any edge cases
+            if (fee.compareTo(BigDecimal.ZERO) < 0) {
+                errors.add(new CsvImportError(
+                    rowNumber,
+                    "brokerFee",
+                    "Broker fee cannot be negative",
+                    value
+                ));
+                return null;
+            }
+
+            return fee;
+        } catch (NumberFormatException e) {
+            errors.add(new CsvImportError(
+                rowNumber,
+                "brokerFee",
+                "Invalid number format for broker fee",
                 value
             ));
             return null;

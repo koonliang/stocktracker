@@ -8,6 +8,7 @@ export interface TransactionRequest {
   transactionDate: string // ISO date string (YYYY-MM-DD)
   shares: number
   pricePerShare: number
+  brokerFee?: number
   notes?: string
 }
 
@@ -19,6 +20,7 @@ export interface TransactionResponse {
   transactionDate: string
   shares: number
   pricePerShare: number
+  brokerFee: number | null
   totalAmount: number
   notes: string | null
   createdAt: string
@@ -67,6 +69,7 @@ export interface TransactionPreviewRow {
   transactionDate: string | null
   shares: number | null
   pricePerShare: number | null
+  brokerFee: number | null
   notes: string | null
   valid: boolean
   errors: CsvImportError[]
@@ -156,5 +159,15 @@ export const transactionApi = {
   importTransactions: async (request: CsvImportRequest): Promise<CsvImportResultResponse> => {
     const response = await axiosInstance.post('/transactions/import', request)
     return response.data.data
+  },
+
+  /**
+   * Export all transactions as CSV file.
+   */
+  exportTransactions: async (): Promise<Blob> => {
+    const response = await axiosInstance.get('/transactions/export', {
+      responseType: 'blob',
+    })
+    return response.data
   },
 }

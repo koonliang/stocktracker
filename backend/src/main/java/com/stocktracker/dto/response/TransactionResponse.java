@@ -20,6 +20,7 @@ public class TransactionResponse {
     private LocalDate transactionDate;
     private BigDecimal shares;
     private BigDecimal pricePerShare;
+    private BigDecimal brokerFee;
     private BigDecimal totalAmount;
     private String notes;
     private LocalDateTime createdAt;
