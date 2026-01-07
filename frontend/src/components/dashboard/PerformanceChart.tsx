@@ -25,6 +25,7 @@ const TIME_RANGES: { value: TimeRange; label: string }[] = [
   { value: '3mo', label: '3M' },
   { value: 'ytd', label: 'YTD' },
   { value: '1y', label: '1Y' },
+  { value: 'all', label: 'ALL' },
 ]
 
 export function PerformanceChart({ data, range, onRangeChange, loading }: PerformanceChartProps) {
@@ -38,6 +39,10 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
     }
     if (range === '1mo' || range === '3mo') {
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    }
+    if (range === 'all') {
+      // For long time ranges, show year prominently
+      return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
     }
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
   }

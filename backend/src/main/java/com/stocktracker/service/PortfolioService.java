@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -52,6 +53,8 @@ public class PortfolioService {
                     .totalCost(BigDecimal.ZERO)
                     .totalReturnDollars(BigDecimal.ZERO)
                     .totalReturnPercent(BigDecimal.ZERO)
+                    .annualizedYield(BigDecimal.ZERO)
+                    .investmentYears(BigDecimal.ZERO)
                     .pricesUpdatedAt(LocalDateTime.now())
                     .build();
         }
@@ -96,7 +99,7 @@ public class PortfolioService {
         holdingResponses.forEach(h -> calculateWeight(h, totalValue));
 
         // 8. Build and return portfolio response
-        PortfolioResponse response = buildPortfolioResponse(holdingResponses);
+        PortfolioResponse response = buildPortfolioResponse(holdingResponses, userId);
 
         log.debug("Portfolio calculated for user {}: Total Value = {}, Total Return = {}%",
                 userId, response.getTotalValue(), response.getTotalReturnPercent());
@@ -147,7 +150,7 @@ public class PortfolioService {
     /**
      * Build a PortfolioResponse with aggregated totals.
      */
-    private PortfolioResponse buildPortfolioResponse(List<HoldingResponse> holdings) {
+    private PortfolioResponse buildPortfolioResponse(List<HoldingResponse> holdings, Long userId) {
         BigDecimal totalValue = holdings.stream()
                 .map(HoldingResponse::getCurrentValue)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -165,7 +168,7 @@ public class PortfolioService {
                     .multiply(new BigDecimal("100"));
         }
 
-        return PortfolioResponse.builder()
+        PortfolioResponse response = PortfolioResponse.builder()
                 .holdings(holdings)
                 .totalValue(totalValue)
                 .totalCost(totalCost)
@@ -173,6 +176,53 @@ public class PortfolioService {
                 .totalReturnPercent(totalReturnPercent)
                 .pricesUpdatedAt(LocalDateTime.now())
                 .build();
+
+        // Calculate annualized yield
+        calculateAnnualizedYield(response, userId);
+
+        return response;
+    }
+
+    /**
+     * Calculate annualized yield (CAGR) for the portfolio.
+     * Formula: ((1 + totalReturn) ^ (1/years)) - 1
+     */
+    private void calculateAnnualizedYield(PortfolioResponse response, Long userId) {
+        // Get earliest transaction date
+        Optional<LocalDate> earliestDate = transactionRepository
+                .findEarliestTransactionDateByUserId(userId);
+
+        if (earliestDate.isEmpty() || response.getTotalCost().compareTo(BigDecimal.ZERO) <= 0) {
+            response.setAnnualizedYield(BigDecimal.ZERO);
+            response.setInvestmentYears(BigDecimal.ZERO);
+            return;
+        }
+
+        // Calculate years invested
+        long daysBetween = ChronoUnit.DAYS.between(earliestDate.get(), LocalDate.now());
+        double years = daysBetween / 365.25;
+
+        if (years < 0.1) {
+            // Less than ~36 days, return simple return instead of annualized
+            response.setAnnualizedYield(response.getTotalReturnPercent());
+            response.setInvestmentYears(BigDecimal.valueOf(years).setScale(2, RoundingMode.HALF_UP));
+            return;
+        }
+
+        // Calculate total return as decimal (e.g., 0.4158 for 41.58%)
+        BigDecimal totalReturnDecimal = response.getTotalReturnPercent()
+                .divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP);
+
+        // Annualized return: ((1 + r) ^ (1/n)) - 1
+        double onePlusReturn = 1 + totalReturnDecimal.doubleValue();
+        double annualizedDecimal = Math.pow(onePlusReturn, 1.0 / years) - 1;
+
+        // Convert back to percentage
+        BigDecimal annualizedPercent = BigDecimal.valueOf(annualizedDecimal * 100)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        response.setAnnualizedYield(annualizedPercent);
+        response.setInvestmentYears(BigDecimal.valueOf(years).setScale(1, RoundingMode.HALF_UP));
     }
 
     /**
@@ -250,10 +300,38 @@ public class PortfolioService {
             .map(Holding::getSymbol)
             .collect(Collectors.toList());
 
-        Map<String, HistoricalData> historicalDataMap = yahooFinanceClient.getHistoricalDataBatch(symbols, range);
+        // For "all" range, calculate the range from earliest transaction
+        String effectiveRange = range;
+        if ("all".equalsIgnoreCase(range)) {
+            effectiveRange = calculateAllTimeRange(userId);
+        }
+
+        Map<String, HistoricalData> historicalDataMap = yahooFinanceClient.getHistoricalDataBatch(symbols, effectiveRange);
 
         // Aggregate daily portfolio values
         return aggregatePortfolioPerformance(userId, holdings, historicalDataMap);
+    }
+
+    /**
+     * Calculate the range string for "all" time based on earliest transaction.
+     * Returns a range like "5y" or "10y" based on how long the user has been investing.
+     */
+    private String calculateAllTimeRange(Long userId) {
+        Optional<LocalDate> earliestDate = transactionRepository.findEarliestTransactionDateByUserId(userId);
+
+        if (earliestDate.isEmpty()) {
+            return "1y"; // Default fallback
+        }
+
+        long daysBetween = ChronoUnit.DAYS.between(earliestDate.get(), LocalDate.now());
+        long years = daysBetween / 365;
+
+        // Round up to nearest year and add buffer
+        if (years < 1) return "1y";
+        if (years < 2) return "2y";
+        if (years < 5) return "5y";
+        if (years < 10) return "10y";
+        return "max"; // Yahoo Finance supports "max" for all available data
     }
 
     /**

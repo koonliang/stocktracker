@@ -182,7 +182,7 @@ public class YahooFinanceClient {
     /**
      * Fetch historical price data for a symbol.
      * @param symbol Stock symbol
-     * @param range Time range (7d, 1mo, 3mo, ytd, 1y)
+     * @param range Time range (7d, 1mo, 3mo, ytd, 1y, 2y, 5y, 10y, max)
      * @return HistoricalData with daily prices
      */
     public HistoricalData getHistoricalData(String symbol, String range) {

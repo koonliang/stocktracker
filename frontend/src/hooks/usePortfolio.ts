@@ -5,6 +5,7 @@ import type { PortfolioResponse } from '../services/api/portfolioApi'
 export function usePortfolio() {
   const [portfolio, setPortfolio] = useState<PortfolioResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchPortfolio = useCallback(async () => {
@@ -22,11 +23,15 @@ export function usePortfolio() {
 
   const refresh = useCallback(async () => {
     try {
+      // Use refreshing state instead of loading to avoid full page flicker
+      setRefreshing(true)
       setError(null)
       const data = await portfolioApi.refreshPortfolio()
       setPortfolio(data)
     } catch {
       setError('Failed to refresh prices')
+    } finally {
+      setRefreshing(false)
     }
   }, [])
 
@@ -34,5 +39,5 @@ export function usePortfolio() {
     fetchPortfolio()
   }, [fetchPortfolio])
 
-  return { portfolio, loading, error, refresh }
+  return { portfolio, loading, refreshing, error, refresh }
 }

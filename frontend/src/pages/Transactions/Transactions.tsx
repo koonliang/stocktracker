@@ -7,6 +7,8 @@ import { TransactionGrid } from '../../components/transactions/TransactionGrid'
 import { TransactionFilters } from '../../components/transactions/TransactionFilters'
 import { TransactionPagination } from '../../components/transactions/TransactionPagination'
 import { ImportModal } from '../../components/import'
+import { QuickAddModal } from '../../components/transactions/QuickAddModal'
+import { useModal } from '../../hooks/useModal'
 import { formatCurrency } from '../../utils/stockFormatters'
 import type { TransactionRequest } from '../../services/api/transactionApi'
 
@@ -20,8 +22,9 @@ const Transactions = () => {
   } = useTransactions()
   const { refresh } = usePortfolio()
 
-  // Import modal state
+  // Modal state
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const { isOpen: showQuickAdd, open: openQuickAdd, close: closeQuickAdd } = useModal()
 
   // Export state
   const [exporting, setExporting] = useState(false)
@@ -121,6 +124,11 @@ const Transactions = () => {
     await refreshTransactions()
     refresh()
     setIsImportModalOpen(false)
+  }
+
+  const handleQuickAddSuccess = async () => {
+    await refreshTransactions()
+    refresh()
   }
 
   const handleExport = async () => {
@@ -314,8 +322,8 @@ const Transactions = () => {
                           />
                         </svg>
                         <p className="text-slate-600 mb-4">No transactions yet</p>
-                        <Link
-                          to="/dashboard"
+                        <button
+                          onClick={openQuickAdd}
                           className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2
                                    text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
                         >
@@ -333,7 +341,7 @@ const Transactions = () => {
                             />
                           </svg>
                           Add your first transaction
-                        </Link>
+                        </button>
                       </>
                     )}
                   </div>
@@ -372,6 +380,36 @@ const Transactions = () => {
         onClose={() => setIsImportModalOpen(false)}
         onImportComplete={handleImportComplete}
       />
+
+      {/* Quick Add Modal */}
+      <QuickAddModal
+        isOpen={showQuickAdd}
+        onClose={closeQuickAdd}
+        onSuccess={handleQuickAddSuccess}
+      />
+
+      {/* Floating Action Button */}
+      <button
+        onClick={openQuickAdd}
+        className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-indigo-600 text-white shadow-lg
+                   transition-all duration-200 hover:bg-indigo-700 hover:shadow-xl hover:scale-110
+                   focus:outline-none focus:ring-4 focus:ring-indigo-300
+                   sm:h-16 sm:w-16"
+        aria-label="Add transaction"
+        title="Add Transaction"
+      >
+        <svg
+          className="h-6 w-6 sm:h-8 sm:w-8 mx-auto"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2.5"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path d="M12 4v16m8-8H4" />
+        </svg>
+      </button>
     </div>
   )
 }

@@ -7,6 +7,7 @@ import { PortfolioTable } from '../../components/dashboard/PortfolioTable'
 import { PerformanceChart } from '../../components/dashboard/PerformanceChart'
 import { QuickAddModal } from '../../components/transactions/QuickAddModal'
 import { formatCurrency, formatPercent, getReturnColorClass } from '../../utils/stockFormatters'
+import { formatTimeWithRelative } from '../../utils/dateFormatters'
 
 interface SummaryCardProps {
   label: string
@@ -25,8 +26,47 @@ function SummaryCard({ label, value, className = '' }: SummaryCardProps) {
   )
 }
 
+function TotalReturnCard({ dollars, percent }: { dollars: number; percent: number }) {
+  const colorClass = getReturnColorClass(dollars)
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-soft">
+      <p className="text-xs sm:text-sm font-medium text-slate-600">Total Return</p>
+      <div className="mt-1 sm:mt-2">
+        <div className={`text-xl sm:text-2xl font-bold ${colorClass}`}>
+          {formatCurrency(dollars)}
+        </div>
+        <div className={`text-base font-semibold mt-0.5 ${colorClass}`}>
+          ({formatPercent(percent)})
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AnnualizedYieldCard({ yieldPercent, years }: { yieldPercent: number; years: number }) {
+  const colorClass = getReturnColorClass(yieldPercent)
+  const yearsDisplay =
+    years < 1
+      ? `${Math.round(years * 12)} months`
+      : years === 1
+        ? '1 year'
+        : `${years.toFixed(1)} years`
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-6 shadow-soft">
+      <p className="text-xs sm:text-sm font-medium text-slate-600">Annualized Yield</p>
+      <div className="mt-1 sm:mt-2">
+        <div className={`text-xl sm:text-2xl font-bold ${colorClass}`}>
+          {formatPercent(yieldPercent)}
+        </div>
+        <div className="text-xs text-slate-500 mt-0.5">over {yearsDisplay}</div>
+      </div>
+    </div>
+  )
+}
+
 const Dashboard = () => {
-  const { portfolio, loading, error, refresh } = usePortfolio()
+  const { portfolio, loading, refreshing, error, refresh } = usePortfolio()
   const {
     data: performanceData,
     range,
@@ -80,10 +120,11 @@ const Dashboard = () => {
             </Link>
             <button
               onClick={refresh}
-              className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700 font-medium"
+              disabled={refreshing}
+              className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="hidden sm:inline">Refresh Prices</span>
-              <span className="sm:hidden">Refresh</span>
+              <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh Prices'}</span>
+              <span className="sm:hidden">{refreshing ? '...' : 'Refresh'}</span>
             </button>
           </div>
         </header>
@@ -93,15 +134,13 @@ const Dashboard = () => {
           <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <SummaryCard label="Total Value" value={formatCurrency(portfolio.totalValue)} />
             <SummaryCard label="Total Cost" value={formatCurrency(portfolio.totalCost)} />
-            <SummaryCard
-              label="Total Return"
-              value={formatCurrency(portfolio.totalReturnDollars)}
-              className={getReturnColorClass(portfolio.totalReturnDollars)}
+            <TotalReturnCard
+              dollars={portfolio.totalReturnDollars}
+              percent={portfolio.totalReturnPercent}
             />
-            <SummaryCard
-              label="Return %"
-              value={formatPercent(portfolio.totalReturnPercent)}
-              className={getReturnColorClass(portfolio.totalReturnPercent)}
+            <AnnualizedYieldCard
+              yieldPercent={portfolio.annualizedYield}
+              years={portfolio.investmentYears}
             />
           </div>
         )}
@@ -121,10 +160,7 @@ const Dashboard = () => {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Your Holdings</h2>
             <span className="text-sm text-slate-500">
-              Prices updated:{' '}
-              {portfolio?.pricesUpdatedAt
-                ? new Date(portfolio.pricesUpdatedAt).toLocaleTimeString()
-                : '-'}
+              Prices updated: {formatTimeWithRelative(portfolio?.pricesUpdatedAt)}
             </span>
           </div>
           {portfolio?.holdings.length ? (
