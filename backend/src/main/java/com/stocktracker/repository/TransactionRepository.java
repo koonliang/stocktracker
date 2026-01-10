@@ -72,4 +72,10 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
      * Delete all transactions for a user (used for demo account cleanup).
      */
     void deleteByUserId(Long userId);
+
+    /**
+     * Get earliest transaction date across all transactions for a user.
+     */
+    @Query("SELECT MIN(t.transactionDate) FROM Transaction t WHERE t.user.id = :userId")
+    java.util.Optional<LocalDate> findEarliestTransactionDateByUserId(@Param("userId") Long userId);
 }

@@ -22,5 +22,9 @@ public class PortfolioResponse {
     private BigDecimal totalReturnDollars;
     private BigDecimal totalReturnPercent;
 
+    // Annualized yield
+    private BigDecimal annualizedYield;
+    private BigDecimal investmentYears;  // Years since first transaction
+
     private LocalDateTime pricesUpdatedAt;
 }

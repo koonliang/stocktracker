@@ -26,6 +26,11 @@ export interface PortfolioResponse {
   totalCost: number
   totalReturnDollars: number
   totalReturnPercent: number
+
+  // Annualized yield
+  annualizedYield: number
+  investmentYears: number
+
   pricesUpdatedAt: string
 }
 
@@ -38,7 +43,7 @@ export interface PortfolioPerformancePoint {
 }
 
 // NEW: Time range type
-export type TimeRange = '7d' | '1mo' | '3mo' | 'ytd' | '1y'
+export type TimeRange = '7d' | '1mo' | '3mo' | 'ytd' | '1y' | 'all'
 
 export const portfolioApi = {
   getPortfolio: async (): Promise<PortfolioResponse> => {
