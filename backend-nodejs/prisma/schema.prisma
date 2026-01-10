@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model holdings {
+  id           BigInt    @id @default(autoincrement())
+  created_at   DateTime  @db.DateTime(6)
+  updated_at   DateTime? @db.DateTime(6)
+  average_cost Decimal   @db.Decimal(10, 2)
+  company_name String    @db.VarChar(100)
+  shares       Decimal   @db.Decimal(12, 4)
+  symbol       String    @db.VarChar(10)
+  user_id      BigInt
+  users        users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKo0m56qvi5yyl5ikolvm7ih20o")
+
+  @@unique([user_id, symbol], map: "uk_user_symbol")
+}
+
+model transactions {
+  id               BigInt            @id @default(autoincrement())
+  created_at       DateTime          @db.DateTime(6)
+  updated_at       DateTime?         @db.DateTime(6)
+  company_name     String            @db.VarChar(100)
+  notes            String?           @db.VarChar(500)
+  price_per_share  Decimal           @db.Decimal(10, 2)
+  shares           Decimal           @db.Decimal(12, 4)
+  symbol           String            @db.VarChar(10)
+  total_amount     Decimal           @db.Decimal(14, 2)
+  transaction_date DateTime          @db.Date
+  type             transactions_type
+  user_id          BigInt
+  broker_fee       Decimal?          @db.Decimal(10, 2)
+  users            users             @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FKqwv7rmvc8va8rep7piikrojds")
+
+  @@index([user_id, transaction_date], map: "idx_user_date")
+  @@index([user_id, symbol], map: "idx_user_symbol")
+}
+
+model users {
+  id                BigInt              @id @default(autoincrement())
+  created_at        DateTime            @db.DateTime(6)
+  updated_at        DateTime?           @db.DateTime(6)
+  email             String              @unique(map: "UK6dotkott2kjsp8vw4d0m25fb7") @db.VarChar(255)
+  enabled           Boolean             @db.Bit(1)
+  name              String              @db.VarChar(255)
+  password          String?             @db.VarChar(255)
+  role              users_role
+  auth_provider     users_auth_provider
+  is_demo_account   Boolean             @db.Bit(1)
+  oauth_provider_id String?             @db.VarChar(255)
+  profile_image_url String?             @db.VarChar(500)
+  holdings          holdings[]
+  transactions      transactions[]
+
+  @@index([oauth_provider_id, auth_provider], map: "idx_users_oauth_provider")
+}
+
+enum users_role {
+  USER
+  ADMIN
+}
+
+enum users_auth_provider {
+  LOCAL
+  GOOGLE
+}
+
+enum transactions_type {
+  BUY
+  SELL
+}
