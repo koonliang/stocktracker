@@ -79,7 +79,7 @@ const ImportResultStep: React.FC<ImportResultStepProps> = ({ result, onClose, on
                 {error.field && <span className="font-medium">{error.field}: </span>}
                 {error.message}
                 {error.rejectedValue && (
-                  <span className="text-red-600"> (value: "{error.rejectedValue}")</span>
+                  <span className="text-red-600"> (value: &quot;{error.rejectedValue}&quot;)</span>
                 )}
               </div>
             ))}

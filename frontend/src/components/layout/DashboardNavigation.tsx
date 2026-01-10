@@ -1,10 +1,13 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { authService } from '@services/authService'
 
 const DashboardNavigation = () => {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const pathname = usePathname()
+  const router = useRouter()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -16,7 +19,7 @@ const DashboardNavigation = () => {
     { name: 'Watchlist', path: '/watchlist', icon: 'watchlist' },
   ]
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) => pathname === path
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -45,7 +48,7 @@ const DashboardNavigation = () => {
 
   const handleLogout = async () => {
     await authService.logout()
-    navigate('/logout')
+    router.push('/logout')
   }
 
   const toggleDropdown = () => {
@@ -99,7 +102,7 @@ const DashboardNavigation = () => {
                 </svg>
               </button>
 
-              <Link to="/dashboard" className="flex items-center gap-2">
+              <Link href="/dashboard" className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center">
                   <svg
                     className="w-5 h-5 text-white"
@@ -126,7 +129,7 @@ const DashboardNavigation = () => {
               {navLinks.map(link => (
                 <Link
                   key={link.path}
-                  to={link.path}
+                  href={link.path}
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive(link.path)
                       ? 'bg-indigo-50 text-indigo-600'
@@ -270,7 +273,7 @@ const DashboardNavigation = () => {
               {navLinks.map(link => (
                 <Link
                   key={link.path}
-                  to={link.path}
+                  href={link.path}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium ${
                     isActive(link.path)

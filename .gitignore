@@ -5,6 +5,7 @@ scripts/.env.production
 backend/target/
 frontend/dist/
 frontend/build/
+frontend/.next
 
 # IDE
 .idea/

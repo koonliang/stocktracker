@@ -4,6 +4,30 @@ import type { LoginRequest, SignupRequest, AuthResponse, ApiResponse } from '@/t
 const TOKEN_KEY = 'authToken'
 const USER_KEY = 'user'
 
+// Cookie utility functions for SSR compatibility
+const setCookie = (name: string, value: string, days: number = 7) => {
+  if (typeof window !== 'undefined') {
+    const expires = new Date(Date.now() + days * 864e5).toUTCString()
+    document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/; SameSite=Lax`
+  }
+}
+
+const getCookie = (name: string): string | null => {
+  if (typeof window === 'undefined') return null
+  const value = `; ${document.cookie}`
+  const parts = value.split(`; ${name}=`)
+  if (parts.length === 2) {
+    return decodeURIComponent(parts.pop()?.split(';').shift() || '')
+  }
+  return null
+}
+
+const deleteCookie = (name: string) => {
+  if (typeof window !== 'undefined') {
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`
+  }
+}
+
 export const authService = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
     try {
@@ -11,8 +35,8 @@ export const authService = {
 
       if (response.data.success && response.data.data) {
         const authData = response.data.data
-        localStorage.setItem(TOKEN_KEY, authData.token)
-        localStorage.setItem(
+        setCookie(TOKEN_KEY, authData.token)
+        setCookie(
           USER_KEY,
           JSON.stringify({
             id: authData.userId,
@@ -41,8 +65,8 @@ export const authService = {
 
       if (response.data.success && response.data.data) {
         const authData = response.data.data
-        localStorage.setItem(TOKEN_KEY, authData.token)
-        localStorage.setItem(
+        setCookie(TOKEN_KEY, authData.token)
+        setCookie(
           USER_KEY,
           JSON.stringify({
             id: authData.userId,
@@ -72,18 +96,18 @@ export const authService = {
       // Log error for debugging but don't block logout
       console.warn('Backend logout failed, proceeding with local cleanup:', error)
     } finally {
-      // ALWAYS clear local data regardless of backend response
-      localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem(USER_KEY)
+      // ALWAYS clear cookies regardless of backend response
+      deleteCookie(TOKEN_KEY)
+      deleteCookie(USER_KEY)
     }
   },
 
   getToken(): string | null {
-    return localStorage.getItem(TOKEN_KEY)
+    return getCookie(TOKEN_KEY)
   },
 
   getUser(): { id: number; email: string; name: string } | null {
-    const user = localStorage.getItem(USER_KEY)
+    const user = getCookie(USER_KEY)
     return user ? JSON.parse(user) : null
   },
 
@@ -97,8 +121,8 @@ export const authService = {
 
       if (response.data.success && response.data.data) {
         const authData = response.data.data
-        localStorage.setItem(TOKEN_KEY, authData.token)
-        localStorage.setItem(
+        setCookie(TOKEN_KEY, authData.token)
+        setCookie(
           USER_KEY,
           JSON.stringify({
             id: authData.userId,
@@ -126,8 +150,8 @@ export const authService = {
     email: string
     name: string
   }): void {
-    localStorage.setItem(TOKEN_KEY, data.token)
-    localStorage.setItem(
+    setCookie(TOKEN_KEY, data.token)
+    setCookie(
       USER_KEY,
       JSON.stringify({
         id: data.userId,

@@ -124,7 +124,7 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
                 <li key={idx} className="text-xs text-red-800">
                   <span className="font-medium">{err.field}:</span> {err.message}
                   {err.rejectedValue && (
-                    <span className="text-red-600"> (value: "{err.rejectedValue}")</span>
+                    <span className="text-red-600"> (value: &quot;{err.rejectedValue}&quot;)</span>
                   )}
                 </li>
               ))}
@@ -173,7 +173,7 @@ const ImportPreviewStep: React.FC<ImportPreviewStepProps> = ({
                     <li key={idx} className="text-red-800">
                       <span className="font-medium">{err.field}:</span> {err.message}
                       {err.rejectedValue && (
-                        <span className="text-red-600"> (value: "{err.rejectedValue}")</span>
+                        <span className="text-red-600"> (value: &quot;{err.rejectedValue}&quot;)</span>
                       )}
                     </li>
                   ))}

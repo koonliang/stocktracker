@@ -8,7 +8,6 @@ interface TransactionGridProps {
   transactions: TransactionResponse[]
   onUpdate: (id: number, request: TransactionRequest) => Promise<void>
   onDelete: (id: number) => Promise<void>
-  onCreate: (request: TransactionRequest) => Promise<void>
   showToolbar?: boolean
 }
 
@@ -81,9 +80,7 @@ export function TransactionGrid({
 
   const handleDelete = useCallback(
     async (id: number) => {
-      if (window.confirm('Are you sure you want to delete this transaction?')) {
-        await onDelete(id)
-      }
+      await onDelete(id)
     },
     [onDelete]
   )

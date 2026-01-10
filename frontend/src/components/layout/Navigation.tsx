@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 
 const Navigation = () => {
   return (
@@ -28,25 +28,25 @@ const Navigation = () => {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-8">
             <Link
-              to="/"
+              href="/"
               className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
             >
               Features
             </Link>
             <Link
-              to="/"
+              href="/"
               className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
             >
               Solutions
             </Link>
             <Link
-              to="/"
+              href="/"
               className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
             >
               Pricing
             </Link>
             <Link
-              to="/"
+              href="/"
               className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
             >
               Company
@@ -56,13 +56,13 @@ const Navigation = () => {
           {/* CTA Buttons */}
           <div className="flex items-center gap-4">
             <Link
-              to="/login"
+              href="/login"
               className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
             >
               Sign in
             </Link>
             <Link
-              to="/login"
+              href="/login"
               className="px-5 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-sm font-semibold rounded-full shadow-button hover:-translate-y-0.5 transition-all duration-200"
             >
               Get Started
