@@ -1,0 +1,17 @@
+{
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "DATABASE_URL": "@database-url",
+    "DIRECT_URL": "@direct-url",
+    "JWT_SECRET": "@jwt-secret",
+    "JWT_EXPIRATION": "@jwt-expiration",
+    "GOOGLE_CLIENT_ID": "@google-client-id",
+    "GOOGLE_CLIENT_SECRET": "@google-client-secret",
+    "OAUTH2_REDIRECT_URI": "@oauth2-redirect-uri",
+    "YAHOO_FINANCE_CHART_URL": "@yahoo-finance-chart-url",
+    "CRON_SECRET": "@cron-secret"
+  }
+}
