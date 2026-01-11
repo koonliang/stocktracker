@@ -36,7 +36,7 @@ export class JwtService {
   verifyToken(token: string): jwt.JwtPayload | string {
     try {
       return jwt.verify(token, this.secret);
-    } catch (error) {
+    } catch {
       throw new Error('Invalid token');
     }
   }
