@@ -13,5 +13,11 @@
     "OAUTH2_REDIRECT_URI": "@oauth2-redirect-uri",
     "YAHOO_FINANCE_CHART_URL": "@yahoo-finance-chart-url",
     "CRON_SECRET": "@cron-secret"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-demo-accounts",
+      "schedule": "0 2 * * *"
+    }
+  ]
 }

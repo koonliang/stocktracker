@@ -3,6 +3,7 @@ import { authenticateRequest } from '@/lib/middleware/auth';
 import { transactionService } from '@/lib/transaction/transaction.service';
 import { holdingRecalculationService } from '@/lib/holding/holding-recalculation.service';
 import { TransactionType } from '@/lib/database/types';
+import { cacheService } from '@/lib/cache/cache.service';
 
 // GET /api/transactions - Get all transactions for authenticated user
 export async function GET(request: NextRequest) {
@@ -81,6 +82,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate sell transaction
+    if (body.type === TransactionType.SELL) {
+      const validation = await transactionService.validateSellTransaction(
+        user.userId,
+        body.symbol.toUpperCase(),
+        Number(body.shares),
+        new Date(body.transactionDate),
+      );
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          { success: false, message: validation.error },
+          { status: 400 },
+        );
+      }
+    }
+
     // Create transaction
     const transaction = await transactionService.create({
       userId: user.userId,
@@ -96,6 +114,9 @@ export async function POST(request: NextRequest) {
 
     // Recalculate holdings for this symbol
     await holdingRecalculationService.recalculateHolding(user.userId, transaction.symbol);
+
+    // Evict cache
+    await cacheService.evictUserCache(user.userId);
 
     // Return response
     const response = {

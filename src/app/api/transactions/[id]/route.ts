@@ -4,14 +4,19 @@ import { transactionService } from '@/lib/transaction/transaction.service';
 import { holdingRecalculationService } from '@/lib/holding/holding-recalculation.service';
 import { prisma } from '@/lib/database/prisma';
 import { TransactionType } from '@/lib/database/types';
+import { cacheService } from '@/lib/cache/cache.service';
 
 // PUT /api/transactions/:id - Update a transaction
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     // Authenticate user
     const user = await authenticateRequest(request);
 
-    const transactionId = parseInt(params.id, 10);
+    const { id } = await params;
+    const transactionId = parseInt(id, 10);
     if (isNaN(transactionId)) {
       return NextResponse.json({ success: false, message: 'Invalid transaction ID' }, { status: 400 });
     }
@@ -40,6 +45,29 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       );
     }
 
+    // Validate sell transaction if type is SELL (either existing or being updated to SELL)
+    const newType = body.type || existing.type;
+    if (newType === TransactionType.SELL) {
+      const newSymbol = body.symbol ? body.symbol.toUpperCase() : existing.symbol;
+      const newShares = body.shares !== undefined ? Number(body.shares) : Number(existing.shares);
+      const newDate = body.transactionDate ? new Date(body.transactionDate) : existing.transaction_date;
+
+      const validation = await transactionService.validateSellTransaction(
+        user.userId,
+        newSymbol,
+        newShares,
+        newDate,
+        transactionId, // Exclude current transaction from validation
+      );
+
+      if (!validation.valid) {
+        return NextResponse.json(
+          { success: false, message: validation.error },
+          { status: 400 },
+        );
+      }
+    }
+
     const oldSymbol = existing.symbol;
 
     // Update transaction
@@ -59,6 +87,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (oldSymbol !== transaction.symbol) {
       await holdingRecalculationService.recalculateHolding(user.userId, oldSymbol);
     }
+
+    // Evict cache
+    await cacheService.evictUserCache(user.userId);
 
     // Return response
     const response = {
@@ -100,12 +131,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 }
 
 // DELETE /api/transactions/:id - Delete a transaction
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
   try {
     // Authenticate user
     const user = await authenticateRequest(request);
 
-    const transactionId = parseInt(params.id, 10);
+    const { id } = await params;
+    const transactionId = parseInt(id, 10);
     if (isNaN(transactionId)) {
       return NextResponse.json({ success: false, message: 'Invalid transaction ID' }, { status: 400 });
     }
@@ -130,6 +165,9 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     // Recalculate holdings for this symbol
     await holdingRecalculationService.recalculateHolding(user.userId, symbol);
+
+    // Evict cache
+    await cacheService.evictUserCache(user.userId);
 
     return NextResponse.json(
       {

@@ -4,6 +4,8 @@ export interface StockQuote {
   symbol: string;
   price: number | null;
   previousClose: number | null;
+  shortName?: string | null;
+  regularMarketPrice?: number | null;
 }
 
 export interface HistoricalDataPoint {
@@ -39,17 +41,27 @@ export class YahooFinanceService {
 
       const result = response.data?.chart?.result?.[0];
       if (!result) {
-        return { symbol, price: null, previousClose: null };
+        return {
+          symbol,
+          price: null,
+          previousClose: null,
+          shortName: null,
+          regularMarketPrice: null,
+        };
       }
 
       const meta = result.meta;
       const price = meta?.regularMarketPrice ?? null;
       const previousClose = meta?.previousClose ?? null;
+      const shortName = meta?.shortName ?? meta?.longName ?? null;
+      const regularMarketPrice = meta?.regularMarketPrice ?? null;
 
       return {
         symbol,
         price,
         previousClose,
+        shortName,
+        regularMarketPrice,
       };
     } catch (error) {
       console.error(`Failed to fetch quote for ${symbol}:`, error);
@@ -57,6 +69,8 @@ export class YahooFinanceService {
         symbol,
         price: null,
         previousClose: null,
+        shortName: null,
+        regularMarketPrice: null,
       };
     }
   }

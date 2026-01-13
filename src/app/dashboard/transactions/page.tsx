@@ -126,7 +126,7 @@ export default function Transactions() {
         ...filteredTransactions.map(tx => {
           const date = new Date(tx.transactionDate).toLocaleDateString()
           const notes = tx.notes ? `"${tx.notes.replace(/"/g, '""')}"` : ''
-          return [date, tx.symbol, tx.type, tx.quantity, tx.price, tx.fee, tx.totalAmount, notes].join(',')
+          return [date, tx.symbol, tx.type, tx.shares, tx.pricePerShare, tx.brokerFee || '', tx.totalAmount, notes].join(',')
         }),
       ]
 

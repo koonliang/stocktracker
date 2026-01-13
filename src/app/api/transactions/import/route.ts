@@ -1,0 +1,67 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authenticateRequest } from '@/lib/middleware/auth';
+import { csvImportService } from '@/lib/csv-import/csv-import.service';
+import { holdingRecalculationService } from '@/lib/holding/holding-recalculation.service';
+import { cacheService } from '@/lib/cache/cache.service';
+
+// POST /api/transactions/import - Execute import of validated transactions
+export async function POST(request: NextRequest) {
+  try {
+    // Authenticate user
+    const user = await authenticateRequest(request);
+
+    // Parse request body
+    const body = await request.json();
+
+    // Validate request
+    if (!body.rows || !Array.isArray(body.rows)) {
+      return NextResponse.json({ success: false, message: 'Rows array is required' }, { status: 400 });
+    }
+
+    if (!body.fieldMappings || typeof body.fieldMappings !== 'object') {
+      return NextResponse.json(
+        { success: false, message: 'Field mappings object is required' },
+        { status: 400 },
+      );
+    }
+
+    // Execute import
+    const response = await csvImportService.executeImport(user.userId, {
+      rows: body.rows,
+      fieldMappings: body.fieldMappings,
+    });
+
+    // Recalculate all holdings after bulk import
+    await holdingRecalculationService.recalculateAllHoldings(user.userId);
+
+    // Evict cache
+    await cacheService.evictUserCache(user.userId);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: response,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    console.error('Execute import error:', error);
+
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    if (error instanceof Error && error.message.startsWith('Cannot import more than')) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
+
+    if (error instanceof Error && error.message.startsWith('Missing required field mappings')) {
+      return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+    }
+
+    return NextResponse.json(
+      { success: false, message: 'Failed to execute import' },
+      { status: 500 },
+    );
+  }
+}
