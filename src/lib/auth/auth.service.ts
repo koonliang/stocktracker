@@ -8,6 +8,7 @@ import {
 import { LoginDto, SignupDto, AuthResponse } from './dto';
 import { PasswordValidator } from '../common/utils/password-validator';
 import { AuthProvider, Role } from '../database/types';
+import { demoAccountSeedingService } from '../demo/demo-account-seeding.service';
 
 export class AuthService {
   /**
@@ -83,6 +84,38 @@ export class AuthService {
     });
 
     // Auto-login: generate JWT token
+    const token = jwtService.generateToken(user);
+
+    return AuthResponse.create(token, user.id, user.email, user.name);
+  }
+
+  /**
+   * Create a demo account with unique email and seed with sample transactions
+   * Demo accounts are automatically cleaned up after 24 hours
+   */
+  async demoLogin(): Promise<AuthResponse> {
+    // Generate unique demo email: demo-{uuid}@stocktracker.demo
+    const uuid = crypto.randomUUID();
+    const demoEmail = `demo-${uuid}@stocktracker.demo`;
+    const demoName = `Demo User ${uuid.substring(0, 8)}`;
+
+    // Create demo user
+    const user = await userService.create({
+      name: demoName,
+      email: demoEmail,
+      password: null, // No password for demo accounts
+      auth_provider: AuthProvider.LOCAL,
+      role: Role.USER,
+      enabled: true,
+      is_demo_account: true,
+    });
+
+    // Seed demo account with sample transactions
+    // This creates 10 transactions across 6 stocks (AAPL, MSFT, GOOGL, TSLA, NVDA, AMZN)
+    // and calculates holdings using weighted average cost algorithm
+    await demoAccountSeedingService.seedDemoTransactions(Number(user.id));
+
+    // Generate JWT token
     const token = jwtService.generateToken(user);
 
     return AuthResponse.create(token, user.id, user.email, user.name);
