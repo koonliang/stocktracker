@@ -123,7 +123,9 @@ const Dashboard = () => {
               disabled={refreshing}
               className="flex-1 sm:flex-none rounded-lg bg-indigo-600 px-3 sm:px-4 py-2 text-sm sm:text-base text-white hover:bg-indigo-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <span className="hidden sm:inline">{refreshing ? 'Refreshing...' : 'Refresh Prices'}</span>
+              <span className="hidden sm:inline">
+                {refreshing ? 'Refreshing...' : 'Refresh Prices'}
+              </span>
               <span className="sm:hidden">{refreshing ? '...' : 'Refresh'}</span>
             </button>
           </div>

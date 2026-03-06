@@ -57,6 +57,8 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
     return { dollars, percent }
   }, [data])
 
+  const hasCostBasis = useMemo(() => data.some(d => d.costBasis != null && d.costBasis > 0), [data])
+
   const isPositive = periodReturn.dollars >= 0
   const chartColor = isPositive ? '#10b981' : '#ef4444' // emerald-500 / red-500
   const gradientId = 'performanceGradient'
@@ -100,6 +102,26 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
         </div>
       </div>
 
+      {/* Legend */}
+      {hasCostBasis && !loading && (
+        <div className="mb-2 flex items-center gap-4 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-0.5 w-4 rounded"
+              style={{ backgroundColor: chartColor }}
+            />
+            Portfolio Value
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-0.5 w-4"
+              style={{ borderTop: '1.5px dashed #94a3b8' }}
+            />
+            Cost Basis
+          </span>
+        </div>
+      )}
+
       {/* Chart */}
       {loading ? (
         <div className="flex h-48 sm:h-64 items-center justify-center">
@@ -137,9 +159,9 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
                   borderRadius: '8px',
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value: number | undefined) => [
+                formatter={(value: number | undefined, name: string | undefined) => [
                   formatCurrency(value || 0),
-                  'Portfolio Value',
+                  name === 'costBasis' ? 'Cost Basis' : 'Portfolio Value',
                 ]}
                 labelFormatter={label =>
                   new Date(label).toLocaleDateString('en-US', {
@@ -157,6 +179,16 @@ export function PerformanceChart({ data, range, onRangeChange, loading }: Perfor
                 strokeWidth={2}
                 fill={`url(#${gradientId})`}
               />
+              {hasCostBasis && (
+                <Area
+                  type="monotone"
+                  dataKey="costBasis"
+                  stroke="#94a3b8"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 3"
+                  fill="none"
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>
