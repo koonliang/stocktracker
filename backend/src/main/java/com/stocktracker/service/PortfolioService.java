@@ -377,93 +377,120 @@ public class PortfolioService {
             }
         }
 
-        // For each date, calculate portfolio value based on shares owned at that time
-        Map<LocalDate, BigDecimal> dailyValues = new TreeMap<>();
+        // Pre-build a TreeMap of date -> close price per symbol for carry-forward lookup
+        Map<String, TreeMap<LocalDate, BigDecimal>> priceMapBySymbol = new HashMap<>();
+        for (Map.Entry<String, HistoricalData> entry : historicalDataMap.entrySet()) {
+            TreeMap<LocalDate, BigDecimal> priceMap = new TreeMap<>();
+            if (entry.getValue() != null && entry.getValue().getPrices() != null) {
+                for (HistoricalPrice price : entry.getValue().getPrices()) {
+                    priceMap.put(price.getDate(), price.getClose());
+                }
+            }
+            priceMapBySymbol.put(entry.getKey(), priceMap);
+        }
+
+        // Pre-compute shares-per-symbol and cost basis snapshots at each transaction date
+        // so we can look up via floorEntry instead of re-scanning all transactions per date
+        TreeMap<LocalDate, Map<String, BigDecimal>> sharesSnapshots = new TreeMap<>();
+        TreeMap<LocalDate, BigDecimal> costBasisSnapshots = new TreeMap<>();
+        precomputeTransactionSnapshots(allTransactions, sharesSnapshots, costBasisSnapshots);
+
+        // For each date, calculate portfolio value and cost basis
+        // Skip dates where any held symbol has no price data (no carry-forward available)
+        List<PortfolioPerformancePoint> performance = new ArrayList<>();
+        BigDecimal previousValue = null;
 
         for (LocalDate date : allDates) {
-            // Calculate shares owned at this date for each symbol
-            Map<String, BigDecimal> sharesAtDate = calculateSharesAtDate(allTransactions, date);
+            // O(log n) lookup for shares and cost basis at this date
+            Map.Entry<LocalDate, Map<String, BigDecimal>> sharesEntry = sharesSnapshots.floorEntry(date);
+            Map.Entry<LocalDate, BigDecimal> costEntry = costBasisSnapshots.floorEntry(date);
 
-            // Calculate total portfolio value at this date
+            if (sharesEntry == null) {
+                continue; // No transactions yet
+            }
+
+            Map<String, BigDecimal> sharesAtDate = sharesEntry.getValue();
+            BigDecimal costBasisAtDate = costEntry != null ? costEntry.getValue() : BigDecimal.ZERO;
+
             BigDecimal totalValue = BigDecimal.ZERO;
+            boolean allPricesAvailable = true;
 
             for (Map.Entry<String, BigDecimal> entry : sharesAtDate.entrySet()) {
                 String symbol = entry.getKey();
                 BigDecimal shares = entry.getValue();
 
-                // Get historical price for this symbol on this date
-                HistoricalData data = historicalDataMap.get(symbol);
-                if (data != null && data.getPrices() != null) {
-                    // Find the price for this specific date
-                    BigDecimal priceAtDate = data.getPrices().stream()
-                        .filter(p -> p.getDate().equals(date))
-                        .findFirst()
-                        .map(HistoricalPrice::getClose)
-                        .orElse(null);
-
-                    if (priceAtDate != null && shares.compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal holdingValue = shares.multiply(priceAtDate);
-                        totalValue = totalValue.add(holdingValue);
-                    }
+                if (shares.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
                 }
+
+                TreeMap<LocalDate, BigDecimal> priceMap = priceMapBySymbol.get(symbol);
+                Map.Entry<LocalDate, BigDecimal> priceEntry = (priceMap != null) ? priceMap.floorEntry(date) : null;
+
+                if (priceEntry == null) {
+                    allPricesAvailable = false;
+                    break;
+                }
+
+                totalValue = totalValue.add(shares.multiply(priceEntry.getValue()));
             }
 
-            if (totalValue.compareTo(BigDecimal.ZERO) > 0) {
-                dailyValues.put(date, totalValue);
+            if (allPricesAvailable && totalValue.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal dailyChange = previousValue != null
+                    ? totalValue.subtract(previousValue)
+                    : BigDecimal.ZERO;
+                BigDecimal dailyChangePercent = previousValue != null && previousValue.compareTo(BigDecimal.ZERO) > 0
+                    ? dailyChange.divide(previousValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
+                    : BigDecimal.ZERO;
+
+                performance.add(PortfolioPerformancePoint.builder()
+                    .date(date)
+                    .totalValue(totalValue)
+                    .costBasis(costBasisAtDate.compareTo(BigDecimal.ZERO) > 0 ? costBasisAtDate : BigDecimal.ZERO)
+                    .dailyChange(dailyChange)
+                    .dailyChangePercent(dailyChangePercent)
+                    .build());
+
+                previousValue = totalValue;
             }
-        }
-
-        // Convert to PortfolioPerformancePoint list with daily changes
-        List<PortfolioPerformancePoint> performance = new ArrayList<>();
-        BigDecimal previousValue = null;
-
-        for (Map.Entry<LocalDate, BigDecimal> entry : dailyValues.entrySet()) {
-            BigDecimal currentValue = entry.getValue();
-            BigDecimal dailyChange = previousValue != null
-                ? currentValue.subtract(previousValue)
-                : BigDecimal.ZERO;
-            BigDecimal dailyChangePercent = previousValue != null && previousValue.compareTo(BigDecimal.ZERO) > 0
-                ? dailyChange.divide(previousValue, 4, RoundingMode.HALF_UP).multiply(BigDecimal.valueOf(100))
-                : BigDecimal.ZERO;
-
-            performance.add(PortfolioPerformancePoint.builder()
-                .date(entry.getKey())
-                .totalValue(currentValue)
-                .dailyChange(dailyChange)
-                .dailyChangePercent(dailyChangePercent)
-                .build());
-
-            previousValue = currentValue;
         }
 
         return performance;
     }
 
     /**
-     * Calculate shares owned at a specific date based on transaction history.
-     * Only counts transactions on or before the given date.
+     * Pre-compute snapshots of shares-per-symbol and cumulative cost basis at each transaction date.
+     * Transactions are processed in date order. Each transaction date gets a snapshot
+     * that can be looked up via TreeMap.floorEntry() for O(log n) per date.
      */
-    private Map<String, BigDecimal> calculateSharesAtDate(List<Transaction> transactions, LocalDate date) {
-        Map<String, BigDecimal> sharesMap = new HashMap<>();
+    private void precomputeTransactionSnapshots(
+            List<Transaction> transactions,
+            TreeMap<LocalDate, Map<String, BigDecimal>> sharesSnapshots,
+            TreeMap<LocalDate, BigDecimal> costBasisSnapshots) {
 
-        for (Transaction tx : transactions) {
-            // Only consider transactions on or before this date
-            if (tx.getTransactionDate().isAfter(date)) {
-                continue;
-            }
+        // Sort transactions by date
+        List<Transaction> sorted = transactions.stream()
+            .sorted(Comparator.comparing(Transaction::getTransactionDate))
+            .collect(Collectors.toList());
 
+        Map<String, BigDecimal> currentShares = new HashMap<>();
+        BigDecimal currentCost = BigDecimal.ZERO;
+
+        for (Transaction tx : sorted) {
             String symbol = tx.getSymbol();
-            BigDecimal shares = tx.getShares();
+            BigDecimal txCost = tx.getShares().multiply(tx.getPricePerShare());
 
-            // Add for BUY, subtract for SELL
             if (tx.getType() == TransactionType.BUY) {
-                sharesMap.merge(symbol, shares, BigDecimal::add);
+                currentShares.merge(symbol, tx.getShares(), BigDecimal::add);
+                currentCost = currentCost.add(txCost);
             } else if (tx.getType() == TransactionType.SELL) {
-                sharesMap.merge(symbol, shares.negate(), BigDecimal::add);
+                currentShares.merge(symbol, tx.getShares().negate(), BigDecimal::add);
+                currentCost = currentCost.subtract(txCost);
             }
-        }
 
-        return sharesMap;
+            // Store a snapshot (copy) at this transaction date
+            sharesSnapshots.put(tx.getTransactionDate(), new HashMap<>(currentShares));
+            costBasisSnapshots.put(tx.getTransactionDate(), currentCost);
+        }
     }
 
     /**
@@ -475,21 +502,47 @@ public class PortfolioService {
             List<Holding> holdings,
             Map<String, HistoricalData> historicalDataMap) {
 
-        // Build a map of date -> sum of (shares * close price)
+        // Build a TreeMap of date -> close price per symbol for carry-forward lookup
         // Exclude today's date as historical data may be incomplete
         LocalDate today = LocalDate.now();
-        Map<LocalDate, BigDecimal> dailyValues = new TreeMap<>();
+
+        Map<String, TreeMap<LocalDate, BigDecimal>> priceMapBySymbol = new HashMap<>();
+        Set<LocalDate> allDates = new TreeSet<>();
 
         for (Holding holding : holdings) {
             HistoricalData data = historicalDataMap.get(holding.getSymbol());
             if (data == null || data.getPrices().isEmpty()) continue;
 
+            TreeMap<LocalDate, BigDecimal> priceMap = new TreeMap<>();
             for (HistoricalPrice price : data.getPrices()) {
-                // Skip today's date as historical prices may be incomplete
                 if (price.getDate().isBefore(today)) {
-                    BigDecimal holdingValue = holding.getShares().multiply(price.getClose());
-                    dailyValues.merge(price.getDate(), holdingValue, BigDecimal::add);
+                    priceMap.put(price.getDate(), price.getClose());
+                    allDates.add(price.getDate());
                 }
+            }
+            priceMapBySymbol.put(holding.getSymbol(), priceMap);
+        }
+
+        // For each date, sum up holdings using carry-forward pricing
+        // Skip dates where any holding has no price data available
+        Map<LocalDate, BigDecimal> dailyValues = new TreeMap<>();
+        for (LocalDate date : allDates) {
+            BigDecimal totalValue = BigDecimal.ZERO;
+            boolean allPricesAvailable = true;
+
+            for (Holding holding : holdings) {
+                TreeMap<LocalDate, BigDecimal> priceMap = priceMapBySymbol.get(holding.getSymbol());
+                Map.Entry<LocalDate, BigDecimal> priceEntry = (priceMap != null) ? priceMap.floorEntry(date) : null;
+
+                if (priceEntry == null) {
+                    allPricesAvailable = false;
+                    break;
+                }
+
+                totalValue = totalValue.add(holding.getShares().multiply(priceEntry.getValue()));
+            }
+            if (allPricesAvailable && totalValue.compareTo(BigDecimal.ZERO) > 0) {
+                dailyValues.put(date, totalValue);
             }
         }
 

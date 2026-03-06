@@ -15,6 +15,7 @@ import java.time.LocalDate;
 public class PortfolioPerformancePoint {
     private LocalDate date;
     private BigDecimal totalValue;
+    private BigDecimal costBasis;
     private BigDecimal dailyChange;
     private BigDecimal dailyChangePercent;
 }

@@ -38,6 +38,7 @@ export interface PortfolioResponse {
 export interface PortfolioPerformancePoint {
   date: string // ISO date string
   totalValue: number
+  costBasis: number | null
   dailyChange: number
   dailyChangePercent: number
 }
