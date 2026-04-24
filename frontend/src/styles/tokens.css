@@ -1,0 +1,122 @@
+/*
+ * StockTracker — "Editorial Ledger" design tokens
+ *
+ * Concept: the visual grammar of a serious financial publication
+ * (editorial serif headlines, numerate tabular body, warm paper surfaces)
+ * crossed with the restraint of a broker terminal. No gradient meshes,
+ * no glassmorphism, no neon. One deep-ink accent. Numbers are always set
+ * in tabular-nums mono. Gain/loss color applied to the delta value only,
+ * never to whole rows.
+ *
+ * Contrast targets (WCAG 2.1 AA):
+ *   - Body text vs. bg:         >= 7:1 (AAA where feasible)
+ *   - Muted text vs. bg:        >= 4.5:1
+ *   - Accent on paper:          >= 7:1
+ *   - Positive / negative text: >= 4.5:1
+ */
+
+:root {
+  /* ============= Color (light: warm paper) ============= */
+  /* All colors expressed as "R G B" triplets so Tailwind can apply alpha. */
+
+  --color-bg: 250 247 242; /* #FAF7F2 warm off-white paper */
+  --color-surface: 255 255 255; /* #FFFFFF pure paper (cards) */
+  --color-surface-alt: 244 239 231; /* #F4EFE7 warmer paper (nav, empty states) */
+  --color-border: 229 222 208; /* #E5DED0 warm rule */
+  --color-border-strong: 201 191 168; /* #C9BFA8 emphasis rule */
+
+  --color-text: 20 18 16; /* #141210 warm ink, ~15:1 on bg */
+  --color-text-muted: 94 88 81; /* #5E5851 ~7:1 */
+  --color-text-subtle: 138 132 122; /* #8A847A ~4.6:1, borderline — use sparingly */
+
+  --color-accent: 30 42 94; /* #1E2A5E fountain-pen indigo, ~10:1 on paper */
+  --color-accent-hover: 21 32 72; /* #152048 */
+  --color-accent-fg: 250 247 242; /* paper on accent */
+
+  --color-positive: 29 107 74; /* #1D6B4A deep British-racing-green, ~5:1 */
+  --color-positive-bg: 227 239 230; /* #E3EFE6 */
+  --color-negative: 155 44 44; /* #9B2C2C editorial burgundy, ~6:1 */
+  --color-negative-bg: 250 222 222; /* #FADEDE */
+  --color-warning: 180 114 21; /* #B47215 amber */
+
+  --color-focus-ring: 30 42 94; /* accent */
+
+  /* ============= Radii ============= */
+  /* Modest — editorial restraint. */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-2xl: 20px;
+
+  /* ============= Shadows ============= */
+  /* Soft, warm, low-spread. */
+  --shadow-card: 0 1px 2px rgb(20 18 16 / 0.04), 0 1px 3px rgb(20 18 16 / 0.03);
+  --shadow-popover:
+    0 12px 32px rgb(20 18 16 / 0.1), 0 4px 8px rgb(20 18 16 / 0.05), 0 0 0 1px rgb(20 18 16 / 0.04);
+
+  /* ============= Motion ============= */
+  --easing: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 120ms;
+  --duration-med: 180ms;
+
+  /* ============= Layout ============= */
+  --content-max: 1440px;
+  --sidebar-w: 248px;
+  --topbar-h: 64px;
+}
+
+[data-theme='dark'] {
+  /* ============= Color (dark: warm near-black) ============= */
+  --color-bg: 18 17 16; /* #121110 */
+  --color-surface: 28 26 24; /* #1C1A18 */
+  --color-surface-alt: 38 35 32; /* #262320 */
+  --color-border: 46 42 38; /* #2E2A26 */
+  --color-border-strong: 74 67 60; /* #4A433C */
+
+  --color-text: 241 235 221; /* #F1EBDD warm off-white */
+  --color-text-muted: 184 174 156; /* #B8AE9C */
+  --color-text-subtle: 126 117 104; /* #7E7568 */
+
+  --color-accent: 168 179 232; /* #A8B3E8 inverted indigo, soft */
+  --color-accent-hover: 193 201 239; /* #C1C9EF */
+  --color-accent-fg: 18 17 16; /* near-black on accent */
+
+  --color-positive: 91 173 130; /* #5BAD82 */
+  --color-positive-bg: 32 61 46; /* #203D2E */
+  --color-negative: 217 138 138; /* #D98A8A */
+  --color-negative-bg: 63 35 35; /* #3F2323 */
+  --color-warning: 220 170 90;
+
+  --color-focus-ring: 168 179 232;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+  --shadow-popover:
+    0 16px 40px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* re-apply dark overrides when user prefers dark and hasn't set an override */
+    --color-bg: 18 17 16;
+    --color-surface: 28 26 24;
+    --color-surface-alt: 38 35 32;
+    --color-border: 46 42 38;
+    --color-border-strong: 74 67 60;
+    --color-text: 241 235 221;
+    --color-text-muted: 184 174 156;
+    --color-text-subtle: 126 117 104;
+    --color-accent: 168 179 232;
+    --color-accent-hover: 193 201 239;
+    --color-accent-fg: 18 17 16;
+    --color-positive: 91 173 130;
+    --color-positive-bg: 32 61 46;
+    --color-negative: 217 138 138;
+    --color-negative-bg: 63 35 35;
+    --color-warning: 220 170 90;
+    --color-focus-ring: 168 179 232;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 1px 3px rgb(0 0 0 / 0.3);
+    --shadow-popover:
+      0 16px 40px rgb(0 0 0 / 0.55), 0 4px 12px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.04);
+  }
+}
