@@ -1,57 +1,231 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { Transaction } from '@/lib/types';
-import { loadSeedPortfolio } from '@/lib/seed';
+import { ApiError } from '@/api/client';
+import { getDashboard } from '@/api/dashboardApi';
+import {
+  commitTransactionImport,
+  deleteTransaction as deleteTransactionRequest,
+  getTransactions,
+  previewTransactionImport,
+} from '@/api/transactionsApi';
+import type {
+  DashboardResponse,
+  Holding,
+  PortfolioSummary,
+  Transaction,
+  TransactionImportPreviewResponse,
+} from '@/lib/types';
+import { computeHoldings, computePortfolio, buildPriceLookup } from '@/lib/portfolio';
+import { loadPrices, loadSeedPortfolio, loadTickers } from '@/lib/seed';
+
+type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
 type State = {
-  transactions: Transaction[];
-  /** Whether the store has been initialized (used to seed on first run only). */
   initialized: boolean;
+  transactions: Transaction[];
+  holdings: Holding[];
+  summary: PortfolioSummary;
+  dashboardStatus: LoadStatus;
+  transactionsStatus: LoadStatus;
+  previewStatus: LoadStatus;
+  commitStatus: LoadStatus;
+  error: string | null;
+  preview: TransactionImportPreviewResponse | null;
 };
 
 type Actions = {
-  addTransaction: (tx: Omit<Transaction, 'id'> & { id?: string }) => void;
+  loadDashboard: () => Promise<void>;
+  loadTransactions: () => Promise<void>;
+  refreshAll: () => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  previewImport: (file: File) => Promise<void>;
+  clearPreview: () => void;
+  commitPreview: () => Promise<void>;
+  clearError: () => void;
+  hydrateForTests: (data: Partial<Pick<State, 'transactions' | 'holdings' | 'summary' | 'preview'>>) => void;
+  addTransaction: (transaction: Omit<Transaction, 'id'> & { id?: string }) => void;
   removeTransaction: (id: string) => void;
   replaceAll: (transactions: Transaction[]) => void;
   appendMany: (transactions: Transaction[]) => void;
   clear: () => void;
-  /** Force-seed from bundled demo data (used after clear in tests). */
   seedFromFixture: () => void;
 };
 
-function newId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `tx_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+const EMPTY_SUMMARY: PortfolioSummary = {
+  totalMarketValue: 0,
+  totalCostBasis: 0,
+  totalUnrealizedPnL: 0,
+  totalUnrealizedPnLPct: 0,
+  totalDayChange: 0,
+  totalDayChangePct: 0,
+};
+
+function messageFromError(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return 'Request failed';
 }
 
-export const usePortfolioStore = create<State & Actions>()(
-  persist(
-    (set) => ({
+function applyDashboard(response: DashboardResponse) {
+  return {
+    holdings: response.holdings,
+    summary: response.summary,
+    dashboardStatus: 'success' as const,
+  };
+}
+
+function buildLocalDashboard(transactions: Transaction[]) {
+  const tickerMap = new Map(loadTickers().map((ticker) => [ticker.symbol, ticker]));
+  const holdings = computeHoldings(transactions, buildPriceLookup(loadPrices()), tickerMap);
+  return {
+    holdings,
+    summary: computePortfolio(holdings),
+  };
+}
+
+export const usePortfolioStore = create<State & Actions>()((set, get) => ({
+  initialized: false,
+  transactions: [],
+  holdings: [],
+  summary: EMPTY_SUMMARY,
+  dashboardStatus: 'idle',
+  transactionsStatus: 'idle',
+  previewStatus: 'idle',
+  commitStatus: 'idle',
+  error: null,
+  preview: null,
+
+  async loadDashboard() {
+    set({ dashboardStatus: 'loading', error: null });
+    try {
+      const response = await getDashboard();
+      set(applyDashboard(response));
+    } catch (error) {
+      set({ dashboardStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  async loadTransactions() {
+    set({ transactionsStatus: 'loading', error: null });
+    try {
+      const transactions = await getTransactions();
+      set({ transactions, transactionsStatus: 'success' });
+    } catch (error) {
+      set({ transactionsStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  async refreshAll() {
+    await Promise.all([get().loadDashboard(), get().loadTransactions()]);
+  },
+
+  async deleteTransaction(id) {
+    set({ commitStatus: 'loading', error: null });
+    try {
+      const dashboard = await deleteTransactionRequest(id);
+      const transactions = await getTransactions();
+      set({
+        ...applyDashboard(dashboard),
+        transactions,
+        transactionsStatus: 'success',
+        commitStatus: 'success',
+      });
+    } catch (error) {
+      set({ commitStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  async previewImport(file) {
+    set({ previewStatus: 'loading', error: null, preview: null });
+    try {
+      const preview = await previewTransactionImport(file);
+      set({ preview, previewStatus: 'success' });
+    } catch (error) {
+      set({ previewStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  clearPreview() {
+    set({ preview: null, previewStatus: 'idle' });
+  },
+
+  async commitPreview() {
+    const preview = get().preview;
+    if (!preview || preview.validRows.length === 0) return;
+
+    set({ commitStatus: 'loading', error: null });
+    try {
+      const dashboard = await commitTransactionImport(preview.validRows.map((row) => row.normalized));
+      const transactions = await getTransactions();
+      set({
+        ...applyDashboard(dashboard),
+        transactions,
+        transactionsStatus: 'success',
+        preview: null,
+        previewStatus: 'idle',
+        commitStatus: 'success',
+      });
+    } catch (error) {
+      set({ commitStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  clearError() {
+    set({ error: null });
+  },
+
+  hydrateForTests(data) {
+    set({
+      initialized: true,
+      transactions: data.transactions ?? [],
+      holdings: data.holdings ?? [],
+      summary: data.summary ?? EMPTY_SUMMARY,
+      preview: data.preview ?? null,
+      dashboardStatus: 'success',
+      transactionsStatus: 'success',
+      previewStatus: data.preview ? 'success' : 'idle',
+      commitStatus: 'idle',
+      error: null,
+    });
+  },
+
+  addTransaction(transaction) {
+    const next = [
+      ...get().transactions,
+      { ...transaction, id: transaction.id ?? crypto.randomUUID() } as Transaction,
+    ];
+    const dashboard = buildLocalDashboard(next);
+    set({ initialized: true, transactions: next, ...dashboard });
+  },
+
+  removeTransaction(id) {
+    const next = get().transactions.filter((transaction) => transaction.id !== id);
+    const dashboard = buildLocalDashboard(next);
+    set({ initialized: true, transactions: next, ...dashboard });
+  },
+
+  replaceAll(transactions) {
+    const dashboard = buildLocalDashboard(transactions);
+    set({ initialized: true, transactions, ...dashboard });
+  },
+
+  appendMany(transactions) {
+    const next = [...get().transactions, ...transactions];
+    const dashboard = buildLocalDashboard(next);
+    set({ initialized: true, transactions: next, ...dashboard });
+  },
+
+  clear() {
+    set({
+      initialized: true,
       transactions: [],
-      initialized: false,
-      addTransaction: (tx) =>
-        set((s) => ({
-          transactions: [...s.transactions, { id: tx.id ?? newId(), ...tx }],
-        })),
-      removeTransaction: (id) =>
-        set((s) => ({ transactions: s.transactions.filter((t) => t.id !== id) })),
-      replaceAll: (transactions) => set({ transactions, initialized: true }),
-      appendMany: (txs) =>
-        set((s) => ({ transactions: [...s.transactions, ...txs], initialized: true })),
-      clear: () => set({ transactions: [], initialized: true }),
-      seedFromFixture: () => set({ transactions: loadSeedPortfolio(), initialized: true }),
-    }),
-    {
-      name: 'stocktracker.portfolio',
-      onRehydrateStorage: () => (state) => {
-        // First-run seed: if persisted store is empty/uninitialized, load demo data
-        if (state && !state.initialized && state.transactions.length === 0) {
-          state.transactions = loadSeedPortfolio();
-          state.initialized = true;
-        }
-      },
-    },
-  ),
-);
+      holdings: [],
+      summary: EMPTY_SUMMARY,
+    });
+  },
+
+  seedFromFixture() {
+    const transactions = loadSeedPortfolio();
+    const dashboard = buildLocalDashboard(transactions);
+    set({ initialized: true, transactions, ...dashboard });
+  },
+}));

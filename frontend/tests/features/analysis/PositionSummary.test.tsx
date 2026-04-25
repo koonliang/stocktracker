@@ -1,18 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PositionSummary } from '@/features/analysis/PositionSummary';
-import { usePortfolioStore } from '@/stores/portfolioStore';
 import { buildPriceLookup, computeHoldings } from '@/lib/portfolio';
 import { loadPrices, loadTickers } from '@/lib/seed';
 import type { Transaction } from '@/lib/types';
 
-function reset() {
-  localStorage.clear();
-  usePortfolioStore.setState({ transactions: [], initialized: true });
-}
-
 const HELD = loadTickers()[0]!.symbol;
-const NOT_HELD = loadTickers()[1]!.symbol;
 
 const tx: Transaction = {
   id: 'tx_1',
@@ -24,35 +17,35 @@ const tx: Transaction = {
   fees: 0,
 };
 
-describe('PositionSummary', () => {
-  beforeEach(reset);
-  afterEach(reset);
+function buildSummary() {
+  const tickerMap = new Map(loadTickers().map((ticker) => [ticker.symbol, ticker]));
+  const lookup = buildPriceLookup(loadPrices());
+  const holding = computeHoldings([tx], lookup, tickerMap).find((entry) => entry.ticker === HELD)!;
+  return {
+    shares: holding.shares,
+    averageCost: holding.averageCost,
+    marketValue: holding.marketValue,
+    unrealizedPnL: holding.unrealizedPnL,
+    unrealizedPnLPct: holding.unrealizedPnLPct,
+  };
+}
 
-  it('renders nothing when the user does not hold the symbol', () => {
-    usePortfolioStore.setState({ transactions: [tx], initialized: true });
-    const { container } = render(<PositionSummary symbol={NOT_HELD} />);
+describe('PositionSummary', () => {
+  it('renders nothing when no position summary is provided', () => {
+    const { container } = render(<PositionSummary summary={null} />);
     expect(container).toBeEmptyDOMElement();
   });
 
   it('renders shares, avg cost, market value, and P&L when held', () => {
-    usePortfolioStore.setState({ transactions: [tx], initialized: true });
-    render(<PositionSummary symbol={HELD} />);
+    render(<PositionSummary summary={buildSummary()} />);
     expect(screen.getByText('Shares')).toBeInTheDocument();
     expect(screen.getByText('Avg Cost')).toBeInTheDocument();
     expect(screen.getByText('Market Value')).toBeInTheDocument();
     expect(screen.getByText('Unrealised P&L')).toBeInTheDocument();
   });
 
-  it('numbers reconcile with computeHoldings for the same ticker', () => {
-    usePortfolioStore.setState({ transactions: [tx], initialized: true });
-    const tickerMap = new Map(loadTickers().map((t) => [t.symbol, t]));
-    const lookup = buildPriceLookup(loadPrices());
-    const holdings = computeHoldings([tx], lookup, tickerMap);
-    const expected = holdings.find((h) => h.ticker === HELD);
-    expect(expected).toBeTruthy();
-
-    render(<PositionSummary symbol={HELD} />);
-    // Shares value rendered (10 shares — formatShares trims trailing zeros)
+  it('renders the computed share count', () => {
+    render(<PositionSummary summary={buildSummary()} />);
     expect(screen.getByText('10')).toBeInTheDocument();
   });
 });

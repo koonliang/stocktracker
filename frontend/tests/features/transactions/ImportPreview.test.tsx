@@ -2,22 +2,23 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ImportPreview } from '@/features/transactions/ImportPreview';
-import type { ParseResult } from '@/lib/csv';
-import type { Transaction } from '@/lib/types';
+import type { TransactionImportPreviewResponse } from '@/lib/types';
 
-const validTx: Transaction = {
-  id: 'tx_1',
-  date: '2024-01-15',
-  ticker: 'AAPL',
-  type: 'buy',
-  quantity: 10,
-  price: 185.25,
-  fees: 0,
-};
-
-const result: ParseResult = {
-  valid: [validTx],
-  invalid: [
+const result: TransactionImportPreviewResponse = {
+  validRows: [
+    {
+      row: 2,
+      normalized: {
+        date: '2024-01-15',
+        ticker: 'AAPL',
+        type: 'buy',
+        quantity: 10,
+        price: 185.25,
+        fees: 0,
+      },
+    },
+  ],
+  invalidRows: [
     {
       row: 3,
       reason: 'unknown ticker: ZZZZ',
@@ -35,14 +36,14 @@ const result: ParseResult = {
 };
 
 describe('ImportPreview', () => {
-  it('shows valid/invalid counts and renders the reason for invalid rows', () => {
+  it('shows valid and invalid counts', () => {
     render(<ImportPreview result={result} onConfirm={() => {}} onCancel={() => {}} />);
     expect(screen.getByText('1 valid')).toBeInTheDocument();
     expect(screen.getByText('1 invalid')).toBeInTheDocument();
     expect(screen.getByText(/unknown ticker: ZZZZ/i)).toBeInTheDocument();
   });
 
-  it('confirms with only the valid rows when the confirm button is clicked', async () => {
+  it('fires confirm when the confirm button is clicked', async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();
     render(<ImportPreview result={result} onConfirm={onConfirm} onCancel={() => {}} />);
@@ -50,19 +51,25 @@ describe('ImportPreview', () => {
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
-  it('disables the confirm button when there are no valid rows', () => {
-    const empty: ParseResult = { valid: [], invalid: result.invalid, headerErrors: [] };
-    render(<ImportPreview result={empty} onConfirm={() => {}} onCancel={() => {}} />);
+  it('disables confirm when there are no valid rows', () => {
+    render(
+      <ImportPreview
+        result={{ validRows: [], invalidRows: result.invalidRows, headerErrors: [] }}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
     expect(screen.getByRole('button', { name: /Confirm import/i })).toBeDisabled();
   });
 
-  it('renders header errors instead of the table when the file is malformed', () => {
-    const broken: ParseResult = {
-      valid: [],
-      invalid: [],
-      headerErrors: ['missing required column: date'],
-    };
-    render(<ImportPreview result={broken} onConfirm={() => {}} onCancel={() => {}} />);
+  it('renders header errors instead of the table when malformed', () => {
+    render(
+      <ImportPreview
+        result={{ validRows: [], invalidRows: [], headerErrors: ['missing required column: date'] }}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
     expect(screen.getByText(/missing required column: date/i)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Confirm import/i })).not.toBeInTheDocument();
   });

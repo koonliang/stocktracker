@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
-import { findTicker, getBars, loadStats } from '@/lib/seed';
 import type { TimeRange } from '@/lib/types';
+import { getInstrumentAnalysis } from '@/api/instrumentsApi';
 import { AnalysisHeader } from '@/features/analysis/AnalysisHeader';
 import { PriceChart } from '@/features/analysis/PriceChart';
 import { KeyStatsGrid } from '@/features/analysis/KeyStatsGrid';
@@ -16,12 +16,41 @@ export function AnalysisRoute() {
   const navigate = useNavigate();
   const symbol = (ticker ?? '').toUpperCase();
   const [range, setRange] = useState<TimeRange>('1Y');
+  const [state, setState] = useState<{
+    status: 'loading' | 'success' | 'error';
+    error: string | null;
+    data: Awaited<ReturnType<typeof getInstrumentAnalysis>> | null;
+  }>({ status: 'loading', error: null, data: null });
 
-  const tickerInfo = findTicker(symbol);
-  const bars = useMemo(() => getBars(symbol), [symbol]);
-  const stats = loadStats()[symbol] ?? null;
+  useEffect(() => {
+    let cancelled = false;
+    setState({ status: 'loading', error: null, data: null });
+    void getInstrumentAnalysis(symbol)
+      .then((data) => {
+        if (!cancelled) {
+          setState({ status: 'success', error: null, data });
+        }
+      })
+      .catch((error: Error) => {
+        if (!cancelled) {
+          setState({ status: 'error', error: error.message, data: null });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [symbol]);
 
-  if (!tickerInfo) {
+  if (state.status === 'loading') {
+    return (
+      <Card>
+        <CardHeader eyebrow="Loading" title={`Fetching ${symbol}`} />
+        <p className="text-body text-text-muted">Analysis data is loading.</p>
+      </Card>
+    );
+  }
+
+  if (state.status === 'error' || !state.data) {
     return (
       <>
         <Link
@@ -32,14 +61,19 @@ export function AnalysisRoute() {
           Back to dashboard
         </Link>
         <EmptyState
-          eyebrow="Not found"
-          title={`We don't know "${symbol}".`}
-          description="That ticker isn't in the bundled catalog. Try searching from the top bar, or head back to your dashboard."
+          eyebrow="Analysis unavailable"
+          title={`We could not load "${symbol}".`}
+          description={state.error ?? 'Try again from the dashboard or watchlists.'}
           actions={<Button onClick={() => navigate('/')}>Back to dashboard</Button>}
         />
       </>
     );
   }
+
+  const { data } = state;
+  const tickerInfo = data.ticker;
+  const bars = data.priceHistory;
+  const stats = data.stats;
 
   const last = bars[bars.length - 1];
   const prev = bars[bars.length - 2];
@@ -77,7 +111,7 @@ export function AnalysisRoute() {
           <PriceChart bars={bars} range={range} onRangeChange={setRange} />
         </Card>
 
-        <PositionSummary symbol={symbol} />
+        <PositionSummary summary={data.positionSummary} />
 
         <Card>
           <CardHeader eyebrow="Key statistics" title="Snapshot" />

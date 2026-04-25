@@ -1,27 +1,15 @@
-import { useMemo } from 'react';
-import { usePortfolioStore } from '@/stores/portfolioStore';
-import { buildPriceLookup, computeHoldings } from '@/lib/portfolio';
-import { loadPrices, loadTickers } from '@/lib/seed';
+import type { InstrumentAnalysisResponse } from '@/lib/types';
 import {
   formatCurrency,
-  formatShares,
   formatSignedCurrency,
   formatSignedPercent,
 } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
-type Props = { symbol: string };
+type Props = { summary: InstrumentAnalysisResponse['positionSummary'] };
 
-export function PositionSummary({ symbol }: Props) {
-  const transactions = usePortfolioStore((s) => s.transactions);
-  const holding = useMemo(() => {
-    const tickerMap = new Map(loadTickers().map((t) => [t.symbol, t]));
-    const lookup = buildPriceLookup(loadPrices());
-    const all = computeHoldings(transactions, lookup, tickerMap);
-    return all.find((h) => h.ticker === symbol) ?? null;
-  }, [transactions, symbol]);
-
-  if (!holding || holding.shares <= 0) return null;
+export function PositionSummary({ summary }: Props) {
+  if (!summary || summary.shares <= 0) return null;
 
   const tone = (n: number) =>
     n > 0 ? 'delta-positive' : n < 0 ? 'delta-negative' : 'text-text-muted';
@@ -31,14 +19,14 @@ export function PositionSummary({ symbol }: Props) {
       aria-label="Your position"
       className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-4"
     >
-      <Cell label="Shares" value={formatShares(holding.shares)} />
-      <Cell label="Avg Cost" value={formatCurrency(holding.averageCost)} />
-      <Cell label="Market Value" value={formatCurrency(holding.marketValue, { cents: false })} />
+      <Cell label="Shares" value={summary.shares.toLocaleString()} />
+      <Cell label="Avg Cost" value={formatCurrency(summary.averageCost)} />
+      <Cell label="Market Value" value={formatCurrency(summary.marketValue, { cents: false })} />
       <Cell
         label="Unrealised P&L"
-        value={formatSignedCurrency(holding.unrealizedPnL)}
-        sub={formatSignedPercent(holding.unrealizedPnLPct)}
-        valueClassName={tone(holding.unrealizedPnL)}
+        value={formatSignedCurrency(summary.unrealizedPnL)}
+        sub={formatSignedPercent(summary.unrealizedPnLPct)}
+        valueClassName={tone(summary.unrealizedPnL)}
       />
     </dl>
   );

@@ -3,12 +3,12 @@ import { screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { renderWithProviders } from '@/test/utils';
-import { usePortfolioStore } from '@/stores/portfolioStore';
+import { setMockApiState } from '@/test/server';
 import type { Transaction } from '@/lib/types';
 
 function reset() {
   localStorage.clear();
-  usePortfolioStore.setState({ transactions: [], initialized: true });
+  setMockApiState({ transactions: [] });
 }
 
 const seeded: Transaction[] = [
@@ -28,9 +28,9 @@ describe('TransactionsRoute', () => {
   beforeEach(reset);
   afterEach(reset);
 
-  it('renders the empty state when no transactions are present', () => {
+  it('renders the empty state when no transactions are present', async () => {
     renderWithProviders(<TransactionsRoute />);
-    expect(screen.getByText(/No transactions on file/i)).toBeInTheDocument();
+    expect(await screen.findByText(/No transactions on file/i)).toBeInTheDocument();
   });
 
   it('renders the dropzone affordance', () => {
@@ -38,16 +38,17 @@ describe('TransactionsRoute', () => {
     expect(screen.getByText(/Drop a CSV file to import/i)).toBeInTheDocument();
   });
 
-  it('lists committed transactions', () => {
-    usePortfolioStore.setState({ transactions: seeded, initialized: true });
+  it('lists committed transactions', async () => {
+    setMockApiState({ transactions: seeded });
     renderWithProviders(<TransactionsRoute />);
-    expect(screen.getByText('AAPL')).toBeInTheDocument();
+    expect(await screen.findByText('AAPL')).toBeInTheDocument();
     expect(screen.getByText('MSFT')).toBeInTheDocument();
   });
 
   it('has no critical accessibility violations', async () => {
-    usePortfolioStore.setState({ transactions: seeded, initialized: true });
+    setMockApiState({ transactions: seeded });
     const { container } = renderWithProviders(<TransactionsRoute />);
+    await screen.findByText('AAPL');
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

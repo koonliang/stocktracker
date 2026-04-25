@@ -1,0 +1,137 @@
+[
+  {
+    "id": "eb42c490-cad5-4946-a2e1-2ffd3f2f0000",
+    "date": "2022-06-20",
+    "ticker": "MSFT",
+    "type": "buy",
+    "quantity": 18,
+    "price": 210.1348,
+    "fees": 0
+  },
+  {
+    "id": "10df5629-e20a-4445-aa56-e1c942480000",
+    "date": "2022-09-19",
+    "ticker": "JPM",
+    "type": "buy",
+    "quantity": 22,
+    "price": 219.9271,
+    "fees": 0
+  },
+  {
+    "id": "75da35f5-be0f-474f-ae1e-ea4dac8c0000",
+    "date": "2022-11-30",
+    "ticker": "GOOGL",
+    "type": "buy",
+    "quantity": 30,
+    "price": 125.3877,
+    "fees": 0
+  },
+  {
+    "id": "4038ed79-09d3-4f82-a083-21d434200000",
+    "date": "2023-01-17",
+    "ticker": "NVDA",
+    "type": "buy",
+    "quantity": 20,
+    "price": 136.7998,
+    "fees": 0
+  },
+  {
+    "id": "aa39f015-4f2e-4a3e-a491-fa78c60b0000",
+    "date": "2023-02-14",
+    "ticker": "AAPL",
+    "type": "buy",
+    "quantity": 25,
+    "price": 115.5315,
+    "fees": 0
+  },
+  {
+    "id": "cbb001f3-0672-4c4f-ab54-0072851b0000",
+    "date": "2023-04-12",
+    "ticker": "COST",
+    "type": "buy",
+    "quantity": 8,
+    "price": 468.7474,
+    "fees": 0
+  },
+  {
+    "id": "769750cf-8a6b-4784-a168-f71e7d7f0000",
+    "date": "2023-05-30",
+    "ticker": "V",
+    "type": "buy",
+    "quantity": 16,
+    "price": 415.6253,
+    "fees": 0
+  },
+  {
+    "id": "203a494f-fdd4-4eee-a6a9-e75493c10000",
+    "date": "2023-07-11",
+    "ticker": "NVDA",
+    "type": "buy",
+    "quantity": 10,
+    "price": 116.4682,
+    "fees": 0
+  },
+  {
+    "id": "36e5c73a-b5d5-4887-a246-d0e9e13b0000",
+    "date": "2023-10-03",
+    "ticker": "AAPL",
+    "type": "buy",
+    "quantity": 15,
+    "price": 132.6914,
+    "fees": 0
+  },
+  {
+    "id": "384f3eec-7fe5-4f68-a427-a90b611f0000",
+    "date": "2024-01-09",
+    "ticker": "MSFT",
+    "type": "buy",
+    "quantity": 12,
+    "price": 202.7924,
+    "fees": 0
+  },
+  {
+    "id": "06530396-1ccd-418b-aa56-5ae26c0e0000",
+    "date": "2024-02-06",
+    "ticker": "GOOGL",
+    "type": "buy",
+    "quantity": 15,
+    "price": 116.2174,
+    "fees": 0
+  },
+  {
+    "id": "863c695b-c13d-47a0-a954-32a4de9b0000",
+    "date": "2024-05-22",
+    "ticker": "NVDA",
+    "type": "buy",
+    "quantity": 8,
+    "price": 120.1459,
+    "fees": 0
+  },
+  {
+    "id": "91b42027-1adf-4d44-ade9-520a1a140000",
+    "date": "2024-08-05",
+    "ticker": "JPM",
+    "type": "buy",
+    "quantity": 14,
+    "price": 370.6456,
+    "fees": 0
+  },
+  {
+    "id": "ddf3d741-ba70-4f5a-a552-79ff427d0000",
+    "date": "2025-01-21",
+    "ticker": "V",
+    "type": "buy",
+    "quantity": 9,
+    "price": 388.7308,
+    "fees": 0
+  },
+  {
+    "id": "fbb9abdb-b011-4051-a30c-c4462a0d0000",
+    "date": "2025-03-10",
+    "ticker": "GOOGL",
+    "type": "sell",
+    "quantity": 10,
+    "price": 144.3526,
+    "fees": 1
+  }
+]

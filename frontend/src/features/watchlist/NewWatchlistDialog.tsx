@@ -38,14 +38,16 @@ export function NewWatchlistDialog({ open, onClose, onCreated }: Props) {
     if (!open) reset({ name: '' });
   }, [open, reset]);
 
-  const onSubmit = handleSubmit((values) => {
-    const result = create(values.name);
+  const onSubmit = handleSubmit(async (values) => {
+    const result = await create(values.name);
     if (!result.ok) {
       const message =
         result.reason === 'duplicate-name'
           ? 'A watchlist with this name already exists'
           : result.reason === 'too-long'
             ? 'Max 40 characters'
+            : result.reason === 'server'
+              ? 'Could not create watchlist right now'
             : 'Name is required';
       setError('name', { type: 'manual', message });
       return;

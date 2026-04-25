@@ -4,17 +4,13 @@ import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/cn';
 
 type Props = {
-  onFile: (text: string, filename: string) => void;
+  onFile: (file: File) => void;
+  loading?: boolean;
 };
 
-export function ImportDropzone({ onFile }: Props) {
+export function ImportDropzone({ onFile, loading = false }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
-
-  async function handle(file: File) {
-    const text = await file.text();
-    onFile(text, file.name);
-  }
 
   return (
     // eslint-disable-next-line jsx-a11y/no-static-element-interactions
@@ -28,7 +24,7 @@ export function ImportDropzone({ onFile }: Props) {
         e.preventDefault();
         setDragOver(false);
         const file = e.dataTransfer.files[0];
-        if (file) void handle(file);
+        if (file) onFile(file);
       }}
       className={cn(
         'flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-border bg-surface-alt/30 px-6 py-10 text-center transition-colors',
@@ -48,7 +44,7 @@ export function ImportDropzone({ onFile }: Props) {
         </p>
       </div>
       <Button variant="secondary" size="sm" type="button" onClick={() => inputRef.current?.click()}>
-        Choose file
+        {loading ? 'Uploading…' : 'Choose file'}
       </Button>
       <input
         ref={inputRef}
@@ -58,7 +54,7 @@ export function ImportDropzone({ onFile }: Props) {
         className="sr-only"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) void handle(file);
+          if (file) onFile(file);
           e.target.value = '';
         }}
       />

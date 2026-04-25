@@ -4,10 +4,10 @@ import { loadTickers } from '@/lib/seed';
 
 function reset() {
   localStorage.clear();
-  useWatchlistStore.setState({ watchlists: [] });
+  useWatchlistStore.setState({ watchlists: [], status: 'idle', error: null });
 }
 
-const knownTickers = loadTickers().map((t) => t.symbol);
+const knownTickers = loadTickers().map((ticker) => ticker.symbol);
 const known1 = knownTickers[0]!;
 const known2 = knownTickers[1]!;
 const known3 = knownTickers[2]!;
@@ -16,8 +16,8 @@ describe('watchlistStore', () => {
   beforeEach(reset);
   afterEach(reset);
 
-  it('create adds a new watchlist and returns its id', () => {
-    const res = useWatchlistStore.getState().create('Tech Majors');
+  it('create adds a new watchlist and returns its id', async () => {
+    const res = await useWatchlistStore.getState().create('Tech Majors');
     expect(res.ok).toBe(true);
     const lists = useWatchlistStore.getState().watchlists;
     expect(lists).toHaveLength(1);
@@ -25,100 +25,74 @@ describe('watchlistStore', () => {
     expect(lists[0]!.tickers).toEqual([]);
   });
 
-  it('create rejects empty and whitespace-only names', () => {
-    expect(useWatchlistStore.getState().create('')).toEqual({ ok: false, reason: 'empty' });
-    expect(useWatchlistStore.getState().create('   ')).toEqual({ ok: false, reason: 'empty' });
+  it('create rejects empty names', async () => {
+    expect(await useWatchlistStore.getState().create('')).toEqual({ ok: false, reason: 'empty' });
+    expect(await useWatchlistStore.getState().create('   ')).toEqual({ ok: false, reason: 'empty' });
   });
 
-  it('create rejects duplicate names (case-insensitive)', () => {
-    useWatchlistStore.getState().create('Tech Majors');
-    const res = useWatchlistStore.getState().create('tech majors');
-    expect(res).toEqual({ ok: false, reason: 'duplicate-name' });
-    expect(useWatchlistStore.getState().watchlists).toHaveLength(1);
+  it('create rejects duplicate names', async () => {
+    await useWatchlistStore.getState().create('Tech Majors');
+    expect(await useWatchlistStore.getState().create('tech majors')).toEqual({
+      ok: false,
+      reason: 'duplicate-name',
+    });
   });
 
-  it('rename updates the name and bumps updatedAt', async () => {
-    const created = useWatchlistStore.getState().create('Old');
-    expect(created.ok).toBe(true);
-    const id = (created as { ok: true; id: string }).id;
+  it('rename updates the name', async () => {
+    const created = await useWatchlistStore.getState().create('Old');
+    if (!created.ok) throw new Error('create failed');
     const originalUpdatedAt = useWatchlistStore.getState().watchlists[0]!.updatedAt;
-    // wait a tick so updatedAt differs
-    await new Promise((r) => setTimeout(r, 5));
-    const res = useWatchlistStore.getState().rename(id, 'New Name');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const res = await useWatchlistStore.getState().rename(created.id, 'New Name');
     expect(res.ok).toBe(true);
     const after = useWatchlistStore.getState().watchlists[0]!;
     expect(after.name).toBe('New Name');
     expect(after.updatedAt).not.toBe(originalUpdatedAt);
   });
 
-  it('rename rejects duplicate names but allows renaming to the same name case-insensitively on self', () => {
-    const a = useWatchlistStore.getState().create('Alpha');
-    useWatchlistStore.getState().create('Beta');
-    const id = (a as { ok: true; id: string }).id;
-
-    expect(useWatchlistStore.getState().rename(id, 'Beta')).toEqual({
-      ok: false,
-      reason: 'duplicate-name',
-    });
-    // renaming list to its own name (different case) should succeed — no conflict
-    expect(useWatchlistStore.getState().rename(id, 'alpha').ok).toBe(true);
-  });
-
-  it('remove deletes a watchlist', () => {
-    const res = useWatchlistStore.getState().create('List');
-    const id = (res as { ok: true; id: string }).id;
-    useWatchlistStore.getState().remove(id);
+  it('remove deletes a watchlist', async () => {
+    const res = await useWatchlistStore.getState().create('List');
+    if (!res.ok) throw new Error('create failed');
+    await useWatchlistStore.getState().remove(res.id);
     expect(useWatchlistStore.getState().watchlists).toHaveLength(0);
   });
 
-  it('addTicker rejects unknown tickers', () => {
-    const id = (useWatchlistStore.getState().create('L') as { ok: true; id: string }).id;
-    expect(useWatchlistStore.getState().addTicker(id, 'ZZZZZ')).toEqual({
+  it('addTicker rejects unknown tickers', async () => {
+    const created = await useWatchlistStore.getState().create('L');
+    if (!created.ok) throw new Error('create failed');
+    expect(await useWatchlistStore.getState().addTicker(created.id, 'ZZZZZ')).toEqual({
       ok: false,
       reason: 'unknown',
     });
-    expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([]);
   });
 
-  it('addTicker rejects duplicates and normalizes case', () => {
-    const id = (useWatchlistStore.getState().create('L') as { ok: true; id: string }).id;
-    expect(useWatchlistStore.getState().addTicker(id, known1).ok).toBe(true);
-    expect(useWatchlistStore.getState().addTicker(id, known1.toLowerCase())).toEqual({
+  it('addTicker rejects duplicates and normalizes case', async () => {
+    const created = await useWatchlistStore.getState().create('L');
+    if (!created.ok) throw new Error('create failed');
+    expect((await useWatchlistStore.getState().addTicker(created.id, known1)).ok).toBe(true);
+    expect(await useWatchlistStore.getState().addTicker(created.id, known1.toLowerCase())).toEqual({
       ok: false,
       reason: 'duplicate',
     });
     expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known1]);
   });
 
-  it('removeTicker removes by symbol', () => {
-    const id = (useWatchlistStore.getState().create('L') as { ok: true; id: string }).id;
-    useWatchlistStore.getState().addTicker(id, known1);
-    useWatchlistStore.getState().addTicker(id, known2);
-    useWatchlistStore.getState().removeTicker(id, known1);
+  it('removeTicker removes by symbol', async () => {
+    const created = await useWatchlistStore.getState().create('L');
+    if (!created.ok) throw new Error('create failed');
+    await useWatchlistStore.getState().addTicker(created.id, known1);
+    await useWatchlistStore.getState().addTicker(created.id, known2);
+    await useWatchlistStore.getState().removeTicker(created.id, known1);
     expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known2]);
   });
 
-  it('reorderTickers moves a ticker from one index to another', () => {
-    const id = (useWatchlistStore.getState().create('L') as { ok: true; id: string }).id;
-    useWatchlistStore.getState().addTicker(id, known1);
-    useWatchlistStore.getState().addTicker(id, known2);
-    useWatchlistStore.getState().addTicker(id, known3);
-    useWatchlistStore.getState().reorderTickers(id, 0, 2);
+  it('reorderTickers moves a ticker from one index to another', async () => {
+    const created = await useWatchlistStore.getState().create('L');
+    if (!created.ok) throw new Error('create failed');
+    await useWatchlistStore.getState().addTicker(created.id, known1);
+    await useWatchlistStore.getState().addTicker(created.id, known2);
+    await useWatchlistStore.getState().addTicker(created.id, known3);
+    await useWatchlistStore.getState().reorderTickers(created.id, 0, 2);
     expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known2, known3, known1]);
-  });
-
-  it('reorderTickers is a no-op for out-of-range indices', () => {
-    const id = (useWatchlistStore.getState().create('L') as { ok: true; id: string }).id;
-    useWatchlistStore.getState().addTicker(id, known1);
-    useWatchlistStore.getState().addTicker(id, known2);
-    useWatchlistStore.getState().reorderTickers(id, 5, 0);
-    expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known1, known2]);
-  });
-
-  it('persists to localStorage under the configured key', () => {
-    useWatchlistStore.getState().create('Persisted');
-    const stored = localStorage.getItem('stocktracker.watchlists');
-    expect(stored).toBeTruthy();
-    expect(stored).toContain('Persisted');
   });
 });

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { ListChecks, Plus } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
@@ -11,7 +11,15 @@ import { formatDateISO } from '@/lib/format';
 
 export function WatchlistsRoute() {
   const watchlists = useWatchlistStore((s) => s.watchlists);
+  const status = useWatchlistStore((s) => s.status);
+  const error = useWatchlistStore((s) => s.error);
+  const load = useWatchlistStore((s) => s.load);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const hasAny = watchlists.length > 0;
 
@@ -29,7 +37,19 @@ export function WatchlistsRoute() {
         }
       />
 
-      {!hasAny ? (
+      {status === 'loading' ? (
+        <EmptyState
+          eyebrow="Loading"
+          title="Loading your watchlists."
+          description="Shared watchlists are being fetched from the backend."
+        />
+      ) : status === 'error' ? (
+        <EmptyState
+          eyebrow="Watchlists error"
+          title="Watchlists could not be loaded."
+          description={error ?? 'Check the backend and try again.'}
+        />
+      ) : !hasAny ? (
         <EmptyState
           eyebrow="No watchlists yet"
           title="Start by creating your first watchlist."
@@ -74,7 +94,11 @@ export function WatchlistsRoute() {
         </ul>
       )}
 
-      <NewWatchlistDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      <NewWatchlistDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onCreated={(id) => navigate(`/watchlists/${id}`)}
+      />
     </>
   );
 }

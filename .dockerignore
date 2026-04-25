@@ -1,0 +1,14 @@
+node_modules/
+frontend/node_modules/
+backend/target/
+dist/
+build/
+coverage/
+.git/
+.idea/
+.vscode/
+*.log
+.env
+.env.*
+Dockerfile*
+.dockerignore

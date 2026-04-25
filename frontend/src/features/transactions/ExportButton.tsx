@@ -1,10 +1,10 @@
 import { Download } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { serializeTransactionsCSV } from '@/lib/csv';
-import type { Transaction } from '@/lib/types';
+import { exportTransactionsCsv } from '@/api/transactionsApi';
 
 type Props = {
-  transactions: Transaction[];
+  disabled: boolean;
   /** Override Blob/URL handling — used by tests to capture the produced CSV. */
   onExport?: (csv: string, filename: string) => void;
 };
@@ -17,29 +17,42 @@ function todayStamp(): string {
   return `${yyyy}${mm}${dd}`;
 }
 
-export function ExportButton({ transactions, onExport }: Props) {
-  const disabled = transactions.length === 0;
+export function ExportButton({ disabled, onExport }: Props) {
   const filename = `stocktracker-transactions-${todayStamp()}.csv`;
+  const [pending, setPending] = useState(false);
 
-  function handleClick() {
-    const csv = serializeTransactionsCSV(transactions);
-    if (onExport) {
-      onExport(csv, filename);
-      return;
+  async function handleClick() {
+    setPending(true);
+    try {
+      const csv = await exportTransactionsCsv();
+      if (onExport) {
+        onExport(csv, filename);
+        return;
+      }
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setPending(false);
     }
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
   }
 
   return (
-    <Button variant="secondary" size="sm" onClick={handleClick} disabled={disabled}>
+    <Button
+      variant="secondary"
+      size="sm"
+      onClick={() => {
+        void handleClick();
+      }}
+      disabled={disabled}
+      loading={pending}
+    >
       <Download size={14} aria-hidden />
       Export CSV
     </Button>

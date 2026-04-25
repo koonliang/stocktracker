@@ -1,0 +1,61 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: stocktracker-mysql
+    environment:
+      MYSQL_DATABASE: stocktracker
+      MYSQL_USER: stocktracker
+      MYSQL_PASSWORD: stocktracker
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - '3306:3306'
+    volumes:
+      - stocktracker-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -uroot -proot']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+    container_name: stocktracker-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:mysql://mysql:3306/stocktracker
+      QUARKUS_DATASOURCE_USERNAME: stocktracker
+      QUARKUS_DATASOURCE_PASSWORD: stocktracker
+      STOCKTRACKER_DEV_BOOTSTRAP_ENABLED: 'true'
+    ports:
+      - '8080:8080'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8080/q/health || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: stocktracker-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      VITE_API_BASE_URL: http://localhost:8080/api
+    ports:
+      - '5173:5173'
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:5173 || exit 1']
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 20s
+
+volumes:
+  stocktracker-mysql-data:

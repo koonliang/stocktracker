@@ -6,15 +6,8 @@ import { DashboardRoute } from '@/routes/DashboardRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
-import { useWatchlistStore } from '@/stores/watchlistStore';
-import { usePortfolioStore } from '@/stores/portfolioStore';
-import { loadSeedPortfolio, loadTickers } from '@/lib/seed';
-
-function reset() {
-  localStorage.clear();
-  useWatchlistStore.setState({ watchlists: [] });
-  usePortfolioStore.setState({ transactions: loadSeedPortfolio(), initialized: true });
-}
+import { loadTickers } from '@/lib/seed';
+import { seedMockPortfolio, setMockApiState } from '@/test/server';
 
 const known = loadTickers()[0]!.symbol;
 
@@ -30,16 +23,22 @@ function renderAt(path: string, element: JSX.Element, routePath: string) {
 }
 
 describe('keyboard navigation (FR-024)', () => {
-  beforeEach(reset);
-  afterEach(reset);
+  beforeEach(() => {
+    localStorage.clear();
+    setMockApiState({ watchlists: [], transactions: [] });
+    seedMockPortfolio();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
 
   it('Dashboard: holdings rows are focusable and Enter activates navigation', async () => {
     const user = userEvent.setup();
     renderAt('/', <DashboardRoute />, '/');
-    const rows = screen.getAllByRole('link', { name: /Open analysis for/i });
+    const rows = await screen.findAllByRole('link', { name: /Open analysis for/i });
     expect(rows.length).toBeGreaterThan(0);
     await user.tab();
-    // Walk Tab until a row is focused
     let safety = 50;
     while (document.activeElement !== rows[0] && safety > 0) {
       await user.tab();
@@ -51,7 +50,7 @@ describe('keyboard navigation (FR-024)', () => {
   it('Watchlists index: New watchlist button is reachable via keyboard and opens dialog on Enter', async () => {
     const user = userEvent.setup();
     renderAt('/watchlists', <WatchlistsRoute />, '/watchlists');
-    const ctas = screen.getAllByRole('button', { name: /New watchlist/i });
+    const ctas = await screen.findAllByRole('button', { name: /New watchlist/i });
     ctas[0]!.focus();
     expect(document.activeElement).toBe(ctas[0]);
     await user.keyboard('{Enter}');
@@ -63,18 +62,16 @@ describe('keyboard navigation (FR-024)', () => {
   it('Transactions: Export button is keyboard-activatable', async () => {
     const user = userEvent.setup();
     renderAt('/transactions', <TransactionsRoute />, '/transactions');
-    const exportBtn = screen.getByRole('button', { name: /Export CSV/i });
+    const exportBtn = await screen.findByRole('button', { name: /Export CSV/i });
     exportBtn.focus();
     expect(document.activeElement).toBe(exportBtn);
-    // Pressing Enter on a button with no onclick handler should not throw; we just
-    // assert the focus path works rather than triggering an actual download.
     await user.keyboard(' ');
   });
 
   it('Analysis: range buttons are keyboard-activatable and update aria-pressed', async () => {
     const user = userEvent.setup();
     renderAt(`/analysis/${known}`, <AnalysisRoute />, '/analysis/:ticker');
-    const oneWeek = screen.getByRole('button', { name: '1W' });
+    const oneWeek = await screen.findByRole('button', { name: '1W' });
     oneWeek.focus();
     expect(document.activeElement).toBe(oneWeek);
     await user.keyboard('{Enter}');
