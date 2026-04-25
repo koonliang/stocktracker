@@ -124,21 +124,21 @@ persists. Delete the watchlist — it disappears.
 
 ### Tests for User Story 2
 
-- [ ] T043 [P] [US2] Create `frontend/tests/stores/watchlistStore.test.ts` covering `create`, `rename` (unique case-insensitive), `remove`, `addTicker` (rejects unknown + duplicate), `removeTicker`, `reorderTickers`, persistence key.
-- [ ] T044 [P] [US2] Create `frontend/tests/features/watchlist/WatchlistRow.test.tsx` asserting price + day change render, click → navigate to analysis.
-- [ ] T045 [P] [US2] Create `frontend/tests/features/watchlist/AddTickerInput.test.tsx` asserting unknown ticker shows inline error and is not added; known ticker is added and cleared.
-- [ ] T046 [P] [US2] Create `frontend/tests/routes/WatchlistsRoute.test.tsx` and `frontend/tests/routes/WatchlistDetailRoute.test.tsx` as smoke + axe tests for both pages.
+- [X] T043 [P] [US2] Create `frontend/tests/stores/watchlistStore.test.ts` covering `create`, `rename` (unique case-insensitive), `remove`, `addTicker` (rejects unknown + duplicate), `removeTicker`, `reorderTickers`, persistence key.
+- [X] T044 [P] [US2] Create `frontend/tests/features/watchlist/WatchlistRow.test.tsx` asserting price + day change render, click → navigate to analysis.
+- [X] T045 [P] [US2] Create `frontend/tests/features/watchlist/AddTickerInput.test.tsx` asserting unknown ticker shows inline error and is not added; known ticker is added and cleared.
+- [X] T046 [P] [US2] Create `frontend/tests/routes/WatchlistsRoute.test.tsx` and `frontend/tests/routes/WatchlistDetailRoute.test.tsx` as smoke + axe tests for both pages.
 
 ### Implementation for User Story 2
 
-- [ ] T047 [US2] Create `frontend/src/stores/watchlistStore.ts` (Zustand + `persist`, key `stocktracker.watchlists`) holding `Watchlist[]` and actions `create(name)`, `rename(id, name)`, `remove(id)`, `addTicker(id, symbol)`, `removeTicker(id, symbol)`, `reorderTickers(id, from, to)`; enforces name uniqueness (case-insensitive) and ticker catalog membership.
-- [ ] T048 [P] [US2] Create `frontend/src/features/watchlist/WatchlistRow.tsx` rendering symbol, name, current price, day change (absolute + %), and a remove button; row click navigates to analysis.
-- [ ] T049 [P] [US2] Create `frontend/src/features/watchlist/AddTickerInput.tsx` using React Hook Form + Zod; inline error for unknown ticker; submits via Enter.
-- [ ] T050 [P] [US2] Create `frontend/src/features/watchlist/WatchlistHeader.tsx` with rename (inline edit, validated) and delete (confirm dialog) controls.
-- [ ] T051 [P] [US2] Create `frontend/src/features/watchlist/NewWatchlistDialog.tsx` using the shared `Dialog` component, RHF + Zod validation on name.
-- [ ] T052 [US2] Create `frontend/src/routes/WatchlistsRoute.tsx` rendering the index (list of watchlists with counts, New Watchlist CTA, empty state).
-- [ ] T053 [US2] Create `frontend/src/routes/WatchlistDetailRoute.tsx` at `/watchlists/:id` composing `WatchlistHeader`, `AddTickerInput`, and a reorderable list of `WatchlistRow` using native HTML5 drag-and-drop or keyboard reordering (up/down buttons).
-- [ ] T054 [US2] Verify quality gates on current scope: `npm run verify` passes end-to-end.
+- [X] T047 [US2] Create `frontend/src/stores/watchlistStore.ts` (Zustand + `persist`, key `stocktracker.watchlists`) holding `Watchlist[]` and actions `create(name)`, `rename(id, name)`, `remove(id)`, `addTicker(id, symbol)`, `removeTicker(id, symbol)`, `reorderTickers(id, from, to)`; enforces name uniqueness (case-insensitive) and ticker catalog membership.
+- [X] T048 [P] [US2] Create `frontend/src/features/watchlist/WatchlistRow.tsx` rendering symbol, name, current price, day change (absolute + %), and a remove button; row click navigates to analysis.
+- [X] T049 [P] [US2] Create `frontend/src/features/watchlist/AddTickerInput.tsx` using React Hook Form + Zod; inline error for unknown ticker; submits via Enter.
+- [X] T050 [P] [US2] Create `frontend/src/features/watchlist/WatchlistHeader.tsx` with rename (inline edit, validated) and delete (confirm dialog) controls.
+- [X] T051 [P] [US2] Create `frontend/src/features/watchlist/NewWatchlistDialog.tsx` using the shared `Dialog` component, RHF + Zod validation on name.
+- [X] T052 [US2] Create `frontend/src/routes/WatchlistsRoute.tsx` rendering the index (list of watchlists with counts, New Watchlist CTA, empty state).
+- [X] T053 [US2] Create `frontend/src/routes/WatchlistDetailRoute.tsx` at `/watchlists/:id` composing `WatchlistHeader`, `AddTickerInput`, and a reorderable list of `WatchlistRow` using native HTML5 drag-and-drop or keyboard reordering (up/down buttons).
+- [X] T054 [US2] Verify quality gates on current scope: `npm run verify` passes end-to-end.
 
 **Checkpoint**: US1 and US2 both work independently.
 
@@ -158,20 +158,20 @@ dashboard link.
 
 ### Tests for User Story 3
 
-- [ ] T055 [P] [US3] Create `frontend/tests/features/analysis/PriceChart.test.tsx` asserting each range filters the dataset to the expected number of bars and the selected range has `aria-pressed="true"`.
-- [ ] T056 [P] [US3] Create `frontend/tests/features/analysis/KeyStatsGrid.test.tsx` asserting every stat renders; missing/null values render as em dash (never "NaN" or empty).
-- [ ] T057 [P] [US3] Create `frontend/tests/features/analysis/PositionSummary.test.tsx` asserting summary renders only when shares > 0 and values match `computeHoldings` for the ticker.
-- [ ] T058 [P] [US3] Create `frontend/tests/routes/AnalysisRoute.test.tsx` smoke + axe, plus an "unknown ticker" case asserting the 404-style not-found UI.
+- [X] T055 [P] [US3] Create `frontend/tests/features/analysis/PriceChart.test.tsx` asserting each range filters the dataset to the expected number of bars and the selected range has `aria-pressed="true"`.
+- [X] T056 [P] [US3] Create `frontend/tests/features/analysis/KeyStatsGrid.test.tsx` asserting every stat renders; missing/null values render as em dash (never "NaN" or empty).
+- [X] T057 [P] [US3] Create `frontend/tests/features/analysis/PositionSummary.test.tsx` asserting summary renders only when shares > 0 and values match `computeHoldings` for the ticker.
+- [X] T058 [P] [US3] Create `frontend/tests/routes/AnalysisRoute.test.tsx` smoke + axe, plus an "unknown ticker" case asserting the 404-style not-found UI.
 
 ### Implementation for User Story 3
 
-- [ ] T059 [P] [US3] Create `frontend/src/features/analysis/PriceChart.tsx` using Recharts; accepts `symbol` and `range`; renders line/area chart; keyboard-accessible range buttons expose `aria-pressed`.
-- [ ] T060 [P] [US3] Create `frontend/src/features/analysis/KeyStatsGrid.tsx` rendering the nine stats specified in `data-model.md` using formatters from T017; null values render `—`.
-- [ ] T061 [P] [US3] Create `frontend/src/features/analysis/PositionSummary.tsx` consuming `portfolioStore` selector for the symbol and rendering shares, average cost, market value, unrealized P&L.
-- [ ] T062 [P] [US3] Create `frontend/src/features/analysis/AnalysisHeader.tsx` with symbol, company name, current price, and day change badge.
-- [ ] T063 [US3] Create `frontend/src/routes/AnalysisRoute.tsx` at `/analysis/:ticker` composing the header, chart, stats, and conditional position summary; renders a not-found state when the symbol is not in the catalog.
-- [ ] T064 [P] [US3] Create `frontend/src/components/layout/TickerSearch.tsx` mounted in `TopBar` — combobox backed by the ticker catalog; selecting a result navigates to `/analysis/:ticker`.
-- [ ] T065 [US3] Verify quality gates on current scope: `npm run verify` passes end-to-end.
+- [X] T059 [P] [US3] Create `frontend/src/features/analysis/PriceChart.tsx` using Recharts; accepts `symbol` and `range`; renders line/area chart; keyboard-accessible range buttons expose `aria-pressed`.
+- [X] T060 [P] [US3] Create `frontend/src/features/analysis/KeyStatsGrid.tsx` rendering the nine stats specified in `data-model.md` using formatters from T017; null values render `—`.
+- [X] T061 [P] [US3] Create `frontend/src/features/analysis/PositionSummary.tsx` consuming `portfolioStore` selector for the symbol and rendering shares, average cost, market value, unrealized P&L.
+- [X] T062 [P] [US3] Create `frontend/src/features/analysis/AnalysisHeader.tsx` with symbol, company name, current price, and day change badge.
+- [X] T063 [US3] Create `frontend/src/routes/AnalysisRoute.tsx` at `/analysis/:ticker` composing the header, chart, stats, and conditional position summary; renders a not-found state when the symbol is not in the catalog.
+- [X] T064 [P] [US3] Create `frontend/src/components/layout/TickerSearch.tsx` mounted in `TopBar` — combobox backed by the ticker catalog; selecting a result navigates to `/analysis/:ticker`.
+- [X] T065 [US3] Verify quality gates on current scope: `npm run verify` passes end-to-end.
 
 **Checkpoint**: US1, US2, and US3 all work independently.
 
@@ -190,21 +190,21 @@ the downloaded file; dashboard totals match the original state (SC-008).
 
 ### Tests for User Story 4
 
-- [ ] T066 [P] [US4] Create `frontend/src/test/fixtures/sample-transactions.csv` containing at least 10 valid rows and 2 invalid rows (one unknown ticker, one future date).
-- [ ] T067 [P] [US4] Create `frontend/tests/lib/csv.test.ts` covering parsing, normalization (uppercased ticker, lowercased type, trimmed whitespace), default `fees` handling, every invalid-reason path, and a round-trip `export → import` equality check over a fixture portfolio.
-- [ ] T068 [P] [US4] Create `frontend/tests/features/transactions/ImportPreview.test.tsx` asserting invalid rows are visually flagged with reason text and excluded from commit; counts (valid / invalid) shown.
-- [ ] T069 [P] [US4] Create `frontend/tests/features/transactions/ExportButton.test.tsx` asserting clicking Export triggers a download with canonical header and LF line endings (verify via a captured Blob).
-- [ ] T070 [P] [US4] Create `frontend/tests/routes/TransactionsRoute.test.tsx` smoke + axe.
+- [X] T066 [P] [US4] Create `frontend/src/test/fixtures/sample-transactions.csv` containing at least 10 valid rows and 2 invalid rows (one unknown ticker, one future date).
+- [X] T067 [P] [US4] Create `frontend/tests/lib/csv.test.ts` covering parsing, normalization (uppercased ticker, lowercased type, trimmed whitespace), default `fees` handling, every invalid-reason path, and a round-trip `export → import` equality check over a fixture portfolio.
+- [X] T068 [P] [US4] Create `frontend/tests/features/transactions/ImportPreview.test.tsx` asserting invalid rows are visually flagged with reason text and excluded from commit; counts (valid / invalid) shown.
+- [X] T069 [P] [US4] Create `frontend/tests/features/transactions/ExportButton.test.tsx` asserting clicking Export triggers a download with canonical header and LF line endings (verify via a captured Blob).
+- [X] T070 [P] [US4] Create `frontend/tests/routes/TransactionsRoute.test.tsx` smoke + axe.
 
 ### Implementation for User Story 4
 
-- [ ] T071 [P] [US4] Create `frontend/src/lib/csv.ts` exporting: `transactionRowSchema` (Zod, matches `csv-transaction-schema.md`), `parseTransactionsCSV(text): { valid: Transaction[]; invalid: { row: number; reason: string; raw: Record<string,string> }[] }` using PapaParse, and `serializeTransactionsCSV(transactions): string` emitting the canonical header with LF endings and RFC 4180 quoting.
-- [ ] T072 [P] [US4] Create `frontend/src/features/transactions/ImportDropzone.tsx` handling file selection (click or drag-drop), reading as text, and invoking `parseTransactionsCSV`.
-- [ ] T073 [P] [US4] Create `frontend/src/features/transactions/ImportPreview.tsx` rendering a unified table with a status column (`valid` / `invalid: reason`); a "Confirm import" button writes only the valid rows via `portfolioStore.replaceAll([...existing, ...valid])` (or a configurable merge — default: append).
-- [ ] T074 [P] [US4] Create `frontend/src/features/transactions/ExportButton.tsx` that calls `serializeTransactionsCSV(store.transactions)`, constructs a `Blob`, and triggers a download named `stocktracker-transactions-YYYYMMDD.csv`.
-- [ ] T075 [P] [US4] Create `frontend/src/features/transactions/TransactionsTable.tsx` listing committed transactions sortable by date with per-row delete + confirm.
-- [ ] T076 [US4] Create `frontend/src/routes/TransactionsRoute.tsx` composing `ImportDropzone` → `ImportPreview`, `ExportButton`, and `TransactionsTable`; empty state when no transactions.
-- [ ] T077 [US4] Verify quality gates on current scope: `npm run verify` passes end-to-end.
+- [X] T071 [P] [US4] Create `frontend/src/lib/csv.ts` exporting: `transactionRowSchema` (Zod, matches `csv-transaction-schema.md`), `parseTransactionsCSV(text): { valid: Transaction[]; invalid: { row: number; reason: string; raw: Record<string,string> }[] }` using PapaParse, and `serializeTransactionsCSV(transactions): string` emitting the canonical header with LF endings and RFC 4180 quoting.
+- [X] T072 [P] [US4] Create `frontend/src/features/transactions/ImportDropzone.tsx` handling file selection (click or drag-drop), reading as text, and invoking `parseTransactionsCSV`.
+- [X] T073 [P] [US4] Create `frontend/src/features/transactions/ImportPreview.tsx` rendering a unified table with a status column (`valid` / `invalid: reason`); a "Confirm import" button writes only the valid rows via `portfolioStore.replaceAll([...existing, ...valid])` (or a configurable merge — default: append).
+- [X] T074 [P] [US4] Create `frontend/src/features/transactions/ExportButton.tsx` that calls `serializeTransactionsCSV(store.transactions)`, constructs a `Blob`, and triggers a download named `stocktracker-transactions-YYYYMMDD.csv`.
+- [X] T075 [P] [US4] Create `frontend/src/features/transactions/TransactionsTable.tsx` listing committed transactions sortable by date with per-row delete + confirm.
+- [X] T076 [US4] Create `frontend/src/routes/TransactionsRoute.tsx` composing `ImportDropzone` → `ImportPreview`, `ExportButton`, and `TransactionsTable`; empty state when no transactions.
+- [X] T077 [US4] Verify quality gates on current scope: `npm run verify` passes end-to-end.
 
 **Checkpoint**: All four user stories are independently functional.
 
@@ -215,11 +215,11 @@ the downloaded file; dashboard totals match the original state (SC-008).
 **Purpose**: Final checks required by spec Success Criteria and constitution gates
 across all stories — not new features.
 
-- [ ] T078 [P] Add `frontend/tests/a11y/routes.axe.test.tsx` running `vitest-axe` against every primary route (`/`, `/watchlists`, `/watchlists/:id` with a fixture, `/transactions`, `/analysis/:ticker`) and asserting zero critical violations (SC-006).
-- [ ] T079 [P] Add `frontend/tests/responsive/viewports.test.tsx` that renders each primary route at emulated widths 375, 768, 1280, 1920 and asserts no element overflows the viewport (SC-007).
-- [ ] T080 [P] Add keyboard-navigation tests under `frontend/tests/a11y/keyboard.test.tsx` verifying that each primary route is fully operable via Tab/Shift-Tab/Enter/Space/Escape (FR-024).
-- [ ] T081 [P] Create `frontend/README.md` linking to `specs/001-frontend-prototype/quickstart.md` and listing the `npm run verify` commands; no duplication of quickstart content.
-- [ ] T082 Run `npm run verify` from `frontend/` and confirm all three constitution gates are green (test, lint, typecheck + build). If anything fails, fix the root cause — do NOT silence lints or skip tests.
+- [X] T078 [P] Add `frontend/tests/a11y/routes.axe.test.tsx` running `vitest-axe` against every primary route (`/`, `/watchlists`, `/watchlists/:id` with a fixture, `/transactions`, `/analysis/:ticker`) and asserting zero critical violations (SC-006).
+- [X] T079 [P] Add `frontend/tests/responsive/viewports.test.tsx` that renders each primary route at emulated widths 375, 768, 1280, 1920 and asserts no element overflows the viewport (SC-007).
+- [X] T080 [P] Add keyboard-navigation tests under `frontend/tests/a11y/keyboard.test.tsx` verifying that each primary route is fully operable via Tab/Shift-Tab/Enter/Space/Escape (FR-024).
+- [X] T081 [P] Create `frontend/README.md` linking to `specs/001-frontend-prototype/quickstart.md` and listing the `npm run verify` commands; no duplication of quickstart content.
+- [X] T082 Run `npm run verify` from `frontend/` and confirm all three constitution gates are green (test, lint, typecheck + build). If anything fails, fix the root cause — do NOT silence lints or skip tests.
 - [ ] T083 Walk through the quickstart.md per-user-story verification checklist manually in `npm run dev` across desktop and mobile viewports; record any deviations from spec acceptance scenarios and open fixes as follow-up tasks (not in this feature's scope to add more FRs).
 
 ---

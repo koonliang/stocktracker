@@ -38,3 +38,15 @@ if (!window.ResizeObserver) {
 if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = vi.fn();
 }
+
+// URL.createObjectURL / revokeObjectURL — jsdom doesn't implement these; the
+// Export flow uses them to trigger a Blob download.
+if (typeof URL.createObjectURL === 'undefined') {
+  Object.defineProperty(URL, 'createObjectURL', {
+    value: vi.fn(() => 'blob:mock'),
+    writable: true,
+  });
+}
+if (typeof URL.revokeObjectURL === 'undefined') {
+  Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), writable: true });
+}
