@@ -1,0 +1,114 @@
+@import './tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ======================================================================
+ * Base / reset
+ * ==================================================================== */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-bg text-text font-sans;
+    font-feature-settings:
+      'ss01' on,
+      'cv11' on;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Every number in the app is tabular by default — critical for a finance UI */
+  .tabular,
+  table td,
+  table th,
+  input[type='number'],
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      'tnum' on,
+      'lnum' on;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display text-text;
+  }
+
+  /* Editorial page-title underline accent (used by PageHeader) */
+  .page-title-rule {
+    @apply mt-4 h-px w-12 bg-accent;
+  }
+
+  /* Visible focus ring on every keyboard-focused element.
+   * Applied only for :focus-visible so pointer clicks don't show the ring. */
+  *:focus {
+    outline: none;
+  }
+  *:focus-visible {
+    outline: 2px solid rgb(var(--color-focus-ring));
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* Selection — tinted in accent */
+  ::selection {
+    background-color: rgb(var(--color-accent) / 0.18);
+    color: rgb(var(--color-text));
+  }
+
+  /* Scrollbar — restrained, warm */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--color-border-strong));
+    border-radius: 999px;
+    border: 2px solid rgb(var(--color-bg));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--color-text-subtle));
+  }
+}
+
+/* ======================================================================
+ * Component utilities
+ * ==================================================================== */
+@layer components {
+  /* Micro-label: uppercase, tight letter-spaced — used for column headers,
+   * section tags, small labels. This is the signature editorial touch. */
+  .eyebrow {
+    @apply font-sans text-micro uppercase tracking-[0.14em] text-text-muted;
+  }
+
+  /* Delta text — always tabular, colored by sign (applied inline) */
+  .delta-positive {
+    color: rgb(var(--color-positive));
+  }
+  .delta-negative {
+    color: rgb(var(--color-negative));
+  }
+
+  /* Editorial thin rule */
+  .rule {
+    border-top: 1px solid rgb(var(--color-border));
+  }
+  .rule-strong {
+    border-top: 1px solid rgb(var(--color-border-strong));
+  }
+}
+
+@layer utilities {
+  .grid-cols-portfolio {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
