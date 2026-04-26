@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 
 type Props = {
   transactions: Transaction[];
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<void>;
 };
 
 type Direction = 'asc' | 'desc';
@@ -105,7 +105,7 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
             <Button
               variant="danger"
               onClick={() => {
-                if (pendingDelete) onDelete(pendingDelete.id);
+                if (pendingDelete) void onDelete(pendingDelete.id);
                 setPendingDelete(null);
               }}
             >

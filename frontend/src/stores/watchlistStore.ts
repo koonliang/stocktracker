@@ -1,133 +1,178 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { ApiError } from '@/api/client';
+import {
+  addTickerToWatchlist,
+  createWatchlist,
+  deleteWatchlist,
+  getWatchlists,
+  removeTickerFromWatchlist,
+  renameWatchlist,
+  reorderWatchlistTickers,
+} from '@/api/watchlistsApi';
 import type { Watchlist } from '@/lib/types';
-import { isKnownTicker } from '@/lib/seed';
+
+type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export type AddTickerResult =
   | { ok: true }
-  | { ok: false; reason: 'unknown' | 'duplicate' | 'not-found' };
+  | { ok: false; reason: 'unknown' | 'duplicate' | 'not-found' | 'server' };
 
 export type CreateResult =
   | { ok: true; id: string }
-  | { ok: false; reason: 'empty' | 'too-long' | 'duplicate-name' };
+  | { ok: false; reason: 'empty' | 'too-long' | 'duplicate-name' | 'server' };
 
 export type RenameResult =
   | { ok: true }
-  | { ok: false; reason: 'empty' | 'too-long' | 'duplicate-name' | 'not-found' };
+  | { ok: false; reason: 'empty' | 'too-long' | 'duplicate-name' | 'not-found' | 'server' };
 
 type State = {
   watchlists: Watchlist[];
+  status: LoadStatus;
+  error: string | null;
 };
 
 type Actions = {
-  create: (name: string) => CreateResult;
-  rename: (id: string, name: string) => RenameResult;
-  remove: (id: string) => void;
-  addTicker: (id: string, symbol: string) => AddTickerResult;
-  removeTicker: (id: string, symbol: string) => void;
-  reorderTickers: (id: string, from: number, to: number) => void;
+  load: () => Promise<void>;
+  create: (name: string) => Promise<CreateResult>;
+  rename: (id: string, name: string) => Promise<RenameResult>;
+  remove: (id: string) => Promise<void>;
+  addTicker: (id: string, symbol: string) => Promise<AddTickerResult>;
+  removeTicker: (id: string, symbol: string) => Promise<void>;
+  reorderTickers: (id: string, from: number, to: number) => Promise<void>;
+  hydrateForTests: (watchlists: Watchlist[]) => void;
 };
 
-const MAX_NAME_LENGTH = 40;
+function errorReason(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return 'Request failed';
+}
 
-function newId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
+function createFailure(error: unknown): CreateResult {
+  if (error instanceof ApiError) {
+    if (error.status === 409) return { ok: false, reason: 'duplicate-name' };
+    if (/long/i.test(error.message)) return { ok: false, reason: 'too-long' };
+    if (/required/i.test(error.message)) return { ok: false, reason: 'empty' };
   }
-  return `wl_${Math.random().toString(36).slice(2, 10)}_${Date.now().toString(36)}`;
+  return { ok: false, reason: 'server' };
 }
 
-function nowISO(): string {
-  return new Date().toISOString();
+function renameFailure(error: unknown): RenameResult {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return { ok: false, reason: 'not-found' };
+    if (error.status === 409) return { ok: false, reason: 'duplicate-name' };
+    if (/long/i.test(error.message)) return { ok: false, reason: 'too-long' };
+    if (/required/i.test(error.message)) return { ok: false, reason: 'empty' };
+  }
+  return { ok: false, reason: 'server' };
 }
 
-function normalizeName(raw: string): string {
-  return raw.trim();
+function addTickerFailure(error: unknown): AddTickerResult {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return { ok: false, reason: 'not-found' };
+    if (error.status === 409) return { ok: false, reason: 'duplicate' };
+    if (error.status === 422) return { ok: false, reason: 'unknown' };
+  }
+  return { ok: false, reason: 'server' };
 }
 
-function nameExists(lists: Watchlist[], name: string, excludeId?: string): boolean {
-  const lower = name.toLowerCase();
-  return lists.some((w) => w.id !== excludeId && w.name.toLowerCase() === lower);
-}
+export const useWatchlistStore = create<State & Actions>()((set, get) => ({
+  watchlists: [],
+  status: 'idle',
+  error: null,
 
-export const useWatchlistStore = create<State & Actions>()(
-  persist(
-    (set, get) => ({
-      watchlists: [],
+  async load() {
+    set({ status: 'loading', error: null });
+    try {
+      const watchlists = await getWatchlists();
+      set({ watchlists, status: 'success' });
+    } catch (error) {
+      set({ status: 'error', error: errorReason(error) });
+    }
+  },
 
-      create: (rawName) => {
-        const name = normalizeName(rawName);
-        if (!name) return { ok: false, reason: 'empty' };
-        if (name.length > MAX_NAME_LENGTH) return { ok: false, reason: 'too-long' };
-        if (nameExists(get().watchlists, name)) return { ok: false, reason: 'duplicate-name' };
+  async create(name) {
+    try {
+      const watchlist = await createWatchlist(name);
+      set({ watchlists: [watchlist, ...get().watchlists], error: null });
+      return { ok: true, id: watchlist.id };
+    } catch (error) {
+      set({ error: errorReason(error) });
+      return createFailure(error);
+    }
+  },
 
-        const id = newId();
-        const now = nowISO();
-        set((s) => ({
-          watchlists: [...s.watchlists, { id, name, tickers: [], createdAt: now, updatedAt: now }],
-        }));
-        return { ok: true, id };
-      },
+  async rename(id, name) {
+    try {
+      const updated = await renameWatchlist(id, name);
+      set({
+        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        error: null,
+      });
+      return { ok: true };
+    } catch (error) {
+      set({ error: errorReason(error) });
+      return renameFailure(error);
+    }
+  },
 
-      rename: (id, rawName) => {
-        const name = normalizeName(rawName);
-        if (!name) return { ok: false, reason: 'empty' };
-        if (name.length > MAX_NAME_LENGTH) return { ok: false, reason: 'too-long' };
-        const lists = get().watchlists;
-        if (!lists.some((w) => w.id === id)) return { ok: false, reason: 'not-found' };
-        if (nameExists(lists, name, id)) return { ok: false, reason: 'duplicate-name' };
+  async remove(id) {
+    try {
+      await deleteWatchlist(id);
+      set({
+        watchlists: get().watchlists.filter((watchlist) => watchlist.id !== id),
+        error: null,
+      });
+    } catch (error) {
+      set({ error: errorReason(error) });
+    }
+  },
 
-        set((s) => ({
-          watchlists: s.watchlists.map((w) =>
-            w.id === id ? { ...w, name, updatedAt: nowISO() } : w,
-          ),
-        }));
-        return { ok: true };
-      },
+  async addTicker(id, symbol) {
+    try {
+      const updated = await addTickerToWatchlist(id, symbol.trim().toUpperCase());
+      set({
+        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        error: null,
+      });
+      return { ok: true };
+    } catch (error) {
+      set({ error: errorReason(error) });
+      return addTickerFailure(error);
+    }
+  },
 
-      remove: (id) => set((s) => ({ watchlists: s.watchlists.filter((w) => w.id !== id) })),
+  async removeTicker(id, symbol) {
+    try {
+      const updated = await removeTickerFromWatchlist(id, symbol);
+      set({
+        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        error: null,
+      });
+    } catch (error) {
+      set({ error: errorReason(error) });
+    }
+  },
 
-      addTicker: (id, rawSymbol) => {
-        const symbol = rawSymbol.trim().toUpperCase();
-        if (!isKnownTicker(symbol)) return { ok: false, reason: 'unknown' };
-        const list = get().watchlists.find((w) => w.id === id);
-        if (!list) return { ok: false, reason: 'not-found' };
-        if (list.tickers.includes(symbol)) return { ok: false, reason: 'duplicate' };
+  async reorderTickers(id, from, to) {
+    const watchlist = get().watchlists.find((entry) => entry.id === id);
+    if (!watchlist) return;
+    if (from < 0 || to < 0 || from >= watchlist.tickers.length || to >= watchlist.tickers.length) return;
+    const tickers = [...watchlist.tickers];
+    const [moved] = tickers.splice(from, 1);
+    tickers.splice(to, 0, moved!);
+    try {
+      const updated = await reorderWatchlistTickers(id, tickers);
+      set({
+        watchlists: get().watchlists.map((entry) => (entry.id === id ? updated : entry)),
+        error: null,
+      });
+    } catch (error) {
+      set({ error: errorReason(error) });
+    }
+  },
 
-        set((s) => ({
-          watchlists: s.watchlists.map((w) =>
-            w.id === id ? { ...w, tickers: [...w.tickers, symbol], updatedAt: nowISO() } : w,
-          ),
-        }));
-        return { ok: true };
-      },
-
-      removeTicker: (id, rawSymbol) => {
-        const symbol = rawSymbol.toUpperCase();
-        set((s) => ({
-          watchlists: s.watchlists.map((w) =>
-            w.id === id
-              ? { ...w, tickers: w.tickers.filter((t) => t !== symbol), updatedAt: nowISO() }
-              : w,
-          ),
-        }));
-      },
-
-      reorderTickers: (id, from, to) => {
-        set((s) => ({
-          watchlists: s.watchlists.map((w) => {
-            if (w.id !== id) return w;
-            if (from < 0 || from >= w.tickers.length) return w;
-            if (to < 0 || to >= w.tickers.length) return w;
-            if (from === to) return w;
-            const next = [...w.tickers];
-            const [moved] = next.splice(from, 1);
-            next.splice(to, 0, moved!);
-            return { ...w, tickers: next, updatedAt: nowISO() };
-          }),
-        }));
-      },
-    }),
-    { name: 'stocktracker.watchlists' },
-  ),
-);
+  hydrateForTests(watchlists) {
+    set({ watchlists, status: 'success', error: null });
+  },
+}));

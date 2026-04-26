@@ -3,13 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
-import { usePortfolioStore } from '@/stores/portfolioStore';
 import { loadTickers } from '@/lib/seed';
-
-function reset() {
-  localStorage.clear();
-  usePortfolioStore.setState({ transactions: [], initialized: true });
-}
 
 function renderAt(path: string) {
   return render(
@@ -25,24 +19,29 @@ function renderAt(path: string) {
 const known = loadTickers()[0]!.symbol;
 
 describe('AnalysisRoute', () => {
-  beforeEach(reset);
-  afterEach(reset);
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    localStorage.clear();
+  });
 
-  it('renders header, chart, and key stats for a known ticker', () => {
+  it('renders header, chart, and key stats for a known ticker', async () => {
     renderAt(`/analysis/${known}`);
-    expect(screen.getByRole('heading', { level: 1, name: known })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: known })).toBeInTheDocument();
     expect(screen.getByTestId('price-chart')).toBeInTheDocument();
     expect(screen.getByText('Snapshot')).toBeInTheDocument();
   });
 
-  it('renders a not-found state for an unknown ticker with a link to the dashboard', () => {
+  it('renders a not-found state for an unknown ticker with a link to the dashboard', async () => {
     renderAt('/analysis/ZZZZ');
-    expect(screen.getByText(/We don't know "ZZZZ"/i)).toBeInTheDocument();
+    expect(await screen.findByText(/We could not load "ZZZZ"/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Back to dashboard/i })).toBeInTheDocument();
   });
 
   it('has no critical accessibility violations', async () => {
     const { container } = renderAt(`/analysis/${known}`);
+    await screen.findByRole('heading', { level: 1, name: known });
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

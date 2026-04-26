@@ -1,17 +1,18 @@
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import { Button } from '@/components/ui/Button';
-import type { ParseResult } from '@/lib/csv';
+import type { TransactionImportPreviewResponse } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 type Props = {
-  result: ParseResult;
+  result: TransactionImportPreviewResponse;
+  pending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
 
-export function ImportPreview({ result, onConfirm, onCancel }: Props) {
-  const validCount = result.valid.length;
-  const invalidCount = result.invalid.length;
+export function ImportPreview({ result, pending = false, onConfirm, onCancel }: Props) {
+  const validCount = result.validRows.length;
+  const invalidCount = result.invalidRows.length;
 
   if (result.headerErrors.length > 0) {
     return (
@@ -39,21 +40,21 @@ export function ImportPreview({ result, onConfirm, onCancel }: Props) {
     raw: Record<string, string>;
   };
   const items: Item[] = [];
-  result.valid.forEach((tx, i) => {
+  result.validRows.forEach((row) => {
     items.push({
-      row: i + 2, // approximation — order preserved
+      row: row.row,
       status: 'valid',
       raw: {
-        date: tx.date,
-        ticker: tx.ticker,
-        type: tx.type,
-        quantity: String(tx.quantity),
-        price: String(tx.price),
-        fees: String(tx.fees),
+        date: row.normalized.date,
+        ticker: row.normalized.ticker,
+        type: row.normalized.type,
+        quantity: String(row.normalized.quantity),
+        price: String(row.normalized.price),
+        fees: String(row.normalized.fees),
       },
     });
   });
-  result.invalid.forEach((row) => {
+  result.invalidRows.forEach((row) => {
     items.push({ row: row.row, status: 'invalid', reason: row.reason, raw: row.raw });
   });
   items.sort((a, b) => a.row - b.row);
@@ -73,7 +74,7 @@ export function ImportPreview({ result, onConfirm, onCancel }: Props) {
           <Button variant="ghost" size="sm" onClick={onCancel}>
             Cancel
           </Button>
-          <Button size="sm" onClick={onConfirm} disabled={validCount === 0}>
+          <Button size="sm" onClick={onConfirm} disabled={validCount === 0} loading={pending}>
             Confirm import ({validCount})
           </Button>
         </div>

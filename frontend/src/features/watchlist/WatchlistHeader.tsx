@@ -30,14 +30,16 @@ export function WatchlistHeader({ watchlist, onDeleted }: Props) {
     setDraft(watchlist.name);
   }, [watchlist.name]);
 
-  function save() {
-    const res = rename(watchlist.id, draft);
+  async function save() {
+    const res = await rename(watchlist.id, draft);
     if (!res.ok) {
       const message =
         res.reason === 'duplicate-name'
           ? 'A watchlist with this name already exists'
           : res.reason === 'too-long'
             ? 'Max 40 characters'
+            : res.reason === 'server'
+              ? 'Could not rename watchlist right now'
             : 'Name is required';
       setError(message);
       return;
@@ -73,7 +75,7 @@ export function WatchlistHeader({ watchlist, onDeleted }: Props) {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      save();
+                      void save();
                     } else if (e.key === 'Escape') {
                       e.preventDefault();
                       cancel();
@@ -86,7 +88,9 @@ export function WatchlistHeader({ watchlist, onDeleted }: Props) {
                   type="button"
                   variant="primary"
                   size="sm"
-                  onClick={save}
+                  onClick={() => {
+                    void save();
+                  }}
                   aria-label="Save name"
                 >
                   <Check size={14} aria-hidden />
@@ -154,7 +158,7 @@ export function WatchlistHeader({ watchlist, onDeleted }: Props) {
             <Button
               variant="danger"
               onClick={() => {
-                remove(watchlist.id);
+                void remove(watchlist.id);
                 setConfirmOpen(false);
                 onDeleted();
               }}

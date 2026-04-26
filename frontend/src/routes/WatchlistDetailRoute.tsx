@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
@@ -13,15 +13,29 @@ import { WatchlistRow } from '@/features/watchlist/WatchlistRow';
 
 export function WatchlistDetailRoute() {
   const { id } = useParams<{ id: string }>();
+  const load = useWatchlistStore((s) => s.load);
   const watchlist = useWatchlistStore((s) => s.watchlists.find((w) => w.id === id));
   const removeTicker = useWatchlistStore((s) => s.removeTicker);
   const reorderTickers = useWatchlistStore((s) => s.reorderTickers);
+  const status = useWatchlistStore((s) => s.status);
   const navigate = useNavigate();
 
   const priceLookup = useMemo(() => buildPriceLookup(loadPrices()), []);
 
   const dragFromRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (status === 'loading' && !watchlist) {
+    return (
+      <Card>
+        <p className="text-body text-text-muted">Loading watchlist…</p>
+      </Card>
+    );
+  }
 
   if (!id || !watchlist) {
     return (
@@ -85,9 +99,15 @@ export function WatchlistDetailRoute() {
                     currentPrice={current}
                     dayChange={dayChange}
                     dayChangePct={dayChangePct}
-                    onRemove={() => removeTicker(watchlist.id, symbol)}
-                    onMoveUp={() => reorderTickers(watchlist.id, idx, idx - 1)}
-                    onMoveDown={() => reorderTickers(watchlist.id, idx, idx + 1)}
+                    onRemove={() => {
+                      void removeTicker(watchlist.id, symbol);
+                    }}
+                    onMoveUp={() => {
+                      void reorderTickers(watchlist.id, idx, idx - 1);
+                    }}
+                    onMoveDown={() => {
+                      void reorderTickers(watchlist.id, idx, idx + 1);
+                    }}
                     canMoveUp={idx > 0}
                     canMoveDown={idx < watchlist.tickers.length - 1}
                     dragHandleProps={{
@@ -107,7 +127,7 @@ export function WatchlistDetailRoute() {
                         e.preventDefault();
                         const from = dragFromRef.current;
                         if (from != null && from !== idx) {
-                          reorderTickers(watchlist.id, from, idx);
+                          void reorderTickers(watchlist.id, from, idx);
                         }
                         dragFromRef.current = null;
                         setDragOverIndex(null);

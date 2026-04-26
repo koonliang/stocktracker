@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 
 function reset() {
-  // Wipe persisted state + in-memory state
   localStorage.clear();
   usePortfolioStore.setState({ transactions: [], initialized: true });
 }
@@ -12,8 +11,8 @@ describe('portfolioStore', () => {
   afterEach(reset);
 
   it('addTransaction appends with a generated id', () => {
-    const s = usePortfolioStore.getState();
-    s.addTransaction({
+    const store = usePortfolioStore.getState();
+    store.addTransaction({
       date: '2024-01-01',
       ticker: 'AAPL',
       type: 'buy',
@@ -21,15 +20,15 @@ describe('portfolioStore', () => {
       price: 100,
       fees: 0,
     });
-    const txs = usePortfolioStore.getState().transactions;
-    expect(txs).toHaveLength(1);
-    expect(txs[0]!.id).toBeTruthy();
-    expect(txs[0]!.ticker).toBe('AAPL');
+    const transactions = usePortfolioStore.getState().transactions;
+    expect(transactions).toHaveLength(1);
+    expect(transactions[0]!.id).toBeTruthy();
+    expect(transactions[0]!.ticker).toBe('AAPL');
   });
 
   it('removeTransaction removes by id', () => {
-    const s = usePortfolioStore.getState();
-    s.addTransaction({
+    const store = usePortfolioStore.getState();
+    store.addTransaction({
       id: 'a',
       date: '2024-01-01',
       ticker: 'AAPL',
@@ -38,7 +37,7 @@ describe('portfolioStore', () => {
       price: 100,
       fees: 0,
     });
-    s.addTransaction({
+    store.addTransaction({
       id: 'b',
       date: '2024-02-01',
       ticker: 'MSFT',
@@ -48,8 +47,7 @@ describe('portfolioStore', () => {
       fees: 0,
     });
     usePortfolioStore.getState().removeTransaction('a');
-    const txs = usePortfolioStore.getState().transactions;
-    expect(txs.map((t) => t.id)).toEqual(['b']);
+    expect(usePortfolioStore.getState().transactions.map((transaction) => transaction.id)).toEqual(['b']);
   });
 
   it('replaceAll replaces the transaction list', () => {
@@ -86,7 +84,7 @@ describe('portfolioStore', () => {
     expect(usePortfolioStore.getState().transactions.length).toBeGreaterThan(0);
   });
 
-  it('persists to localStorage under the configured key', () => {
+  it('keeps added transactions in memory for local test helpers', () => {
     usePortfolioStore.getState().addTransaction({
       date: '2024-01-01',
       ticker: 'AAPL',
@@ -95,8 +93,6 @@ describe('portfolioStore', () => {
       price: 100,
       fees: 0,
     });
-    const stored = localStorage.getItem('stocktracker.portfolio');
-    expect(stored).toBeTruthy();
-    expect(stored).toContain('AAPL');
+    expect(usePortfolioStore.getState().transactions[0]!.ticker).toBe('AAPL');
   });
 });

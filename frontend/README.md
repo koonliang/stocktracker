@@ -1,30 +1,36 @@
 # StockTracker Frontend
 
-Client-side prototype for the StockTracker portfolio dashboard, watchlists, stock
-analysis, and CSV import/export flows. All data is bundled or stored in
-`localStorage`; no network calls at runtime.
+React/Vite frontend for the integrated StockTracker product. The dashboard,
+watchlists, analysis view, and CSV import/export flows now call the Quarkus
+backend instead of storing portfolio state in `localStorage`.
 
-For setup, scripts, architecture, and per-user-story verification steps, see
-[`specs/001-frontend-prototype/quickstart.md`](../specs/001-frontend-prototype/quickstart.md).
+For the full-stack workflow and per-story verification steps, see
+[`specs/002-connect-frontend-backend/quickstart.md`](../specs/002-connect-frontend-backend/quickstart.md).
+
+## Local development
+
+Run the full product from the repository root:
+
+```sh
+docker compose up --build
+```
+
+The frontend is served at `http://localhost:5173` and targets
+`VITE_API_BASE_URL`, which defaults to `http://localhost:8080/api` in the local
+Compose stack.
 
 ## Quality gates
 
-Run all three gates from the constitution in one command:
+Run all frontend gates:
 
 ```sh
-npm run verify
+npm test
+npm run lint
+npm run typecheck
+npm run build
 ```
 
-Individual gates:
-
-```sh
-npm run lint        # ESLint + Prettier
-npm run typecheck   # tsc --noEmit
-npm run test        # Vitest (jsdom)
-npm run build       # Vite production build
-```
-
-Dev server:
+Frontend-only dev server:
 
 ```sh
 npm run dev

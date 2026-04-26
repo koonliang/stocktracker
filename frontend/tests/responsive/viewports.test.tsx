@@ -8,7 +8,7 @@ import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { usePortfolioStore } from '@/stores/portfolioStore';
-import { loadSeedPortfolio, loadTickers } from '@/lib/seed';
+import { loadTickers } from '@/lib/seed';
 
 const VIEWPORTS = [375, 768, 1280, 1920] as const;
 
@@ -20,8 +20,9 @@ function setViewport(width: number) {
 
 function reset() {
   localStorage.clear();
-  useWatchlistStore.setState({ watchlists: [] });
-  usePortfolioStore.setState({ transactions: loadSeedPortfolio(), initialized: true });
+  useWatchlistStore.setState({ watchlists: [], status: 'success', error: null, load: async () => {} });
+  usePortfolioStore.getState().seedFromFixture();
+  usePortfolioStore.setState({ loadDashboard: async () => {}, loadTransactions: async () => {} });
 }
 
 const known = loadTickers()[0]!.symbol;
@@ -75,12 +76,12 @@ describe('responsive viewports (SC-007)', () => {
         assertNoFixedWidthOverflow(container, width);
       });
 
-      it('watchlist detail renders without overflow', () => {
-        const res = useWatchlistStore.getState().create('Tech');
-        const id = (res as { ok: true; id: string }).id;
-        useWatchlistStore.getState().addTicker(id, known);
+      it('watchlist detail renders without overflow', async () => {
+        const res = await useWatchlistStore.getState().create('Tech');
+        if (!res.ok) throw new Error('create failed');
+        await useWatchlistStore.getState().addTicker(res.id, known);
         const { container } = renderRoute(
-          `/watchlists/${id}`,
+          `/watchlists/${res.id}`,
           <WatchlistDetailRoute />,
           '/watchlists/:id',
         );

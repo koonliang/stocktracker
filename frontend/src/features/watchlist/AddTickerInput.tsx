@@ -35,14 +35,16 @@ export function AddTickerInput({ watchlistId }: Props) {
     defaultValues: { symbol: '' },
   });
 
-  const onSubmit = handleSubmit((values) => {
-    const result = addTicker(watchlistId, values.symbol);
+  const onSubmit = handleSubmit(async (values) => {
+    const result = await addTicker(watchlistId, values.symbol);
     if (!result.ok) {
       const message =
         result.reason === 'unknown'
           ? 'Not a known ticker'
           : result.reason === 'duplicate'
             ? 'Already in this watchlist'
+            : result.reason === 'server'
+              ? 'Could not add ticker right now'
             : 'Could not add ticker';
       setError('symbol', { type: 'manual', message });
       return;

@@ -9,12 +9,13 @@ import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { usePortfolioStore } from '@/stores/portfolioStore';
-import { loadSeedPortfolio, loadTickers } from '@/lib/seed';
+import { loadTickers } from '@/lib/seed';
 
 function reset() {
   localStorage.clear();
-  useWatchlistStore.setState({ watchlists: [] });
-  usePortfolioStore.setState({ transactions: loadSeedPortfolio(), initialized: true });
+  useWatchlistStore.setState({ watchlists: [], status: 'success', error: null, load: async () => {} });
+  usePortfolioStore.getState().seedFromFixture();
+  usePortfolioStore.setState({ loadDashboard: async () => {}, loadTransactions: async () => {} });
 }
 
 function renderRoute(path: string, element: JSX.Element, routePath: string) {
@@ -39,17 +40,18 @@ describe('axe across primary routes (SC-006)', () => {
   });
 
   it('Watchlists index has no critical violations', async () => {
-    useWatchlistStore.getState().create('Tech');
+    const res = await useWatchlistStore.getState().create('Tech');
+    if (!res.ok) throw new Error('create failed');
     const { container } = renderRoute('/watchlists', <WatchlistsRoute />, '/watchlists');
     expect(await axe(container)).toHaveNoViolations();
   });
 
   it('Watchlist detail has no critical violations', async () => {
-    const res = useWatchlistStore.getState().create('Tech');
-    const id = (res as { ok: true; id: string }).id;
-    useWatchlistStore.getState().addTicker(id, known);
+    const res = await useWatchlistStore.getState().create('Tech');
+    if (!res.ok) throw new Error('create failed');
+    await useWatchlistStore.getState().addTicker(res.id, known);
     const { container } = renderRoute(
-      `/watchlists/${id}`,
+      `/watchlists/${res.id}`,
       <WatchlistDetailRoute />,
       '/watchlists/:id',
     );

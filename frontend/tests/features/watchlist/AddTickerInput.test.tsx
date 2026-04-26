@@ -11,8 +11,8 @@ function reset() {
   useWatchlistStore.setState({ watchlists: [] });
 }
 
-function setupList(): string {
-  const res = useWatchlistStore.getState().create('Test List');
+async function setupList(): Promise<string> {
+  const res = await useWatchlistStore.getState().create('Test List');
   if (!res.ok) throw new Error('failed to create list');
   return res.id;
 }
@@ -25,7 +25,7 @@ describe('AddTickerInput', () => {
 
   it('adds a known ticker and clears the input', async () => {
     const user = userEvent.setup();
-    const id = setupList();
+    const id = await setupList();
     renderWithProviders(<AddTickerInput watchlistId={id} />);
 
     const input = screen.getByLabelText(/Add ticker/i) as HTMLInputElement;
@@ -37,7 +37,7 @@ describe('AddTickerInput', () => {
 
   it('shows an inline error for unknown tickers and does not add', async () => {
     const user = userEvent.setup();
-    const id = setupList();
+    const id = await setupList();
     renderWithProviders(<AddTickerInput watchlistId={id} />);
 
     const input = screen.getByLabelText(/Add ticker/i);
@@ -49,8 +49,8 @@ describe('AddTickerInput', () => {
 
   it('shows an inline error for duplicates', async () => {
     const user = userEvent.setup();
-    const id = setupList();
-    useWatchlistStore.getState().addTicker(id, known);
+    const id = await setupList();
+    await useWatchlistStore.getState().addTicker(id, known);
     renderWithProviders(<AddTickerInput watchlistId={id} />);
 
     const input = screen.getByLabelText(/Add ticker/i);
