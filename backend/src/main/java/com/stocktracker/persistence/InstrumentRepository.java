@@ -31,7 +31,8 @@ public class InstrumentRepository implements PanacheRepository<Instrument> {
   }
 
   public List<InstrumentPriceBar> listPriceBars(String symbol) {
-    return InstrumentPriceBar.list("instrumentSymbol = ?1 order by tradeDate", symbol.toUpperCase());
+    return InstrumentPriceBar.list(
+        "instrumentSymbol = ?1 order by tradeDate", symbol.toUpperCase());
   }
 
   public List<InstrumentPriceBar> listPriceBars(Collection<String> symbols) {

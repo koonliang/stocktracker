@@ -8,7 +8,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.UserTransaction;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 
 public abstract class IntegrationTestSupport {
@@ -25,10 +24,10 @@ public abstract class IntegrationTestSupport {
         });
   }
 
-  protected UUID persistTransaction(
+  protected Long persistTransaction(
       String date, String ticker, String type, String quantity, String price, String fees)
       throws Exception {
-    var holder = new UUID[1];
+    var holder = new Long[1];
     inTransaction(
         () -> {
           var transaction = new PortfolioTransaction();

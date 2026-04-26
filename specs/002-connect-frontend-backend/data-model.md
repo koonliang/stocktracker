@@ -83,7 +83,7 @@ Canonical transaction record saved by the user and used to derive holdings.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| id | uuid | Primary key |
+| id | bigint | Primary key |
 | trade_date | date | Transaction date |
 | instrument_symbol | string | FK -> Instrument.symbol |
 | transaction_type | enum | `BUY` or `SELL` |
@@ -114,7 +114,7 @@ Named collection of tracked tickers.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| id | uuid | Primary key |
+| id | bigint | Primary key |
 | name | string | Unique case-insensitively within the single portfolio context |
 | created_at | timestamp | Audit field |
 | updated_at | timestamp | Audit field |
@@ -137,8 +137,8 @@ Ordered member row within a watchlist.
 
 | Field | Type | Notes |
 |-------|------|-------|
-| id | uuid | Primary key |
-| watchlist_id | uuid | FK -> Watchlist.id |
+| id | bigint | Primary key |
+| watchlist_id | bigint | FK -> Watchlist.id |
 | instrument_symbol | string | FK -> Instrument.symbol |
 | display_order | integer | Zero-based order within watchlist |
 | created_at | timestamp | Audit field |

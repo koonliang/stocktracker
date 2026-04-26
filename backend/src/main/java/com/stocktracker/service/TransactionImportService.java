@@ -8,7 +8,6 @@ import java.io.StringReader;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -33,7 +32,8 @@ public class TransactionImportService {
       var parser =
           CSVParser.parse(
               new StringReader(stripBom(csvText)),
-              CSVFormat.DEFAULT.builder()
+              CSVFormat.DEFAULT
+                  .builder()
                   .setHeader()
                   .setSkipHeaderRecord(true)
                   .setIgnoreEmptyLines(true)
@@ -72,7 +72,9 @@ public class TransactionImportService {
                       raw.get("type").trim().toLowerCase(Locale.ROOT),
                       new BigDecimal(raw.get("quantity")),
                       new BigDecimal(raw.get("price")),
-                      raw.get("fees").isBlank() ? BigDecimal.ZERO : new BigDecimal(raw.get("fees"))));
+                      raw.get("fees").isBlank()
+                          ? BigDecimal.ZERO
+                          : new BigDecimal(raw.get("fees"))));
           var issue = transactionValidationService.validate(request, balances);
           if (issue != null) {
             invalidRows.add(

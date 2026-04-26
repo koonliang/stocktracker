@@ -14,7 +14,6 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 @ApplicationScoped
 public class WatchlistService {
@@ -40,7 +39,7 @@ public class WatchlistService {
   }
 
   @Transactional
-  public WatchlistResponse.WatchlistItemView rename(UUID id, String rawName) {
+  public WatchlistResponse.WatchlistItemView rename(Long id, String rawName) {
     var watchlist = getWatchlist(id);
     var name = normalizeName(rawName);
     validateName(name, id);
@@ -50,18 +49,19 @@ public class WatchlistService {
   }
 
   @Transactional
-  public void delete(UUID id) {
+  public void delete(Long id) {
     var watchlist = getWatchlist(id);
     WatchlistItem.delete("watchlistId", id);
     watchlistRepository.delete(watchlist);
   }
 
   @Transactional
-  public WatchlistResponse.WatchlistItemView addTicker(UUID id, String rawTicker) {
+  public WatchlistResponse.WatchlistItemView addTicker(Long id, String rawTicker) {
     var watchlist = getWatchlist(id);
     var ticker = rawTicker.trim().toUpperCase(Locale.ROOT);
     if (!instrumentRepository.existsSymbol(ticker)) {
-      throw new ApiException(ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "Ticker is unknown");
+      throw new ApiException(
+          ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "Ticker is unknown");
     }
     if (WatchlistItem.count("watchlistId = ?1 and instrumentSymbol = ?2", id, ticker) > 0) {
       throw new ApiException(Status.CONFLICT, "duplicate_ticker", "Ticker already exists");
@@ -81,7 +81,7 @@ public class WatchlistService {
   }
 
   @Transactional
-  public WatchlistResponse.WatchlistItemView removeTicker(UUID id, String rawTicker) {
+  public WatchlistResponse.WatchlistItemView removeTicker(Long id, String rawTicker) {
     var watchlist = getWatchlist(id);
     var ticker = rawTicker.trim().toUpperCase(Locale.ROOT);
     WatchlistItem.delete("watchlistId = ?1 and instrumentSymbol = ?2", id, ticker);
@@ -91,14 +91,17 @@ public class WatchlistService {
   }
 
   @Transactional
-  public WatchlistResponse.WatchlistItemView reorder(UUID id, List<String> tickers) {
+  public WatchlistResponse.WatchlistItemView reorder(Long id, List<String> tickers) {
     var watchlist = getWatchlist(id);
-    var existing = watchlistRepository.listItems(id).stream().map(item -> item.instrumentSymbol).toList();
-    var normalized = tickers.stream().map(ticker -> ticker.trim().toUpperCase(Locale.ROOT)).toList();
+    var existing =
+        watchlistRepository.listItems(id).stream().map(item -> item.instrumentSymbol).toList();
+    var normalized =
+        tickers.stream().map(ticker -> ticker.trim().toUpperCase(Locale.ROOT)).toList();
     if (!(existing.size() == normalized.size()
         && existing.containsAll(normalized)
         && normalized.containsAll(existing))) {
-      throw new ApiException(Status.BAD_REQUEST, "invalid_order", "Ticker order does not match watchlist items");
+      throw new ApiException(
+          Status.BAD_REQUEST, "invalid_order", "Ticker order does not match watchlist items");
     }
     var items = watchlistRepository.listItems(id);
     var offset = items.size();
@@ -113,13 +116,13 @@ public class WatchlistService {
     return toView(watchlist);
   }
 
-  private Watchlist getWatchlist(UUID id) {
+  private Watchlist getWatchlist(Long id) {
     return watchlistRepository
         .findByIdOptional(id)
         .orElseThrow(() -> new ApiException(Status.NOT_FOUND, "not_found", "Watchlist not found"));
   }
 
-  private void validateName(String name, UUID excludeId) {
+  private void validateName(String name, Long excludeId) {
     if (name.isBlank()) {
       throw new ApiException(Status.BAD_REQUEST, "validation_error", "Name is required");
     }
@@ -139,7 +142,7 @@ public class WatchlistService {
     return rawName == null ? "" : rawName.trim();
   }
 
-  private void resequence(UUID watchlistId) {
+  private void resequence(Long watchlistId) {
     var items = watchlistRepository.listItems(watchlistId);
     for (int index = 0; index < items.size(); index++) {
       items.get(index).displayOrder = index;
@@ -147,7 +150,10 @@ public class WatchlistService {
   }
 
   private WatchlistResponse.WatchlistItemView toView(Watchlist watchlist) {
-    var items = watchlistRepository.listItems(watchlist.id).stream().map(item -> item.instrumentSymbol).toList();
+    var items =
+        watchlistRepository.listItems(watchlist.id).stream()
+            .map(item -> item.instrumentSymbol)
+            .toList();
     return new WatchlistResponse.WatchlistItemView(
         watchlist.id.toString(),
         watchlist.name,

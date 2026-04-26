@@ -20,9 +20,21 @@ public class TransactionExportService {
               transaction.tradeDate.toString(),
               transaction.instrumentSymbol,
               transaction.transactionType,
-              transaction.quantity.setScale(6, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString(),
-              transaction.price.setScale(4, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString(),
-              transaction.fees.setScale(4, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()));
+              transaction
+                  .quantity
+                  .setScale(6, RoundingMode.HALF_UP)
+                  .stripTrailingZeros()
+                  .toPlainString(),
+              transaction
+                  .price
+                  .setScale(4, RoundingMode.HALF_UP)
+                  .stripTrailingZeros()
+                  .toPlainString(),
+              transaction
+                  .fees
+                  .setScale(4, RoundingMode.HALF_UP)
+                  .stripTrailingZeros()
+                  .toPlainString()));
     }
     return joiner.toString() + "\n";
   }

@@ -20,7 +20,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.UUID;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
@@ -38,7 +37,7 @@ public class TransactionsResource {
 
   @DELETE
   @Path("/{transactionId}")
-  public DashboardResponse deleteTransaction(@PathParam("transactionId") UUID transactionId) {
+  public DashboardResponse deleteTransaction(@PathParam("transactionId") Long transactionId) {
     return portfolioService.deleteTransaction(transactionId);
   }
 

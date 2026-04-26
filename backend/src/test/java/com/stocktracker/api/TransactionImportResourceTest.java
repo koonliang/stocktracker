@@ -52,12 +52,18 @@ class TransactionImportResourceTest extends IntegrationTestSupport {
                     "rows",
                     List.of(
                         Map.of(
-                            "date", "2024-01-03",
-                            "ticker", "AAPL",
-                            "type", "buy",
-                            "quantity", 2,
-                            "price", 100,
-                            "fees", 0))))
+                            "date",
+                            "2024-01-03",
+                            "ticker",
+                            "AAPL",
+                            "type",
+                            "buy",
+                            "quantity",
+                            2,
+                            "price",
+                            100,
+                            "fees",
+                            0))))
             .when()
             .post("/api/transactions/import/commit")
             .then()

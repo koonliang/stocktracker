@@ -19,8 +19,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -71,21 +69,22 @@ public class PortfolioService {
   }
 
   @Transactional
-  public DashboardResponse deleteTransaction(UUID transactionId) {
+  public DashboardResponse deleteTransaction(Long transactionId) {
     var transaction =
         transactionRepository
             .findByIdOptional(transactionId)
             .orElseThrow(
                 () ->
-                    new ApiException(
-                        Status.NOT_FOUND, "not_found", "Transaction does not exist"));
+                    new ApiException(Status.NOT_FOUND, "not_found", "Transaction does not exist"));
     transactionRepository.delete(transaction);
     return getDashboard();
   }
 
   public DashboardResponse buildDashboard(List<PortfolioTransaction> transactions) {
     var symbols =
-        transactions.stream().map(transaction -> transaction.instrumentSymbol).collect(Collectors.toSet());
+        transactions.stream()
+            .map(transaction -> transaction.instrumentSymbol)
+            .collect(Collectors.toSet());
     if (symbols.isEmpty()) {
       return new DashboardResponse(new DashboardResponse.Summary(0, 0, 0, 0, 0, 0), List.of());
     }

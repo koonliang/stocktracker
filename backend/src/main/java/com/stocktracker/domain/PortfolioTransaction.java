@@ -3,6 +3,8 @@ package com.stocktracker.domain;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -10,12 +12,13 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "portfolio_transaction")
 public class PortfolioTransaction extends PanacheEntityBase {
-  @Id public UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  public Long id;
 
   @Column(name = "trade_date", nullable = false)
   public LocalDate tradeDate;
@@ -47,9 +50,6 @@ public class PortfolioTransaction extends PanacheEntityBase {
   @PrePersist
   void prePersist() {
     var now = LocalDateTime.now();
-    if (id == null) {
-      id = UUID.randomUUID();
-    }
     createdAt = now;
     updatedAt = now;
   }

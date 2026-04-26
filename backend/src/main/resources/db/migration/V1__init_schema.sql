@@ -39,7 +39,7 @@ CREATE TABLE instrument_stat (
 );
 
 CREATE TABLE portfolio_transaction (
-  id BINARY(16) PRIMARY KEY,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
   trade_date DATE NOT NULL,
   instrument_symbol VARCHAR(16) NOT NULL,
   transaction_type VARCHAR(16) NOT NULL,
@@ -53,7 +53,7 @@ CREATE TABLE portfolio_transaction (
 );
 
 CREATE TABLE watchlist (
-  id BINARY(16) PRIMARY KEY,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(40) NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -62,8 +62,8 @@ CREATE TABLE watchlist (
 CREATE UNIQUE INDEX uq_watchlist_name_lower ON watchlist ((LOWER(name)));
 
 CREATE TABLE watchlist_item (
-  id BINARY(16) PRIMARY KEY,
-  watchlist_id BINARY(16) NOT NULL,
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  watchlist_id BIGINT NOT NULL,
   instrument_symbol VARCHAR(16) NOT NULL,
   display_order INT NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,

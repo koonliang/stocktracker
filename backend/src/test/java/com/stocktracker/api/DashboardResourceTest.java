@@ -17,7 +17,13 @@ class DashboardResourceTest extends IntegrationTestSupport {
   @Test
   void returnsEmptyDashboardWhenThereAreNoTransactions() {
     var response =
-        given().when().get("/api/dashboard").then().statusCode(200).extract().as(DashboardResponse.class);
+        given()
+            .when()
+            .get("/api/dashboard")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(DashboardResponse.class);
 
     assertTrue(response.holdings().isEmpty());
     assertEquals(0.0, response.summary().totalMarketValue(), 0.0001);
@@ -29,7 +35,13 @@ class DashboardResourceTest extends IntegrationTestSupport {
     persistTransaction("2024-03-01", "NVDA", "buy", "5", "100.0000", "0.0000");
 
     var response =
-        given().when().get("/api/dashboard").then().statusCode(200).extract().as(DashboardResponse.class);
+        given()
+            .when()
+            .get("/api/dashboard")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(DashboardResponse.class);
 
     assertEquals(1, response.holdings().size());
     assertEquals("NVDA", response.holdings().getFirst().ticker());

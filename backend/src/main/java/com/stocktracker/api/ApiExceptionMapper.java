@@ -30,17 +30,13 @@ public class ApiExceptionMapper implements ExceptionMapper<Throwable> {
               .toList());
       return Response.status(Response.Status.BAD_REQUEST)
           .type(MediaType.APPLICATION_JSON)
-          .entity(
-              new ApiErrorResponse(
-                  "validation_error", "Request validation failed", details))
+          .entity(new ApiErrorResponse("validation_error", "Request validation failed", details))
           .build();
     }
 
     return Response.serverError()
         .type(MediaType.APPLICATION_JSON)
-        .entity(
-            new ApiErrorResponse(
-                "internal_error", "An unexpected error occurred", null))
+        .entity(new ApiErrorResponse("internal_error", "An unexpected error occurred", null))
         .build();
   }
 }

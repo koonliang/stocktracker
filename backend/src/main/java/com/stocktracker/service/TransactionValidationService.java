@@ -6,7 +6,6 @@ import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.persistence.InstrumentRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.core.Response.Status;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -27,7 +26,8 @@ public class TransactionValidationService {
         request.fees().stripTrailingZeros());
   }
 
-  public void validateBatch(List<TransactionRequest> requests, Map<String, BigDecimal> shareBalances) {
+  public void validateBatch(
+      List<TransactionRequest> requests, Map<String, BigDecimal> shareBalances) {
     for (var request : requests) {
       var normalized = normalize(request);
       var issue = validate(normalized, shareBalances);

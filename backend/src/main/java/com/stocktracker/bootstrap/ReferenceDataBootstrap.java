@@ -8,6 +8,7 @@ import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.InstrumentStat;
 import com.stocktracker.persistence.InstrumentRepository;
 import io.quarkus.runtime.StartupEvent;
+import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
@@ -24,7 +25,7 @@ public class ReferenceDataBootstrap {
   @Inject ObjectMapper objectMapper;
 
   @Transactional
-  void onStart(@Observes StartupEvent ignored) throws Exception {
+  void onStart(@Observes @Priority(1) StartupEvent ignored) throws Exception {
     if (instrumentRepository.count() > 0) {
       return;
     }
