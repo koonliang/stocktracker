@@ -134,4 +134,19 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <id>aws-lambda</id>
+      <dependencies>
+        <dependency>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-amazon-lambda-http</artifactId>
+        </dependency>
+      </dependencies>
+      <build>
+        <finalName>function</finalName>
+      </build>
+    </profile>
+  </profiles>
 </project>

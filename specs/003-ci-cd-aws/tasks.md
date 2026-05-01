@@ -28,10 +28,10 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 **Purpose**: Create the directory layout and bootstrap files that everything else depends on.
 
-- [ ] T001 Create top-level layout: `infra/bootstrap/`, `infra/envs/production/`, `infra/modules/`, `.github/workflows/`, `scripts/` (empty `.gitkeep` where needed)
-- [ ] T002 [P] Add `infra/.terraform-version` pinning Terraform 1.7.x and `infra/.tflint.hcl` with the AWS plugin enabled
-- [ ] T003 [P] Add `infra/README.md` summarising the module/env layout, state-bucket bootstrap, and the manual one-time steps from `quickstart.md`
-- [ ] T004 [P] Update `.gitignore` to exclude `**/.terraform/`, `*.tfstate*`, `*.tfplan`, and Lambda packaging output `backend/target/function.zip`
+- [X] T001 Create top-level layout: `infra/bootstrap/`, `infra/envs/production/`, `infra/modules/`, `.github/workflows/`, `scripts/` (empty `.gitkeep` where needed)
+- [X] T002 [P] Add `infra/.terraform-version` pinning Terraform 1.7.x and `infra/.tflint.hcl` with the AWS plugin enabled
+- [X] T003 [P] Add `infra/README.md` summarising the module/env layout, state-bucket bootstrap, and the manual one-time steps from `quickstart.md`
+- [X] T004 [P] Update `.gitignore` to exclude `**/.terraform/`, `*.tfstate*`, `*.tfplan`, and Lambda packaging output `backend/target/function.zip`
 
 ---
 
@@ -41,12 +41,12 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 **Critical**: No user story phase may start until this phase is complete.
 
-- [ ] T005 Author `infra/bootstrap/main.tf` provisioning: S3 state bucket (versioning + SSE-S3), DynamoDB lock table, GitHub OIDC provider, IAM roles `gha-plan-production` and `gha-deploy-production` with the trust + permission policies described in `contracts/github-oidc-trust.md`
-- [ ] T006 [P] Author `infra/bootstrap/variables.tf` (`github_org`, `github_repo`, `aws_region`) and `infra/bootstrap/outputs.tf` (state bucket, lock table, role ARNs)
-- [ ] T007 [P] Add `infra/envs/production/backend.tf` configured for the S3 + DynamoDB backend (placeholders to be filled in after bootstrap apply)
-- [ ] T008 Add a Maven profile `aws-lambda` in `backend/pom.xml` that adds the `quarkus-amazon-lambda-http` extension and produces `backend/target/function.zip`
-- [ ] T009 [P] Author `scripts/package-lambda.sh` invoking `./mvnw -B -Paws-lambda package` and verifying `backend/target/function.zip` exists; exit non-zero if missing
-- [ ] T010 [P] Author `scripts/smoke-check.sh` taking `<frontend-url> <api-url>` args and asserting `200` from `<frontend-url>/` and `<api-url>/q/health`
+- [X] T005 Author `infra/bootstrap/main.tf` provisioning: S3 state bucket (versioning + SSE-S3), DynamoDB lock table, GitHub OIDC provider, IAM roles `gha-plan-production` and `gha-deploy-production` with the trust + permission policies described in `contracts/github-oidc-trust.md`
+- [X] T006 [P] Author `infra/bootstrap/variables.tf` (`github_org`, `github_repo`, `aws_region`) and `infra/bootstrap/outputs.tf` (state bucket, lock table, role ARNs)
+- [X] T007 [P] Add `infra/envs/production/backend.tf` configured for the S3 + DynamoDB backend (placeholders to be filled in after bootstrap apply)
+- [X] T008 Add a Maven profile `aws-lambda` in `backend/pom.xml` that adds the `quarkus-amazon-lambda-http` extension and produces `backend/target/function.zip`
+- [X] T009 [P] Author `scripts/package-lambda.sh` invoking `./mvnw -B -Paws-lambda package` and verifying `backend/target/function.zip` exists; exit non-zero if missing
+- [X] T010 [P] Author `scripts/smoke-check.sh` taking `<frontend-url> <api-url>` args and asserting `200` from `<frontend-url>/` and `<api-url>/q/health`
 
 **Checkpoint**: Bootstrap can be applied manually; OIDC roles + state backend exist; backend can be packaged for Lambda.
 
