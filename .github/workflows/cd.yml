@@ -1,0 +1,276 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to deploy (blank = current main)'
+        required: false
+        type: string
+        default: ''
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Single source of truth for "which commit are we deploying":
+  #   - push:main          → github.sha (the merge commit on main)
+  #   - workflow_dispatch  → inputs.commit_sha if supplied, else github.sha
+  # Used for artifact naming, checkouts, and the deployment summary so
+  # rollback can find the artifact by SHA.
+  DEPLOY_SHA: ${{ inputs.commit_sha || github.sha }}
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: app-${{ env.DEPLOY_SHA }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Package backend Lambda
+        run: bash scripts/package-lambda.sh
+
+      - name: Build frontend bundle
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ env.DEPLOY_SHA }}
+          path: |
+            backend/target/function.zip
+            frontend/dist/**
+          retention-days: 30
+          if-no-files-found: error
+
+  terraform-apply:
+    name: terraform-apply
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
+      frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
+      api_invoke_url: ${{ steps.outputs.outputs.api_invoke_url }}
+      public_frontend_url: ${{ steps.outputs.outputs.public_frontend_url }}
+      cloudflare_zone_id: ${{ steps.outputs.outputs.cloudflare_zone_id }}
+    defaults:
+      run:
+        working-directory: infra/envs/production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
+          TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
+          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
+        run: terraform apply -input=false -auto-approve -lock-timeout=10m
+
+      - name: Capture outputs
+        id: outputs
+        run: |
+          set -euo pipefail
+          for k in lambda_function_name frontend_bucket_name api_invoke_url public_frontend_url cloudflare_zone_id; do
+            v=$(terraform output -raw "$k" 2>/dev/null || true)
+            echo "$k=$v" >> "$GITHUB_OUTPUT"
+          done
+
+  backend-deploy:
+    name: backend-deploy
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      function_version: ${{ steps.publish.outputs.version }}
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-${{ env.DEPLOY_SHA }}
+
+      - name: Update function code
+        env:
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://backend/target/function.zip \
+            --publish=false >/dev/null
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+      - name: Publish version
+        id: publish
+        env:
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+        run: |
+          version=$(aws lambda publish-version \
+            --function-name "$FUNCTION_NAME" \
+            --description "ci-${{ env.DEPLOY_SHA }}" \
+            --query Version --output text)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Update production alias
+        env:
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+          VERSION: ${{ steps.publish.outputs.version }}
+        run: |
+          aws lambda update-alias \
+            --function-name "$FUNCTION_NAME" \
+            --name production \
+            --function-version "$VERSION" >/dev/null
+
+  frontend-deploy:
+    name: frontend-deploy
+    needs: terraform-apply
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-${{ env.DEPLOY_SHA }}
+
+      - name: Sync frontend bundle to S3
+        env:
+          BUCKET: ${{ needs.terraform-apply.outputs.frontend_bucket_name }}
+        run: |
+          aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete
+
+      - name: Purge Cloudflare cache
+        if: needs.terraform-apply.outputs.cloudflare_zone_id != ''
+        env:
+          ZONE_ID: ${{ needs.terraform-apply.outputs.cloudflare_zone_id }}
+          PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
+        run: |
+          set -euo pipefail
+          TOKEN=$(aws secretsmanager get-secret-value \
+            --secret-id stocktracker/cloudflare/api_token \
+            --query SecretString --output text)
+          echo "::add-mask::$TOKEN"
+          curl --fail --silent --show-error \
+            -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"files\":[\"${PUBLIC_URL}/\",\"${PUBLIC_URL}/index.html\"]}" \
+            > /dev/null
+
+  smoke:
+    name: smoke
+    needs: [terraform-apply, backend-deploy, frontend-deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+      - name: Run smoke checks
+        env:
+          PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
+          API_URL: ${{ needs.terraform-apply.outputs.api_invoke_url }}
+        run: bash scripts/smoke-check.sh "$PUBLIC_URL" "$API_URL"
+
+  summary:
+    name: summary
+    needs: [build, terraform-apply, backend-deploy, frontend-deploy, smoke]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write deployment summary
+        env:
+          STATUS_BUILD: ${{ needs.build.result }}
+          STATUS_APPLY: ${{ needs.terraform-apply.result }}
+          STATUS_BACKEND: ${{ needs.backend-deploy.result }}
+          STATUS_FRONTEND: ${{ needs.frontend-deploy.result }}
+          STATUS_SMOKE: ${{ needs.smoke.result }}
+          DEPLOY_SHA: ${{ env.DEPLOY_SHA }}
+          BACKEND_VERSION: ${{ needs.backend-deploy.outputs.function_version }}
+          API_URL: ${{ needs.terraform-apply.outputs.api_invoke_url }}
+          PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
+          BUCKET: ${{ needs.terraform-apply.outputs.frontend_bucket_name }}
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+        run: |
+          {
+            echo "### Deployment summary"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| commit_sha | \`${DEPLOY_SHA}\` |"
+            echo "| trigger | ${GITHUB_EVENT_NAME} |"
+            echo "| run_id | [${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) |"
+            echo "| environment | production |"
+            echo "| backend_artifact_version | \`${BACKEND_VERSION:-n/a}\` |"
+            echo "| lambda_function_name | \`${FUNCTION_NAME:-n/a}\` |"
+            echo "| api_invoke_url | ${API_URL:-n/a} |"
+            echo "| frontend_bucket_name | \`${BUCKET:-n/a}\` |"
+            echo "| public_frontend_url | ${PUBLIC_URL:-n/a} |"
+            echo "| build | ${STATUS_BUILD} |"
+            echo "| terraform-apply | ${STATUS_APPLY} |"
+            echo "| backend-deploy | ${STATUS_BACKEND} |"
+            echo "| frontend-deploy | ${STATUS_FRONTEND} |"
+            echo "| smoke | ${STATUS_SMOKE} |"
+          } >> "$GITHUB_STEP_SUMMARY"

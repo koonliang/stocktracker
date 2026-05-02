@@ -1,0 +1,179 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: '40-char SHA of a previously-successful CD run to redeploy'
+        required: true
+        type: string
+      confirm:
+        description: 'Type the literal word ROLLBACK to proceed'
+        required: true
+        type: string
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: app-${{ inputs.commit_sha }}
+    steps:
+      - name: Validate inputs
+        env:
+          SHA: ${{ inputs.commit_sha }}
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [[ "${CONFIRM}" != "ROLLBACK" ]]; then
+            echo "::error::confirm must equal ROLLBACK (got '${CONFIRM}')"
+            exit 1
+          fi
+          if [[ ! "${SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::commit_sha must be a 40-char lowercase hex SHA"
+            exit 1
+          fi
+
+  fetch-targets:
+    name: fetch-targets
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
+      frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
+      cloudflare_zone_id: ${{ steps.outputs.outputs.cloudflare_zone_id }}
+      public_frontend_url: ${{ steps.outputs.outputs.public_frontend_url }}
+    defaults:
+      run:
+        working-directory: infra/envs/production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Read outputs (no apply)
+        id: outputs
+        run: |
+          set -euo pipefail
+          for k in lambda_function_name frontend_bucket_name cloudflare_zone_id public_frontend_url; do
+            v=$(terraform output -raw "$k" 2>/dev/null || true)
+            echo "$k=$v" >> "$GITHUB_OUTPUT"
+          done
+
+  backend-deploy:
+    name: backend-deploy
+    needs: [guard, fetch-targets]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download artifact for target SHA
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: app-${{ inputs.commit_sha }}
+          workflow: cd.yml
+          commit: ${{ inputs.commit_sha }}
+          if_no_artifact_found: fail
+
+      - name: Update function code
+        env:
+          FUNCTION_NAME: ${{ needs.fetch-targets.outputs.lambda_function_name }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://backend/target/function.zip \
+            --publish=false >/dev/null
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+      - name: Publish version and swing alias
+        env:
+          FUNCTION_NAME: ${{ needs.fetch-targets.outputs.lambda_function_name }}
+          SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          version=$(aws lambda publish-version \
+            --function-name "$FUNCTION_NAME" \
+            --description "rollback-${SHA}" \
+            --query Version --output text)
+          aws lambda update-alias \
+            --function-name "$FUNCTION_NAME" \
+            --name production \
+            --function-version "$version" >/dev/null
+
+  frontend-deploy:
+    name: frontend-deploy
+    needs: [guard, fetch-targets]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download artifact for target SHA
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: app-${{ inputs.commit_sha }}
+          workflow: cd.yml
+          commit: ${{ inputs.commit_sha }}
+          if_no_artifact_found: fail
+
+      - name: Sync frontend bundle to S3
+        env:
+          BUCKET: ${{ needs.fetch-targets.outputs.frontend_bucket_name }}
+        run: |
+          aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete
+
+      - name: Purge Cloudflare cache
+        if: needs.fetch-targets.outputs.cloudflare_zone_id != ''
+        env:
+          ZONE_ID: ${{ needs.fetch-targets.outputs.cloudflare_zone_id }}
+          PUBLIC_URL: ${{ needs.fetch-targets.outputs.public_frontend_url }}
+        run: |
+          set -euo pipefail
+          TOKEN=$(aws secretsmanager get-secret-value \
+            --secret-id stocktracker/cloudflare/api_token \
+            --query SecretString --output text)
+          echo "::add-mask::$TOKEN"
+          curl --fail --silent --show-error \
+            -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data "{\"files\":[\"${PUBLIC_URL}/\",\"${PUBLIC_URL}/index.html\"]}" \
+            > /dev/null

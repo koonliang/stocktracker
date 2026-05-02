@@ -80,24 +80,24 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 ### Terraform modules for production environment
 
-- [ ] T018 [P] [US2] Author `infra/modules/network/` (VPC, two private subnets in different AZs, security groups for Lambda and RDS, VPC endpoints for Secrets Manager and CloudWatch Logs)
-- [ ] T019 [P] [US2] Author `infra/modules/lambda_backend/` (function from `function.zip`, runtime `java21`, memory 1024 MB, IAM execution role with Secrets Manager + CloudWatch Logs access, alias `production`, optional `provisioned_concurrent_executions` variable defaulting to 0)
-- [ ] T020 [P] [US2] Author `infra/modules/api_gateway/` (HTTP API per `contracts/http-api-contract.md`: catch-all `ANY /{proxy+}` and `ANY /` proxy integrations to the Lambda alias, custom domain `api.<domain>` bound to ACM cert, CORS/throttling/access-log settings)
-- [ ] T021 [P] [US2] Author `infra/modules/frontend_bucket/` (private S3 bucket, Block Public Access on, bucket policy allowing `s3:GetObject` only when header `X-Origin-Auth` matches the shared secret in Secrets Manager, versioning enabled)
-- [ ] T022 [P] [US2] Author `infra/modules/cloudflare/` (DNS records: proxied `app` CNAME to S3 website endpoint, DNS-only `api` CNAME to API Gateway custom-domain target; transform rule injecting `X-Origin-Auth` from secret on `app` requests)
-- [ ] T023 [US2] Wire `infra/envs/production/main.tf` to compose `network`, `lambda_backend`, `api_gateway`, `frontend_bucket`, and `cloudflare` modules; expose outputs (`api_invoke_url`, `frontend_bucket_name`, `lambda_function_name`, `cloudflare_zone_id`)
-- [ ] T024 [P] [US2] Add `infra/envs/production/variables.tf` (`aws_region`, `domain_name`, `acm_certificate_arn`, `cloudflare_zone_id`, `provisioned_concurrency`) and `infra/envs/production/outputs.tf`
+- [X] T018 [P] [US2] Author `infra/modules/network/` (VPC, two private subnets in different AZs, security groups for Lambda and RDS, VPC endpoints for Secrets Manager and CloudWatch Logs)
+- [X] T019 [P] [US2] Author `infra/modules/lambda_backend/` (function from `function.zip`, runtime `java21`, memory 1024 MB, IAM execution role with Secrets Manager + CloudWatch Logs access, alias `production`, optional `provisioned_concurrent_executions` variable defaulting to 0)
+- [X] T020 [P] [US2] Author `infra/modules/api_gateway/` (HTTP API per `contracts/http-api-contract.md`: catch-all `ANY /{proxy+}` and `ANY /` proxy integrations to the Lambda alias, custom domain `api.<domain>` bound to ACM cert, CORS/throttling/access-log settings)
+- [X] T021 [P] [US2] Author `infra/modules/frontend_bucket/` (private S3 bucket, Block Public Access on, bucket policy allowing `s3:GetObject` only when header `X-Origin-Auth` matches the shared secret in Secrets Manager, versioning enabled)
+- [X] T022 [P] [US2] Author `infra/modules/cloudflare/` (DNS records: proxied `app` CNAME to S3 website endpoint, DNS-only `api` CNAME to API Gateway custom-domain target; transform rule injecting `X-Origin-Auth` from secret on `app` requests)
+- [X] T023 [US2] Wire `infra/envs/production/main.tf` to compose `network`, `lambda_backend`, `api_gateway`, `frontend_bucket`, and `cloudflare` modules; expose outputs (`api_invoke_url`, `frontend_bucket_name`, `lambda_function_name`, `cloudflare_zone_id`)
+- [X] T024 [P] [US2] Add `infra/envs/production/variables.tf` (`aws_region`, `domain_name`, `acm_certificate_arn`, `cloudflare_zone_id`, `provisioned_concurrency`) and `infra/envs/production/outputs.tf`
 
 ### CD workflow
 
-- [ ] T025 [US2] Create `.github/workflows/cd.yml` triggered on `push` to `main`, `concurrency: cd-production` with `cancel-in-progress: false`, OIDC permissions only for jobs that need them
-- [ ] T026 [US2] Add `build` job to `.github/workflows/cd.yml`: runs `scripts/package-lambda.sh` and `npm ci && npm run build` in `frontend/`, uploads artifact `app-${{ github.sha }}` containing `function.zip` and `frontend/dist/**`, retention 30 days
-- [ ] T027 [US2] Add `terraform-apply` job to `.github/workflows/cd.yml`: assumes `AWS_DEPLOY_ROLE_ARN`, `terraform -chdir=infra/envs/production apply -auto-approve`, exposes outputs (`lambda_function_name`, `frontend_bucket_name`, `api_invoke_url`) as job outputs
-- [ ] T028 [US2] Add `backend-deploy` job to `.github/workflows/cd.yml` (needs `terraform-apply`): downloads artifact, `aws lambda update-function-code` then `aws lambda publish-version`, then `aws lambda update-alias --name production --function-version <new>`
-- [ ] T029 [US2] Add `frontend-deploy` job to `.github/workflows/cd.yml` (needs `terraform-apply`): `aws s3 sync frontend/dist/ s3://<bucket>/ --delete`; fetch the Cloudflare API token via `aws secretsmanager get-secret-value --secret-id stocktracker/cloudflare/api_token --query SecretString --output text` into a step output, immediately register it as a masked value via `echo "::add-mask::$TOKEN"`, then `curl` the Cloudflare zone purge endpoint for `https://app.<domain>/` and `https://app.<domain>/index.html`
-- [ ] T030 [US2] Add `smoke` job to `.github/workflows/cd.yml` (needs `[backend-deploy, frontend-deploy]`): runs `scripts/smoke-check.sh` against the public URLs; fail the workflow on non-2xx
-- [ ] T031 [US2] Emit a deployment summary to `$GITHUB_STEP_SUMMARY` in `.github/workflows/cd.yml` with the `Deployment` fields from `data-model.md`
-- [ ] T032 [US2] Create `.github/workflows/rollback.yml` (`workflow_dispatch` with `commit_sha` and `confirm` inputs; require `confirm == "ROLLBACK"`); reuse the `backend-deploy` and `frontend-deploy` steps against the artifact `app-<commit_sha>`
+- [X] T025 [US2] Create `.github/workflows/cd.yml` triggered on `push` to `main`, `concurrency: cd-production` with `cancel-in-progress: false`, OIDC permissions only for jobs that need them
+- [X] T026 [US2] Add `build` job to `.github/workflows/cd.yml`: runs `scripts/package-lambda.sh` and `npm ci && npm run build` in `frontend/`, uploads artifact `app-${{ github.sha }}` containing `function.zip` and `frontend/dist/**`, retention 30 days
+- [X] T027 [US2] Add `terraform-apply` job to `.github/workflows/cd.yml`: assumes `AWS_DEPLOY_ROLE_ARN`, `terraform -chdir=infra/envs/production apply -auto-approve`, exposes outputs (`lambda_function_name`, `frontend_bucket_name`, `api_invoke_url`) as job outputs
+- [X] T028 [US2] Add `backend-deploy` job to `.github/workflows/cd.yml` (needs `terraform-apply`): downloads artifact, `aws lambda update-function-code` then `aws lambda publish-version`, then `aws lambda update-alias --name production --function-version <new>`
+- [X] T029 [US2] Add `frontend-deploy` job to `.github/workflows/cd.yml` (needs `terraform-apply`): `aws s3 sync frontend/dist/ s3://<bucket>/ --delete`; fetch the Cloudflare API token via `aws secretsmanager get-secret-value --secret-id stocktracker/cloudflare/api_token --query SecretString --output text` into a step output, immediately register it as a masked value via `echo "::add-mask::$TOKEN"`, then `curl` the Cloudflare zone purge endpoint for `https://app.<domain>/` and `https://app.<domain>/index.html`
+- [X] T030 [US2] Add `smoke` job to `.github/workflows/cd.yml` (needs `[backend-deploy, frontend-deploy]`): runs `scripts/smoke-check.sh` against the public URLs; fail the workflow on non-2xx
+- [X] T031 [US2] Emit a deployment summary to `$GITHUB_STEP_SUMMARY` in `.github/workflows/cd.yml` with the `Deployment` fields from `data-model.md`
+- [X] T032 [US2] Create `.github/workflows/rollback.yml` (`workflow_dispatch` with `commit_sha` and `confirm` inputs; require `confirm == "ROLLBACK"`); reuse the `backend-deploy` and `frontend-deploy` steps against the artifact `app-<commit_sha>`
 
 **Checkpoint**: Merging to `main` builds, applies infra, and deploys both tiers; failed smoke does not promote the next deploy. MVP is complete after this phase.
 
