@@ -60,13 +60,13 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Create `.github/workflows/ci.yml` triggered on `pull_request` against `main` with `concurrency: ci-${{ github.ref }}` (cancel-in-progress), defaulting permissions to `contents: read`
-- [ ] T012 [P] [US1] Add `backend-test` job to `.github/workflows/ci.yml`: `actions/setup-java@v4` (Temurin 21), cache `~/.m2`, run `./mvnw -B verify` in `backend/`
-- [ ] T013 [P] [US1] Add `frontend-test` job to `.github/workflows/ci.yml`: `actions/setup-node@v4` (Node 20, npm cache), run `npm ci && npm run lint && npm run typecheck && npm test && npm run build` in `frontend/`
-- [ ] T014 [US1] Add `terraform-plan` job to `.github/workflows/ci.yml`: path-filtered to `infra/**`, assumes `AWS_PLAN_ROLE_ARN` via `aws-actions/configure-aws-credentials@v4` (OIDC), runs `terraform fmt -check`, `terraform validate`, `tflint`, and `terraform -chdir=infra/envs/production plan -no-color` and posts the summary to the PR via `actions/github-script`
-- [ ] T015 [US1] Add fork-safety guard to the `terraform-plan` job in `.github/workflows/ci.yml`: skip when `github.event.pull_request.head.repo.fork == true`
-- [ ] T016 [US1] Add the aggregating `gates` job to `.github/workflows/ci.yml` that `needs: [backend-test, frontend-test, terraform-plan]` and treats a skipped `terraform-plan` as success
-- [ ] T017 [US1] Document required GitHub branch protection in `infra/README.md`: require `gates` check on `main`; require linear PR-based merges
+- [X] T011 [US1] Create `.github/workflows/ci.yml` triggered on `pull_request` against `main` with `concurrency: ci-${{ github.ref }}` (cancel-in-progress), defaulting permissions to `contents: read`
+- [X] T012 [P] [US1] Add `backend-test` job to `.github/workflows/ci.yml`: `actions/setup-java@v4` (Temurin 21), cache `~/.m2`, run `./mvnw -B verify` in `backend/`
+- [X] T013 [P] [US1] Add `frontend-test` job to `.github/workflows/ci.yml`: `actions/setup-node@v4` (Node 20, npm cache), run `npm ci && npm run lint && npm run typecheck && npm test && npm run build` in `frontend/`
+- [X] T014 [US1] Add `terraform-plan` job to `.github/workflows/ci.yml`: path-filtered to `infra/**`, assumes `AWS_PLAN_ROLE_ARN` via `aws-actions/configure-aws-credentials@v4` (OIDC), runs `terraform fmt -check`, `terraform validate`, `tflint`, and `terraform -chdir=infra/envs/production plan -no-color` and posts the summary to the PR via `actions/github-script`
+- [X] T015 [US1] Add fork-safety guard to the `terraform-plan` job in `.github/workflows/ci.yml`: skip when `github.event.pull_request.head.repo.fork == true`
+- [X] T016 [US1] Add the aggregating `gates` job to `.github/workflows/ci.yml` that `needs: [backend-test, frontend-test, terraform-plan]` and treats a skipped `terraform-plan` as success
+- [X] T017 [US1] Document required GitHub branch protection in `infra/README.md`: require `gates` check on `main`; require linear PR-based merges
 
 **Checkpoint**: PR validation pipeline operates end-to-end (CI only — no AWS deploy yet).
 

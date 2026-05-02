@@ -12,7 +12,7 @@ terraform {
   # from `infra/bootstrap` after its first apply. They are deliberately not
   # variables — Terraform requires literal values here.
   backend "s3" {
-    bucket         = "REPLACE_WITH_BOOTSTRAP_STATE_BUCKET"
+    bucket         = "stocktracker-tfstate-309779120361-ap-southeast-1"
     key            = "envs/production/terraform.tfstate"
     region         = "ap-southeast-1"
     dynamodb_table = "stocktracker-tflock"

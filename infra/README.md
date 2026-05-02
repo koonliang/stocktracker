@@ -61,8 +61,13 @@ Useful variables (see `variables.tf` for the full list):
 
 On `main`:
 
-- Require pull-request review before merge.
-- Require status check `gates` to pass.
+- Require pull-request review before merge (no direct pushes).
+- Require status check `gates` to pass before merging. `gates` is the single
+  required check — it aggregates `backend-test`, `frontend-test`, and
+  `terraform-plan` (the latter is reported as success when no `infra/**`
+  files changed in the PR). See `.github/workflows/ci.yml`.
+- Require linear history (squash- or rebase-merge only — no merge commits)
+  so every change on `main` corresponds to exactly one PR.
 - Require branches to be up to date before merging.
 
 ## Environments
