@@ -1,9 +1,5 @@
 import type { InstrumentAnalysisResponse } from '@/lib/types';
-import {
-  formatCurrency,
-  formatSignedCurrency,
-  formatSignedPercent,
-} from '@/lib/format';
+import { formatCurrency, formatSignedCurrency, formatSignedPercent } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 type Props = { summary: InstrumentAnalysisResponse['positionSummary'] };

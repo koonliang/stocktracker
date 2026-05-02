@@ -47,7 +47,9 @@ describe('portfolioStore', () => {
       fees: 0,
     });
     usePortfolioStore.getState().removeTransaction('a');
-    expect(usePortfolioStore.getState().transactions.map((transaction) => transaction.id)).toEqual(['b']);
+    expect(usePortfolioStore.getState().transactions.map((transaction) => transaction.id)).toEqual([
+      'b',
+    ]);
   });
 
   it('replaceAll replaces the transaction list', () => {

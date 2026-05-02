@@ -27,7 +27,10 @@ describe('watchlistStore', () => {
 
   it('create rejects empty names', async () => {
     expect(await useWatchlistStore.getState().create('')).toEqual({ ok: false, reason: 'empty' });
-    expect(await useWatchlistStore.getState().create('   ')).toEqual({ ok: false, reason: 'empty' });
+    expect(await useWatchlistStore.getState().create('   ')).toEqual({
+      ok: false,
+      reason: 'empty',
+    });
   });
 
   it('create rejects duplicate names', async () => {

@@ -48,7 +48,7 @@ export function NewWatchlistDialog({ open, onClose, onCreated }: Props) {
             ? 'Max 40 characters'
             : result.reason === 'server'
               ? 'Could not create watchlist right now'
-            : 'Name is required';
+              : 'Name is required';
       setError('name', { type: 'manual', message });
       return;
     }

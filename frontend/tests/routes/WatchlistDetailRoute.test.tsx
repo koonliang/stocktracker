@@ -53,7 +53,9 @@ describe('WatchlistDetailRoute', () => {
 
     setup(res.id);
     await user.click(
-      await screen.findByRole('button', { name: new RegExp(`Remove ${known} from watchlist`, 'i') }),
+      await screen.findByRole('button', {
+        name: new RegExp(`Remove ${known} from watchlist`, 'i'),
+      }),
     );
     expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known2]);
   });

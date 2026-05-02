@@ -41,7 +41,9 @@ type Actions = {
   clearPreview: () => void;
   commitPreview: () => Promise<void>;
   clearError: () => void;
-  hydrateForTests: (data: Partial<Pick<State, 'transactions' | 'holdings' | 'summary' | 'preview'>>) => void;
+  hydrateForTests: (
+    data: Partial<Pick<State, 'transactions' | 'holdings' | 'summary' | 'preview'>>,
+  ) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'> & { id?: string }) => void;
   removeTransaction: (id: string) => void;
   replaceAll: (transactions: Transaction[]) => void;
@@ -154,7 +156,9 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
 
     set({ commitStatus: 'loading', error: null });
     try {
-      const dashboard = await commitTransactionImport(preview.validRows.map((row) => row.normalized));
+      const dashboard = await commitTransactionImport(
+        preview.validRows.map((row) => row.normalized),
+      );
       const transactions = await getTransactions();
       set({
         ...applyDashboard(dashboard),

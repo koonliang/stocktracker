@@ -9,7 +9,10 @@ import {
 export function installMockServer() {
   beforeEach(() => {
     resetMockApiState();
-    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL, init?: RequestInit) => handleMockApi(input, init)));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => handleMockApi(input, init)),
+    );
   });
 }
 
