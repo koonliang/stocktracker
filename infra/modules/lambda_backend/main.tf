@@ -102,12 +102,13 @@ resource "aws_lambda_function" "this" {
   ]
 
   lifecycle {
+    # The CD workflow uploads the real artifact via `aws lambda
+    # update-function-code` and publishes a new version; ignoring these two
+    # fields keeps `terraform apply` from reverting the function to the
+    # placeholder zip on the next run.
     ignore_changes = [
       filename,
       source_code_hash,
-      # The CD workflow publishes new versions and updates the alias; do not
-      # let `terraform apply` revert the alias to the latest published version.
-      qualified_arn,
     ]
   }
 }

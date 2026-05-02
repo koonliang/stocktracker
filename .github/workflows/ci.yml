@@ -126,6 +126,16 @@ jobs:
 
       - name: Terraform plan
         id: plan
+        env:
+          # Override the variable's placeholder when the repo secret exists;
+          # otherwise pass the same placeholder so the env never sets the
+          # var to an empty string (which the cloudflare provider rejects).
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN || 'plan-only-placeholder-not-valid-for-api-calls' }}
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
+          TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
+          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
+          TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
         run: |
           set -o pipefail
           terraform plan -input=false -no-color -lock-timeout=5m | tee plan.txt

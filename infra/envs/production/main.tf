@@ -6,12 +6,14 @@ provider "aws" {
   }
 }
 
-# Cloudflare provider reads its API token from the CLOUDFLARE_API_TOKEN env
-# var. Phase 7 (T042) will switch to fetching it from Secrets Manager via a
-# data source.
-provider "cloudflare" {}
-
-provider "random" {}
+# The Cloudflare provider requires explicit configuration even when no
+# resources reference it. The variable defaults to a placeholder so plan
+# flows work without any env setup; real apply paths must pass
+# TF_VAR_cloudflare_api_token (or set CLOUDFLARE_API_TOKEN and leave the var
+# unset). Phase 7 (T042) will switch this to a Secrets Manager data source.
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}
 
 # ---------- Locals ----------
 
