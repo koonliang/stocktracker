@@ -45,7 +45,7 @@ export function AddTickerInput({ watchlistId }: Props) {
             ? 'Already in this watchlist'
             : result.reason === 'server'
               ? 'Could not add ticker right now'
-            : 'Could not add ticker';
+              : 'Could not add ticker';
       setError('symbol', { type: 'manual', message });
       return;
     }

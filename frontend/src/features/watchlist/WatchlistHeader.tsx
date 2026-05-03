@@ -40,7 +40,7 @@ export function WatchlistHeader({ watchlist, onDeleted }: Props) {
             ? 'Max 40 characters'
             : res.reason === 'server'
               ? 'Could not rename watchlist right now'
-            : 'Name is required';
+              : 'Name is required';
       setError(message);
       return;
     }

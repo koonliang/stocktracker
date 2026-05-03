@@ -106,7 +106,9 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
     try {
       const updated = await renameWatchlist(id, name);
       set({
-        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        watchlists: get().watchlists.map((watchlist) =>
+          watchlist.id === id ? updated : watchlist,
+        ),
         error: null,
       });
       return { ok: true };
@@ -132,7 +134,9 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
     try {
       const updated = await addTickerToWatchlist(id, symbol.trim().toUpperCase());
       set({
-        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        watchlists: get().watchlists.map((watchlist) =>
+          watchlist.id === id ? updated : watchlist,
+        ),
         error: null,
       });
       return { ok: true };
@@ -146,7 +150,9 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
     try {
       const updated = await removeTickerFromWatchlist(id, symbol);
       set({
-        watchlists: get().watchlists.map((watchlist) => (watchlist.id === id ? updated : watchlist)),
+        watchlists: get().watchlists.map((watchlist) =>
+          watchlist.id === id ? updated : watchlist,
+        ),
         error: null,
       });
     } catch (error) {
@@ -157,7 +163,8 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
   async reorderTickers(id, from, to) {
     const watchlist = get().watchlists.find((entry) => entry.id === id);
     if (!watchlist) return;
-    if (from < 0 || to < 0 || from >= watchlist.tickers.length || to >= watchlist.tickers.length) return;
+    if (from < 0 || to < 0 || from >= watchlist.tickers.length || to >= watchlist.tickers.length)
+      return;
     const tickers = [...watchlist.tickers];
     const [moved] = tickers.splice(from, 1);
     tickers.splice(to, 0, moved!);

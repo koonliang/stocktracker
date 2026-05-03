@@ -104,7 +104,10 @@ export function seedMockPortfolio() {
   state.transactions = loadSeedPortfolio();
 }
 
-export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+export async function handleMockApi(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
   const url = normalizeUrl(input);
   const method = (init?.method ?? 'GET').toUpperCase();
   const path = url.pathname;
@@ -174,12 +177,19 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   if (path === '/api/watchlists' && method === 'POST') {
     const body = JSON.parse(String(init?.body ?? '{}')) as { name?: string };
     const name = body.name?.trim() ?? '';
-    if (!name) return json({ code: 'validation_error', message: 'Name is required' }, { status: 400 });
+    if (!name)
+      return json({ code: 'validation_error', message: 'Name is required' }, { status: 400 });
     if (state.watchlists.some((watchlist) => watchlist.name.toLowerCase() === name.toLowerCase())) {
       return json({ code: 'duplicate_name', message: 'Watchlist already exists' }, { status: 409 });
     }
     const now = new Date().toISOString();
-    const watchlist: Watchlist = { id: newId('wl'), name, tickers: [], createdAt: now, updatedAt: now };
+    const watchlist: Watchlist = {
+      id: newId('wl'),
+      name,
+      tickers: [],
+      createdAt: now,
+      updatedAt: now,
+    };
     state.watchlists = [watchlist, ...state.watchlists];
     return json(watchlist);
   }
@@ -188,7 +198,8 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     const id = path.split('/')[3] ?? '';
     const body = JSON.parse(String(init?.body ?? '{}')) as { name?: string };
     const watchlist = state.watchlists.find((entry) => entry.id === id);
-    if (!watchlist) return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
+    if (!watchlist)
+      return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     watchlist.name = body.name?.trim() ?? watchlist.name;
     watchlist.updatedAt = new Date().toISOString();
     return json(watchlist);
@@ -204,9 +215,11 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
     const id = path.split('/')[3] ?? '';
     const body = JSON.parse(String(init?.body ?? '{}')) as { ticker?: string };
     const watchlist = state.watchlists.find((entry) => entry.id === id);
-    if (!watchlist) return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
+    if (!watchlist)
+      return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     const ticker = body.ticker?.trim().toUpperCase() ?? '';
-    if (!findTicker(ticker)) return json({ code: 'validation_error', message: 'Ticker is unknown' }, { status: 422 });
+    if (!findTicker(ticker))
+      return json({ code: 'validation_error', message: 'Ticker is unknown' }, { status: 422 });
     if (watchlist.tickers.includes(ticker)) {
       return json({ code: 'duplicate_ticker', message: 'Ticker already exists' }, { status: 409 });
     }
@@ -218,8 +231,11 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   if (path.includes('/tickers/') && method === 'DELETE') {
     const [_, __, ___, id, ____, ticker] = path.split('/');
     const watchlist = state.watchlists.find((entry) => entry.id === id);
-    if (!watchlist) return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
-    watchlist.tickers = watchlist.tickers.filter((entry) => entry !== decodeURIComponent(ticker ?? ''));
+    if (!watchlist)
+      return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
+    watchlist.tickers = watchlist.tickers.filter(
+      (entry) => entry !== decodeURIComponent(ticker ?? ''),
+    );
     watchlist.updatedAt = new Date().toISOString();
     return json(watchlist);
   }
@@ -227,7 +243,8 @@ export async function handleMockApi(input: RequestInfo | URL, init?: RequestInit
   if (path.endsWith('/ticker-order') && method === 'PUT') {
     const id = path.split('/')[3] ?? '';
     const watchlist = state.watchlists.find((entry) => entry.id === id);
-    if (!watchlist) return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
+    if (!watchlist)
+      return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     const body = JSON.parse(String(init?.body ?? '{}')) as { tickers?: string[] };
     watchlist.tickers = body.tickers ?? watchlist.tickers;
     watchlist.updatedAt = new Date().toISOString();

@@ -16,3 +16,9 @@ The frontend design must not look like it's vibe-coded. Use the frontend-design 
 # 002-connect-frontend-backend
 Link the frontend features with the backend. Backend stack will be Java Quarkus with MySQL db.
 For local development, include docker compose with frontend/backend app and MySQL db.
+
+# 003-ci-cd-aws
+- CI feature: github action for PR creation and merge to main
+- CD feature to AWS via terraform: deploy backend to AWS lambda, provision MySQL RDS, frontend to S3 bucket. 
+Frontend flow: Cloudflare CDN -> S3
+Backend flow: Lambda -> MySQL

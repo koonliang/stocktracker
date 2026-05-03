@@ -13,7 +13,12 @@ import { loadTickers } from '@/lib/seed';
 
 function reset() {
   localStorage.clear();
-  useWatchlistStore.setState({ watchlists: [], status: 'success', error: null, load: async () => {} });
+  useWatchlistStore.setState({
+    watchlists: [],
+    status: 'success',
+    error: null,
+    load: async () => {},
+  });
   usePortfolioStore.getState().seedFromFixture();
   usePortfolioStore.setState({ loadDashboard: async () => {}, loadTransactions: async () => {} });
 }
