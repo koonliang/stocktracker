@@ -255,6 +255,7 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
       "iam:DeletePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
       "iam:GetRolePolicy",
       "iam:TagRole",
       "iam:UntagRole"
