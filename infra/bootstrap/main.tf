@@ -207,8 +207,9 @@ resource "aws_iam_role" "gha_deploy" {
 # we can; intentionally region-pinned. Tighten further once the resource ARN
 # patterns are known after the first apply.
 data "aws_iam_policy_document" "gha_deploy_permissions" {
+  # Regional services — pinned to var.aws_region.
   statement {
-    sid    = "ManageStocktrackerResources"
+    sid    = "ManageRegionalResources"
     effect = "Allow"
 
     actions = [
@@ -217,20 +218,6 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
       "ec2:*",
       "rds:*",
       "s3:*",
-      "iam:GetRole",
-      "iam:CreateRole",
-      "iam:DeleteRole",
-      "iam:UpdateRole",
-      "iam:PutRolePolicy",
-      "iam:DeleteRolePolicy",
-      "iam:AttachRolePolicy",
-      "iam:DetachRolePolicy",
-      "iam:PassRole",
-      "iam:GetPolicy",
-      "iam:CreatePolicy",
-      "iam:DeletePolicy",
-      "iam:ListRolePolicies",
-      "iam:ListAttachedRolePolicies",
       "logs:*",
       "secretsmanager:*",
       "dynamodb:*",
@@ -245,6 +232,35 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
       variable = "aws:RequestedRegion"
       values   = [var.aws_region]
     }
+  }
+
+  # IAM is a global service — aws:RequestedRegion does not match var.aws_region
+  # for these calls, so the regional condition above would deny them.
+  statement {
+    sid    = "ManageIam"
+    effect = "Allow"
+
+    actions = [
+      "iam:GetRole",
+      "iam:CreateRole",
+      "iam:DeleteRole",
+      "iam:UpdateRole",
+      "iam:PutRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:PassRole",
+      "iam:GetPolicy",
+      "iam:CreatePolicy",
+      "iam:DeletePolicy",
+      "iam:ListRolePolicies",
+      "iam:ListAttachedRolePolicies",
+      "iam:GetRolePolicy",
+      "iam:TagRole",
+      "iam:UntagRole"
+    ]
+
+    resources = ["*"]
   }
 }
 
