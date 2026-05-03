@@ -108,10 +108,10 @@ jobs:
 
       - name: Terraform apply
         env:
-          # Pass the real Cloudflare API token through TF_VAR; a missing
-          # secret intentionally surfaces as a Terraform error rather than
-          # silently falling through to the placeholder default.
-          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Fall back to the placeholder when the secret is unset so apply
+          # succeeds for deployments that don't use the (optional) Cloudflare
+          # module (domain_name == ""). The cloudflare provider rejects "".
+          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN || 'plan-only-placeholder-not-valid-for-api-calls' }}
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
           TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
           TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
