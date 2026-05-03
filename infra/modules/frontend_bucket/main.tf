@@ -19,7 +19,8 @@ terraform {
 # without the secret value get 403 from S3 directly.
 
 resource "aws_s3_bucket" "this" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
+  force_destroy = true
 }
 
 resource "aws_s3_bucket_versioning" "this" {
