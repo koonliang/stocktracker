@@ -155,8 +155,7 @@ jobs:
         run: |
           aws lambda update-function-code \
             --function-name "$FUNCTION_NAME" \
-            --zip-file fileb://backend/target/function.zip \
-            --publish=false >/dev/null
+            --zip-file fileb://backend/target/function.zip >/dev/null
           aws lambda wait function-updated --function-name "$FUNCTION_NAME"
 
       - name: Publish version
