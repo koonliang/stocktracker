@@ -22,6 +22,7 @@ Thumbs.db
 
 # Terraform
 **/.terraform/
+infra/**/tfplan
 *.tfstate
 *.tfstate.*
 *.tfplan
@@ -31,3 +32,4 @@ Thumbs.db
 
 # Lambda packaging output
 backend/target/function.zip
+infra/**/*.zip
