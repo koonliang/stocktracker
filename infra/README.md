@@ -80,6 +80,13 @@ Three workflows live in `.github/workflows/`:
 - `cd.yml` — deploys to production. Two ways to start it (see below).
 - `rollback.yml` — `workflow_dispatch` only. Redeploys the artifact built for
   a previously successful CD run by 40-char `commit_sha`.
+- `drift-check.yml` — runs daily on `cron 0 2 * * *` (and on demand via
+  `workflow_dispatch`). Executes
+  `terraform plan -refresh-only -detailed-exitcode` against
+  `infra/envs/production/` using the same `AWS_PLAN_ROLE_ARN` OIDC role as
+  CI. When the plan reports drift (exit code `2`) the workflow opens (or
+  updates, if one is already open) a GitHub issue labelled `drift` containing
+  the truncated plan output. No AWS write access; the workflow never applies.
 
 ### Triggering CD
 
@@ -156,10 +163,37 @@ Repository **secrets**:
 
 ## Environments
 
-Only `production` exists in v1. To add a new environment later, copy
-`envs/production/` to `envs/<new-name>/`, override variables, and run
-`terraform init && terraform apply`. **Module changes should not be needed**
-for additional environments.
+Only `production` exists in v1. Adding another environment (e.g. `staging`)
+is intended to be a copy-and-override exercise — **the modules under
+`infra/modules/` should not need to change**.
+
+1. Copy the directory:
+
+   ```bash
+   cp -r infra/envs/production infra/envs/<new-name>
+   ```
+
+2. In `infra/envs/<new-name>/backend.tf`, change the `key` (and, if you want
+   isolation, the bucket / lock-table) so the new env writes to its own
+   state path — never share state with `production`.
+
+3. In `infra/envs/<new-name>/main.tf` and `variables.tf`, override the
+   per-env inputs as needed: `aws_region`, `domain_name`,
+   `acm_certificate_arn`, `cloudflare_zone_id`, `provisioned_concurrency`,
+   and any module-level toggles. Keep the module `source = "../../modules/..."`
+   references unchanged.
+
+4. Provision the new env's GitHub OIDC roles (re-run `infra/bootstrap/`
+   with a different `github_repo`/role-name suffix, or hand-add roles
+   scoped to the new env's state path) and add the matching repo
+   variables (`AWS_PLAN_ROLE_ARN_<env>`, `AWS_DEPLOY_ROLE_ARN_<env>`, …)
+   if you wire it into a separate workflow.
+
+5. `cd infra/envs/<new-name> && terraform init && terraform apply`.
+
+If a change really does require the modules themselves, treat that as a
+shared-module change: update the module, and re-plan every env that
+consumes it.
 
 ## What changes if `domain_name` and `acm_certificate_arn` are empty
 

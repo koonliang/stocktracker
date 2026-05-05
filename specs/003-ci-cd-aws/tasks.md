@@ -109,9 +109,9 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 **Independent Test**: Manually edit a managed resource in the AWS console (e.g., add a tag to the Lambda); a scheduled drift-check workflow flags it within 24 h.
 
-- [ ] T033 [US3] Confirm the existing `terraform-plan` PR job from US1 attaches the plan output as a PR comment (extend `actions/github-script` step in `.github/workflows/ci.yml` to upsert a single comment keyed by `<!-- tf-plan -->`)
-- [ ] T034 [US3] Create `.github/workflows/drift-check.yml` on `schedule: cron 0 2 * * *` that runs `terraform plan -detailed-exitcode -refresh-only` against `infra/envs/production/` and opens a GitHub issue when exit code is `2`
-- [ ] T035 [P] [US3] Add `infra/README.md` section documenting how to provision a new environment by copying `envs/production/` and overriding variables (no module changes required)
+- [X] T033 [US3] Confirm the existing `terraform-plan` PR job from US1 attaches the plan output as a PR comment (extend `actions/github-script` step in `.github/workflows/ci.yml` to upsert a single comment keyed by `<!-- tf-plan -->`)
+- [X] T034 [US3] Create `.github/workflows/drift-check.yml` on `schedule: cron 0 2 * * *` that runs `terraform plan -detailed-exitcode -refresh-only` against `infra/envs/production/` and opens a GitHub issue when exit code is `2`
+- [X] T035 [P] [US3] Add `infra/README.md` section documenting how to provision a new environment by copying `envs/production/` and overriding variables (no module changes required)
 
 **Checkpoint**: Plan/preview visible on every infra PR; drift detected automatically.
 
