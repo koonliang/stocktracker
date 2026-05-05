@@ -20,9 +20,17 @@ jobs:
       contents: read
       id-token: write
       issues: write
+    strategy:
+      fail-fast: false
+      matrix:
+        stack:
+          - name: persistent
+            path: infra/envs/production-persistent
+          - name: ephemeral
+            path: infra/envs/production
     defaults:
       run:
-        working-directory: infra/envs/production
+        working-directory: ${{ matrix.stack.path }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,11 +52,7 @@ jobs:
       - name: Terraform plan (refresh-only)
         id: plan
         env:
-          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN || 'plan-only-placeholder-not-valid-for-api-calls' }}
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
-          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
-          TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
-          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
         run: |
           set +e
@@ -65,18 +69,23 @@ jobs:
       - name: Open or update drift issue
         if: steps.plan.outputs.exitcode == '2'
         uses: actions/github-script@v7
+        env:
+          STACK_NAME: ${{ matrix.stack.name }}
+          STACK_PATH: ${{ matrix.stack.path }}
         with:
           script: |
             const fs = require('fs');
-            const path = 'infra/envs/production/plan.txt';
+            const stackName = process.env.STACK_NAME;
+            const stackPath = process.env.STACK_PATH;
+            const path = `${stackPath}/plan.txt`;
             let plan = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '(plan output missing)';
             const max = 50000;
             if (plan.length > max) {
               plan = plan.slice(0, max) + '\n\n...[truncated]';
             }
-            const marker = '<!-- drift-check -->';
-            const title = 'Infrastructure drift detected in production';
-            const body = `${marker}\nA scheduled \`terraform plan -refresh-only\` against \`infra/envs/production\` detected drift between declared and actual state.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n<details><summary>Refresh-only plan output</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n\n</details>`;
+            const marker = `<!-- drift-check:${stackName} -->`;
+            const title = `Infrastructure drift detected in production (${stackName} stack)`;
+            const body = `${marker}\nA scheduled \`terraform plan -refresh-only\` against \`${stackPath}\` detected drift between declared and actual state.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n<details><summary>Refresh-only plan output</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n\n</details>`;
             const { owner, repo } = context.repo;
             const { data: issues } = await github.rest.issues.listForRepo({
               owner, repo, state: 'open', labels: 'drift', per_page: 100,

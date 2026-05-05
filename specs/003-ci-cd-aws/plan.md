@@ -13,8 +13,13 @@ backend (Quarkus REST + Hibernate ORM, MySQL) runs on AWS Lambda fronted by an
 question), with a private MySQL RDS instance reachable only from the Lambda over
 a VPC; Flyway migrations run as a one-shot Lambda invocation before the new
 backend version is promoted. The frontend (Vite/React static bundle) is uploaded
-to a private S3 bucket served exclusively through Cloudflare; Cloudflare cache is
-purged at the end of every frontend deploy. Authentication from GitHub to AWS
+to a private S3 bucket served exclusively through AWS CloudFront with Origin
+Access Control (OAC); a CloudFront invalidation for `/` and `/index.html` runs
+at the end of every frontend deploy. Infrastructure is split into two Terraform
+stacks: a **persistent** stack (CloudFront + frontend bucket) provisioned once
+and left up between sessions, and an **ephemeral** stack (VPC, RDS, Lambda, API
+Gateway) that can be torn down per session to save cost — CloudFront's 10–20 min
+disable-and-delete wait is paid only on full wipes. Authentication from GitHub to AWS
 uses OIDC (no long-lived keys), runtime secrets live in AWS Secrets Manager, and
 Terraform state lives in S3 with DynamoDB locking.
 
@@ -29,23 +34,23 @@ Terraform state lives in S3 with DynamoDB locking.
 
 **Primary Dependencies**:
 - AWS provider for Terraform (`hashicorp/aws` ~> 5.x)
-- Cloudflare provider for Terraform (`cloudflare/cloudflare` ~> 4.x)
 - `aws-actions/configure-aws-credentials@v4` (OIDC federation)
 - `hashicorp/setup-terraform@v3`
 - Quarkus extensions: `quarkus-amazon-lambda-http`, `quarkus-flyway`,
   `quarkus-jdbc-mysql` (already on `pom.xml`)
 - Flyway (already used by Quarkus) for DB migrations
-- Cloudflare API token + (optional) `cloudflare/wrangler-action@v3` for cache
-  purge
+- AWS CLI for `aws cloudfront create-invalidation` in the deploy workflow
 
 **Storage**:
 - Application data: AWS RDS for MySQL (managed, single-AZ for v1; Multi-AZ in
   prod is an upgrade path noted in research)
-- Frontend assets: AWS S3 bucket (private, accessed only via Cloudflare with a
-  shared secret header)
-- Terraform state: S3 bucket + DynamoDB table for state locking
-- Secrets: AWS Secrets Manager (DB credentials, Cloudflare API token reference
-  for runtime cache purge if any)
+- Frontend assets: AWS S3 bucket (private, accessed only by CloudFront via Origin
+  Access Control — SigV4 signed origin requests; bucket policy keyed to the
+  distribution ARN)
+- Terraform state: S3 bucket + DynamoDB table for state locking; persistent and
+  ephemeral stacks use distinct state keys in the same backend
+- Secrets: AWS Secrets Manager (DB credentials only; CloudFront invalidation uses
+  the deploy IAM role and needs no API token)
 
 **Testing**:
 - Backend: existing `quarkus-junit5` + `rest-assured` suite runs in CI
@@ -53,13 +58,15 @@ Terraform state lives in S3 with DynamoDB locking.
 - Infrastructure: `terraform fmt -check`, `terraform validate`, `terraform plan`
   on PRs; `tflint` for static checks
 - Smoke: post-deploy `curl` against `/q/health` (Quarkus SmallRye Health) and the
-  Cloudflare-fronted frontend URL
+  CloudFront frontend URL
 
 **Target Platform**:
 - Backend: AWS Lambda (x86_64, `java21` managed runtime, regional API Gateway
   HTTP API) in `ap-southeast-1` (Singapore) for proximity to Temus team —
   configurable via Terraform variable
-- Frontend: S3 (private origin) fronted by Cloudflare (proxied DNS, full TLS)
+- Frontend: S3 (private origin, OAC) fronted by CloudFront on the default
+  `*.cloudfront.net` hostname with the default CloudFront TLS cert (no custom
+  domain in v1)
 
 **Project Type**: Web application — existing `backend/` (Quarkus) + `frontend/`
 (Vite/React) trees; this feature adds an `infra/` tree for Terraform and a
@@ -75,7 +82,7 @@ Terraform state lives in S3 with DynamoDB locking.
 
 **Constraints**:
 - No long-lived AWS access keys in the repo or in GitHub (OIDC only)
-- S3 frontend bucket MUST NOT be publicly readable (Cloudflare-only access)
+- S3 frontend bucket MUST NOT be publicly readable (CloudFront-only access via OAC)
 - RDS MUST NOT have a public endpoint
 - Lambda cold-start must remain acceptable for an interactive UI; if Quarkus JVM
   cold-start exceeds tolerance, fall back to provisioned concurrency on the hot
@@ -85,7 +92,7 @@ Terraform state lives in S3 with DynamoDB locking.
 - Single environment (`production`) in v1; one AWS account, one region
 - Expected traffic: < 100 RPS sustained, < 50 concurrent Lambda executions
 - Single MySQL RDS instance, `db.t4g.small` class for v1
-- Single Cloudflare zone, single S3 bucket
+- Single CloudFront distribution, single S3 bucket
 
 ## Constitution Check
 
@@ -96,7 +103,7 @@ Terraform state lives in S3 with DynamoDB locking.
 | I. Test Verification (NON-NEGOTIABLE) | PASS | CI runs the existing backend and frontend test suites on every PR; deployment is gated on green tests. Smoke tests run post-deploy. |
 | II. Lint & Style Compliance (NON-NEGOTIABLE) | PASS | CI runs Spotless (backend), ESLint + `tsc --noEmit` (frontend), `terraform fmt -check`, `tflint`. |
 | III. Compilation Integrity (NON-NEGOTIABLE) | PASS | CI runs `mvn -B verify` and `npm run build`. Deploy uses the same artifact as CI built. |
-| IV. Simplicity & YAGNI | PASS | One environment, one region, single Lambda, single RDS, single S3 bucket. No multi-account, no blue/green, no Aurora, no native image, no API caching layer beyond Cloudflare for the frontend. |
+| IV. Simplicity & YAGNI | PASS | One environment, one region, single Lambda, single RDS, single S3 bucket, single CloudFront distribution. No multi-account, no blue/green, no Aurora, no native image, no custom domain, no AWS WAF, no second-vendor edge. |
 | V. Specification-Driven Development | PASS | Plan derives from `spec.md`; any scope change must update the spec first. |
 
 **Result**: All gates pass with no justified violations. `Complexity Tracking` table omitted.
@@ -123,8 +130,12 @@ specs/003-ci-cd-aws/
 ```text
 .github/
 └── workflows/
-    ├── ci.yml                      # PR validation: backend + frontend + infra plan
-    ├── cd.yml                      # On push to main: build, deploy infra, deploy app
+    ├── ci.yml                      # PR validation: backend + frontend + infra plan (both stacks)
+    ├── cd.yml                      # On push to main: build, apply ephemeral stack, deploy app
+    ├── cd-persistent.yml           # Apply persistent stack on changes under its paths
+    ├── destroy.yml                 # Tear down ephemeral stack only
+    ├── destroy-persistent.yml      # Manual-only full wipe of persistent stack (rare)
+    ├── drift-check.yml             # Drift detection across both stacks
     └── rollback.yml                # Manual workflow: redeploy a chosen commit SHA
 
 backend/                            # Existing Quarkus app
@@ -135,23 +146,30 @@ frontend/                           # Existing Vite app
 └── src/...
 
 infra/                              # NEW — Terraform IaC
+├── bootstrap/                      # Remote state + OIDC + plan/deploy IAM roles
 ├── envs/
-│   └── production/
-│       ├── main.tf
+│   ├── production-persistent/      # PERSISTENT stack — provisioned once, kept up
+│   │   ├── main.tf                 # frontend_bucket + cloudfront modules
+│   │   ├── variables.tf
+│   │   ├── outputs.tf              # cloudfront_distribution_id, domain_name, bucket_name
+│   │   └── backend.tf              # state key: production/persistent.tfstate
+│   └── production/                 # EPHEMERAL stack — apply/destroy per session
+│       ├── main.tf                 # network + rds + lambda + api_gateway + secrets
 │       ├── variables.tf
 │       ├── outputs.tf
-│       └── backend.tf              # S3 + DynamoDB remote state
+│       └── backend.tf              # state key: production/terraform.tfstate
+│                                   # reads persistent outputs via terraform_remote_state
 ├── modules/
 │   ├── network/                    # VPC, private subnets, NAT/VPC endpoints
 │   ├── lambda_backend/             # Application Lambda + execution role + log group
 │   ├── lambda_migrator/            # One-shot Flyway migrator Lambda + role + log group
-│   ├── api_gateway/                # HTTP API + custom domain + stage
+│   ├── api_gateway/                # HTTP API + stage; CORS allowed origin from
+│   │                               # persistent CloudFront domain
 │   ├── rds_mysql/                  # DB subnet group, parameter group, instance
-│   ├── secrets/                    # Secrets Manager entries
-│   ├── frontend_bucket/            # S3 (private) + bucket policy keyed by
-│   │                               # Cloudflare shared-secret header
-│   ├── cloudflare/                 # Zone records + cache rules + worker (if any)
-│   └── github_oidc/                # OIDC provider + deploy roles + trust policies
+│   ├── secrets/                    # Secrets Manager entries (DB credentials only)
+│   ├── frontend_bucket/            # S3 (private) + bucket policy keyed to the
+│   │                               # CloudFront distribution ARN (OAC)
+│   └── cloudfront/                 # CloudFront distribution + OAC + SPA error responses
 └── README.md
 
 scripts/

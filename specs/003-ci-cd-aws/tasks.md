@@ -74,9 +74,11 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 ## Phase 4: User Story 2 — Continuous Deployment to AWS on Merge (Priority: P1) 🎯 MVP slice 2
 
-**Goal**: A merge to `main` triggers Terraform apply, backend deploy to Lambda behind API Gateway HTTP API, frontend deploy to S3 with Cloudflare cache purge, and post-deploy smoke checks. Failures halt the workflow without flipping traffic.
+**Goal**: A merge to `main` triggers Terraform apply (ephemeral stack), backend deploy to Lambda behind API Gateway HTTP API, frontend deploy to S3 with CloudFront invalidation, and post-deploy smoke checks. Failures halt the workflow without flipping traffic.
 
-**Independent Test**: Merge a PR that changes a visible string in the frontend and a response field in `/api/dashboard`. Within 15 min, the new string is visible at `https://app.<domain>` and the API returns the new field at `https://api.<domain>`.
+**Independent Test**: Merge a PR that changes a visible string in the frontend and a response field in `/api/dashboard`. Within 15 min, the new string is visible at the CloudFront frontend URL and the API returns the new field at the API Gateway URL.
+
+> **Note**: The tasks below were originally completed against a Cloudflare-based design. Phase 9 captures the migration to CloudFront + a persistent/ephemeral stack split. Treat the historical [X] entries here as the original Cloudflare implementation; the migration work in Phase 9 supersedes them.
 
 ### Terraform modules for production environment
 
@@ -139,10 +141,10 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 **Independent Test**: Inspect repo + workflow logs (no secrets present); rotate `stocktracker/db/master_password` and confirm next deploy's Lambda picks up the new value.
 
-- [ ] T041 [P] [US5] Author `infra/modules/secrets/` defining the three secrets named in `data-model.md` (DB master password, Cloudflare API token, Cloudflare origin shared secret) with empty/random initial values; outputs ARNs only
-- [ ] T042 [US5] Wire `infra/modules/secrets/` into `infra/envs/production/main.tf` and pass secret ARNs into `lambda_backend`, `frontend_bucket`, and `cloudflare` modules as needed
+- [ ] T041 [P] [US5] Author `infra/modules/secrets/` defining `stocktracker/db/master_password` only (Cloudflare entries dropped per Phase 9); empty/random initial value; outputs ARN only
+- [ ] T042 [US5] Wire `infra/modules/secrets/` into `infra/envs/production/main.tf` and pass the DB password secret ARN into `lambda_backend` (cloudflare/frontend_bucket wiring no longer applicable per Phase 9)
 - [ ] T043 [US5] Attach the AWS Lambda Secrets Manager Extension layer to the application Lambda in `infra/modules/lambda_backend/` and set `DATASOURCE_PASSWORD_SECRET_ARN` env var; configure Quarkus datasource password resolution to read from the cached secret value at startup
-- [ ] T044 [US5] Add explicit `mask-secret` calls / `add-mask` workflow commands to `.github/workflows/cd.yml` for any secret value pulled from Secrets Manager into the runner (e.g., Cloudflare API token), and confirm OIDC-only AWS auth (no `AWS_ACCESS_KEY_ID` references anywhere in `.github/workflows/`)
+- [ ] T044 [US5] Confirm OIDC-only AWS auth (no `AWS_ACCESS_KEY_ID` references anywhere in `.github/workflows/`). Add `add-mask` calls in `cd.yml` only if a future feature pulls secret values into the runner — none currently does (the Cloudflare API token path was removed per Phase 9; CloudFront invalidation uses the deploy IAM role).
 - [ ] T045 [US5] Add a `scripts/scan-secrets.sh` invocation to the `gates` job in `.github/workflows/ci.yml` (uses `gitleaks` GitHub Action) so future PRs cannot land plaintext secrets
 
 **Checkpoint**: All FR-024..FR-026 requirements satisfied and enforced at PR time.
@@ -159,6 +161,57 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 ---
 
+## Phase 9: CloudFront Migration & Stack Split
+
+**Purpose**: Replace the Cloudflare-based frontend edge with AWS CloudFront, and split production into a persistent stack (CloudFront + frontend bucket — kept up between sessions) and an ephemeral stack (VPC + RDS + Lambda + API Gateway — apply/destroy per 2-hour test session) so that the cost-free CloudFront does not pay the 10–20 min disable-and-delete wait on every teardown.
+
+**Why**: Drop the second-vendor dependency, simplify origin auth via CloudFront OAC, eliminate the Cloudflare API token + shared-secret header. Stack split avoids redundant CloudFront recreation per session.
+
+**Independent Test**: After applying the persistent stack once, the ephemeral stack can be applied and destroyed repeatedly in <10 min each direction; the CloudFront URL keeps serving the last-deployed bundle across ephemeral teardowns.
+
+### Bootstrap permissions
+
+- [X] T051 Edit `infra/bootstrap/main.tf` `gha_deploy_permissions` policy: add a new `ManageCloudFront` statement (no region condition — CloudFront is global) allowing `cloudfront:CreateDistribution`, `cloudfront:UpdateDistribution`, `cloudfront:DeleteDistribution`, `cloudfront:GetDistribution*`, `cloudfront:ListDistributions`, `cloudfront:TagResource`, `cloudfront:UntagResource`, `cloudfront:ListTagsForResource`, `cloudfront:CreateOriginAccessControl`, `cloudfront:GetOriginAccessControl`, `cloudfront:UpdateOriginAccessControl`, `cloudfront:DeleteOriginAccessControl`, `cloudfront:ListOriginAccessControls`, `cloudfront:CreateInvalidation`, `cloudfront:GetInvalidation`, `cloudfront:ListInvalidations`. Re-apply bootstrap once.
+
+### Terraform module changes
+
+- [X] T052 Author `infra/modules/cloudfront/` — `aws_cloudfront_origin_access_control` (signing_protocol `sigv4`, origin_type `s3`); `aws_cloudfront_distribution` with single S3 origin (REST endpoint, OAC attached), `default_root_object = "index.html"`, custom_error_response 403 → 200 `/index.html`, custom_error_response 404 → 200 `/index.html` (SPA fallback), `price_class = "PriceClass_100"`, default cert (`cloudfront_default_certificate = true`, no aliases). Outputs: `distribution_id`, `domain_name`, `arn`.
+- [X] T053 Update `infra/modules/frontend_bucket/main.tf`: replace the `aws:Referer` shared-secret bucket policy with an OAC bucket policy — `Principal: { Service: "cloudfront.amazonaws.com" }`, `Action: s3:GetObject`, `Condition: StringEquals { "AWS:SourceArn": var.cloudfront_distribution_arn }`. Drop `origin_shared_secret` variable. The bucket no longer needs S3 website configuration; serve via REST endpoint as the CloudFront origin.
+- [X] T054 Delete `infra/modules/cloudflare/` (the entire module directory).
+
+### Persistent stack (new)
+
+- [X] T055 Create `infra/envs/production-persistent/` with `main.tf`, `variables.tf`, `outputs.tf`, `backend.tf`. `backend.tf` uses the same S3 backend bucket from bootstrap with state key `production/persistent.tfstate`. `main.tf` composes `module "frontend_bucket"` and `module "cloudfront"` (cloudfront's S3 origin = bucket regional domain name; bucket's `cloudfront_distribution_arn` = cloudfront output). Outputs: `cloudfront_distribution_id`, `cloudfront_domain_name`, `frontend_bucket_name`.
+
+### Ephemeral stack (slim down)
+
+- [X] T056 Edit `infra/envs/production/main.tf`: remove the Cloudflare provider block, the `enable_cloudflare` local, `module "frontend_bucket"`, and `module "cloudflare"`. Add `data "terraform_remote_state" "persistent"` reading `production/persistent.tfstate`. Pass `data.terraform_remote_state.persistent.outputs.cloudfront_domain_name` to the API Gateway CORS allow-origin config.
+- [X] T057 Edit `infra/envs/production/variables.tf` and `outputs.tf`: remove `cloudflare_zone_id`, `cloudflare_api_token`, `domain_name`, `acm_certificate_arn` (no custom domain in v1). Remove `frontend_bucket_name` output (it's now a persistent-stack output).
+
+### Workflow changes
+
+- [X] T058 Edit `.github/workflows/cd.yml`: remove `TF_VAR_cloudflare_*` env vars; remove `cloudflare_zone_id` output capture; the `terraform-apply` job operates only on `infra/envs/production/`. In the `frontend-deploy` job: source `DIST_ID` and `BUCKET_NAME` from the persistent stack via a small step that runs `terraform -chdir=infra/envs/production-persistent init -backend=true && terraform -chdir=infra/envs/production-persistent output -raw cloudfront_distribution_id` (and likewise for `frontend_bucket_name`). Replace the Cloudflare cache-purge curl step with `aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/" "/index.html"`. Drop the Cloudflare API token Secrets Manager fetch + `add-mask`.
+- [X] T059 Create `.github/workflows/cd-persistent.yml` — triggers: `push` to `main` filtered to paths `infra/envs/production-persistent/**`, `infra/modules/cloudfront/**`, `infra/modules/frontend_bucket/**`, plus `workflow_dispatch`. Single job that assumes `AWS_DEPLOY_ROLE_ARN`, runs `terraform -chdir=infra/envs/production-persistent init/plan/apply`. `concurrency: cd-persistent` group.
+- [X] T060 Create `.github/workflows/destroy-persistent.yml` — `workflow_dispatch` only with a `confirm` input requiring the literal string `DESTROY-PERSISTENT`. Runs `terraform -chdir=infra/envs/production-persistent destroy -auto-approve`. Document in `quickstart.md` that this is a rare full-wipe operation.
+- [X] T061 Edit `.github/workflows/destroy.yml`: scope to `infra/envs/production/` only (ephemeral). Add a comment header that the persistent stack is intentionally untouched. Remove `TF_VAR_cloudflare_*` env vars.
+- [X] T062 Edit `.github/workflows/drift-check.yml`: matrix across both stacks (`production-persistent`, `production`). Remove `TF_VAR_cloudflare_*` env vars.
+- [X] T063 Edit `.github/workflows/ci.yml` and `.github/workflows/rollback.yml`: remove `TF_VAR_cloudflare_*` env vars and Cloudflare-token masking. `rollback.yml` swaps the cache purge step for the same `aws cloudfront create-invalidation` call as `cd.yml`. `ci.yml` runs `terraform plan` for both stacks (matrix).
+
+### Secrets module
+
+- [X] T064 Edit `infra/modules/secrets/`: ~~remove cloudflare entries~~. **N/A** — the secrets module has not been created yet (Phase 7 / T041 is pending). When T041 is eventually authored it should create only `stocktracker/db/master_password` and skip the previously-planned Cloudflare entries. The Cloudflare provider variables and `random_password` resource have already been removed from `infra/envs/production/main.tf` as part of T056.
+
+### Verification
+
+- [ ] T065 End-to-end verification (live AWS — defer until next provision cycle): (a) `terraform -chdir=infra/envs/production-persistent apply` succeeds and CloudFront reaches `Deployed`; (b) `terraform -chdir=infra/envs/production apply` succeeds reading persistent outputs; (c) `curl -I https://<cloudfront_domain_name>/` returns `200`; (d) `curl -I https://<bucket>.s3.<region>.amazonaws.com/index.html` returns `403`; (e) trigger `cd.yml` and confirm `aws cloudfront get-invalidation` shows `Status: Completed`; (f) run `destroy.yml` — finishes in <10 min, persistent CloudFront URL still serves; (g) re-apply ephemeral — also <10 min.
+
+**Local-only verification (already done as part of this implementation):**
+- `terraform fmt -recursive` clean.
+- `terraform validate` passes for `infra/bootstrap/`, `infra/envs/production-persistent/`, `infra/envs/production/`.
+- `grep -ri cloudflare infra/ .github/` returns zero hits (excluding `.terraform/` provider caches which will clear on re-init).
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -171,6 +224,7 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 - **US4 (Phase 6)**: needs Phase 4 (consumes Lambda + networking; inserts a job into `cd.yml`).
 - **US5 (Phase 7)**: needs Phase 4 (modules exist to wire secret ARNs into).
 - **Polish (Phase 8)**: after all desired user stories.
+- **CloudFront Migration (Phase 9)**: supersedes the Cloudflare-specific tasks in Phases 4 and 7. T051 (bootstrap perms) must run first; T052–T055 (modules + persistent stack) before T056–T057 (ephemeral slim-down); T058–T063 (workflows) after the Terraform changes; T064 (secrets) and T065 (verify) last.
 
 ### User Story Independence
 

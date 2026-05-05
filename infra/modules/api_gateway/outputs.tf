@@ -13,7 +13,7 @@ output "invoke_url" {
 }
 
 output "domain_target_domain_name" {
-  description = "Target hostname to point a Cloudflare CNAME at when a custom domain is enabled. Empty otherwise."
+  description = "Target hostname for a CNAME / Route 53 alias when a custom domain is enabled. Empty otherwise."
   value       = local.enable_custom_domain ? aws_apigatewayv2_domain_name.this[0].domain_name_configuration[0].target_domain_name : ""
 }
 

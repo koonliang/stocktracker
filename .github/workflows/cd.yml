@@ -79,10 +79,11 @@ jobs:
       id-token: write
     outputs:
       lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
-      frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
       api_invoke_url: ${{ steps.outputs.outputs.api_invoke_url }}
+      cloudfront_domain_name: ${{ steps.outputs.outputs.cloudfront_domain_name }}
+      cloudfront_distribution_id: ${{ steps.outputs.outputs.cloudfront_distribution_id }}
+      frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
       public_frontend_url: ${{ steps.outputs.outputs.public_frontend_url }}
-      cloudflare_zone_id: ${{ steps.outputs.outputs.cloudflare_zone_id }}
     defaults:
       run:
         working-directory: infra/envs/production
@@ -108,14 +109,7 @@ jobs:
 
       - name: Terraform apply
         env:
-          # Fall back to the placeholder when the secret is unset so apply
-          # succeeds for deployments that don't use the (optional) Cloudflare
-          # module (domain_name == ""). The cloudflare provider rejects "".
-          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN || 'plan-only-placeholder-not-valid-for-api-calls' }}
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
-          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
-          TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
-          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
         run: terraform apply -input=false -auto-approve -lock-timeout=10m
 
@@ -123,10 +117,12 @@ jobs:
         id: outputs
         run: |
           set -euo pipefail
-          for k in lambda_function_name frontend_bucket_name api_invoke_url public_frontend_url cloudflare_zone_id; do
+          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name; do
             v=$(terraform output -raw "$k" 2>/dev/null || true)
             echo "$k=$v" >> "$GITHUB_OUTPUT"
           done
+          domain=$(terraform output -raw cloudfront_domain_name 2>/dev/null || true)
+          echo "public_frontend_url=https://${domain}" >> "$GITHUB_OUTPUT"
 
   backend-deploy:
     name: backend-deploy
@@ -204,23 +200,13 @@ jobs:
         run: |
           aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete
 
-      - name: Purge Cloudflare cache
-        if: needs.terraform-apply.outputs.cloudflare_zone_id != ''
+      - name: Invalidate CloudFront cache
         env:
-          ZONE_ID: ${{ needs.terraform-apply.outputs.cloudflare_zone_id }}
-          PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
+          DIST_ID: ${{ needs.terraform-apply.outputs.cloudfront_distribution_id }}
         run: |
-          set -euo pipefail
-          TOKEN=$(aws secretsmanager get-secret-value \
-            --secret-id stocktracker/cloudflare/api_token \
-            --query SecretString --output text)
-          echo "::add-mask::$TOKEN"
-          curl --fail --silent --show-error \
-            -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data "{\"files\":[\"${PUBLIC_URL}/\",\"${PUBLIC_URL}/index.html\"]}" \
-            > /dev/null
+          aws cloudfront create-invalidation \
+            --distribution-id "$DIST_ID" \
+            --paths "/" "/index.html" >/dev/null
 
   smoke:
     name: smoke
@@ -255,6 +241,7 @@ jobs:
           PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
           BUCKET: ${{ needs.terraform-apply.outputs.frontend_bucket_name }}
           FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+          DIST_ID: ${{ needs.terraform-apply.outputs.cloudfront_distribution_id }}
         run: |
           {
             echo "### Deployment summary"
@@ -269,6 +256,7 @@ jobs:
             echo "| lambda_function_name | \`${FUNCTION_NAME:-n/a}\` |"
             echo "| api_invoke_url | ${API_URL:-n/a} |"
             echo "| frontend_bucket_name | \`${BUCKET:-n/a}\` |"
+            echo "| cloudfront_distribution_id | \`${DIST_ID:-n/a}\` |"
             echo "| public_frontend_url | ${PUBLIC_URL:-n/a} |"
             echo "| build | ${STATUS_BUILD} |"
             echo "| terraform-apply | ${STATUS_APPLY} |"

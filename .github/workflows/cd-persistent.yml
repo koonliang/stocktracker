@@ -1,0 +1,69 @@
+name: CD (persistent)
+
+# Applies the persistent stack: CloudFront distribution + frontend S3 bucket.
+# Provisioned once and kept up between test sessions because CloudFront takes
+# 10-20 min to disable-and-delete and is free at idle. Only runs when the
+# persistent stack files or its modules change, or when manually dispatched.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/envs/production-persistent/**'
+      - 'infra/modules/cloudfront/**'
+      - 'infra/modules/frontend_bucket/**'
+      - '.github/workflows/cd-persistent.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: cd-persistent-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-apply:
+    name: terraform-apply (persistent)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra/envs/production-persistent
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+        run: terraform apply -input=false -auto-approve -lock-timeout=10m
+
+      - name: Write summary
+        run: |
+          {
+            echo "### Persistent stack apply"
+            echo ""
+            echo "| Output | Value |"
+            echo "|--------|-------|"
+            for k in cloudfront_distribution_id cloudfront_domain_name frontend_bucket_name; do
+              v=$(terraform output -raw "$k" 2>/dev/null || echo "n/a")
+              echo "| $k | \`$v\` |"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

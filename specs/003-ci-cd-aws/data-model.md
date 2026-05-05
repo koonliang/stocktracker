@@ -12,7 +12,7 @@ records.
 A single execution of a GitHub Actions workflow.
 
 - **id**: GitHub `run_id` (numeric)
-- **workflow**: `ci.yml` | `cd.yml` | `rollback.yml`
+- **workflow**: `ci.yml` | `cd.yml` | `cd-persistent.yml` | `destroy.yml` | `destroy-persistent.yml` | `drift-check.yml` | `rollback.yml`
 - **trigger**: `pull_request` | `push:main` | `workflow_dispatch`
 - **commit_sha**: 40-char hex SHA the run executed against
 - **pr_number**: nullable; populated for `pull_request` runs
@@ -48,23 +48,31 @@ A named deployment target. Only `production` exists in v1.
 
 - **name**: `production`
 - **aws_account_id**, **aws_region**
-- **public_frontend_url**: `https://app.<domain>`
-- **public_api_url**: `https://api.<domain>`
-- **rds_identifier**, **lambda_function_name**, **api_gateway_id**,
-  **s3_bucket_name**: outputs of `terraform apply`
+- **public_frontend_url**: `https://<dist-id>.cloudfront.net` (default
+  CloudFront hostname; no custom domain in v1)
+- **public_api_url**: `https://<api-id>.execute-api.<region>.amazonaws.com`
+  (default API Gateway hostname)
+- **rds_identifier**, **lambda_function_name**, **api_gateway_id**: outputs of
+  the **ephemeral** stack `terraform apply`
+- **s3_bucket_name**, **cloudfront_distribution_id**,
+  **cloudfront_domain_name**: outputs of the **persistent** stack
+  `terraform apply`
 
-Persistence: Terraform state for the environment (S3 + DynamoDB lock).
+Persistence: two Terraform state files in the same S3 backend bucket
+(`production/persistent.tfstate`, `production/terraform.tfstate`) with
+DynamoDB lock.
 
 ### InfrastructureRevision
 
-A version-controlled snapshot of declared AWS + Cloudflare resources.
+A version-controlled snapshot of declared AWS resources.
 
 - **commit_sha**
+- **stack**: `persistent` | `ephemeral` (each stack has its own revision history)
 - **plan_summary**: text emitted by `terraform plan` and posted to the PR
 - **apply_outcome**: `applied` | `failed` | `not_applied`
 - **drift_detected**: `yes` | `no` (populated by scheduled drift-check)
 
-Persistence: Terraform state file in S3 (versioned bucket).
+Persistence: per-stack Terraform state file in S3 (versioned bucket).
 
 ### Migration
 
@@ -81,9 +89,8 @@ Persistence: Flyway's `flyway_schema_history` table inside the application DB.
 
 A named sensitive value held in AWS Secrets Manager.
 
-- **name**: `stocktracker/db/master_password`,
-  `stocktracker/cloudflare/origin_shared_secret`,
-  `stocktracker/cloudflare/api_token`
+- **name**: `stocktracker/db/master_password` (only DB credentials in v1;
+  CloudFront invalidation uses the deploy IAM role, no API tokens needed)
 - **scope**: `runtime` (read by Lambda) | `pipeline` (read by GitHub Actions
   via OIDC role)
 - **last_rotated_at**

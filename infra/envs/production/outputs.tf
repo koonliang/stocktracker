@@ -19,23 +19,19 @@ output "api_id" {
 }
 
 output "api_invoke_url" {
-  description = "Public URL the frontend should call. Custom domain when domain_name is set, AWS endpoint otherwise."
+  description = "Public API URL — default API Gateway hostname (no custom domain in v1)."
   value       = module.api_gateway.invoke_url
 }
 
+output "cloudfront_domain_name" {
+  description = "Public frontend URL — sourced from the persistent stack."
+  value       = data.terraform_remote_state.persistent.outputs.cloudfront_domain_name
+}
+
+output "cloudfront_distribution_id" {
+  value = data.terraform_remote_state.persistent.outputs.cloudfront_distribution_id
+}
+
 output "frontend_bucket_name" {
-  value = module.frontend_bucket.bucket_name
-}
-
-output "frontend_website_endpoint" {
-  value = module.frontend_bucket.website_endpoint
-}
-
-output "public_frontend_url" {
-  description = "Public URL the user should visit. Custom domain when set, S3 website endpoint otherwise."
-  value       = local.enable_cloudflare ? "https://app.${var.domain_name}" : "http://${module.frontend_bucket.website_endpoint}"
-}
-
-output "cloudflare_zone_id" {
-  value = var.cloudflare_zone_id
+  value = data.terraform_remote_state.persistent.outputs.frontend_bucket_name
 }

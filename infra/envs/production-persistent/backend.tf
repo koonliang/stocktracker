@@ -8,12 +8,12 @@ terraform {
     }
   }
 
-  # Replace the placeholder bucket and dynamodb_table values with the outputs
-  # from `infra/bootstrap` after its first apply. They are deliberately not
-  # variables — Terraform requires literal values here.
+  # Persistent stack — provisioned once and left up between test sessions.
+  # Owns: CloudFront distribution + OAC + frontend S3 bucket.
+  # The ephemeral stack (envs/production) reads this state via terraform_remote_state.
   backend "s3" {
     bucket         = "stocktracker-tfstate-309779120361-ap-southeast-1"
-    key            = "envs/production/terraform.tfstate"
+    key            = "envs/production/persistent.tfstate"
     region         = "ap-southeast-1"
     dynamodb_table = "stocktracker-tflock"
     encrypt        = true

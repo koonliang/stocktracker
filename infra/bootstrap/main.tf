@@ -234,6 +234,38 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
     }
   }
 
+  # CloudFront is a global service — aws:RequestedRegion does not match
+  # var.aws_region for these calls, so the regional condition above would deny
+  # them. CloudFront is owned by the persistent stack
+  # (infra/envs/production-persistent/) and invalidated by the CD workflow.
+  statement {
+    sid    = "ManageCloudFront"
+    effect = "Allow"
+
+    actions = [
+      "cloudfront:CreateDistribution",
+      "cloudfront:UpdateDistribution",
+      "cloudfront:DeleteDistribution",
+      "cloudfront:GetDistribution",
+      "cloudfront:GetDistributionConfig",
+      "cloudfront:ListDistributions",
+      "cloudfront:TagResource",
+      "cloudfront:UntagResource",
+      "cloudfront:ListTagsForResource",
+      "cloudfront:CreateOriginAccessControl",
+      "cloudfront:GetOriginAccessControl",
+      "cloudfront:GetOriginAccessControlConfig",
+      "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:ListOriginAccessControls",
+      "cloudfront:CreateInvalidation",
+      "cloudfront:GetInvalidation",
+      "cloudfront:ListInvalidations",
+    ]
+
+    resources = ["*"]
+  }
+
   # IAM is a global service — aws:RequestedRegion does not match var.aws_region
   # for these calls, so the regional condition above would deny them.
   statement {

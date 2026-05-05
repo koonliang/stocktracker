@@ -3,9 +3,8 @@ variable "bucket_name" {
   type        = string
 }
 
-variable "origin_shared_secret" {
-  description = "The Cloudflare-injected Referer value that gates `s3:GetObject`. Empty leaves the bucket without a public-read policy (private)."
+variable "cloudfront_distribution_arn" {
+  description = "ARN of the CloudFront distribution allowed to read this bucket via OAC. Empty leaves the bucket private with no policy attached (safe default)."
   type        = string
-  sensitive   = true
   default     = ""
 }

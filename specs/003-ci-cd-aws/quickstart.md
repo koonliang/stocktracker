@@ -11,13 +11,11 @@ to the section you need.
   project, with a payer who is okay with the resources in this plan
   (Lambda, API Gateway HTTP API, RDS `db.t4g.small`, S3, Secrets Manager,
   CloudWatch Logs).
-- A Cloudflare account that owns the DNS zone you will use (e.g.,
-  `stocktracker.example`).
-- ACM certificate for `*.stocktracker.example` (or for the two specific
-  hostnames `app.<domain>` and `api.<domain>`) in the **same region** as
-  the API Gateway.
 - Local tools: `aws` CLI v2, `terraform` 1.7+, `tflint`, `node` 20+, `jdk`
   21, `mvn` 3.9+.
+
+> v1 uses the default `*.cloudfront.net` and API Gateway hostnames — no
+> custom domain, no Cloudflare account, no ACM certificate is required.
 
 ## One-time bootstrap (manual)
 
@@ -44,11 +42,9 @@ These steps create resources Terraform itself needs to run; they are
    - `AWS_DEPLOY_ROLE_ARN`
    - `AWS_REGION`
 
-3. **Seed Secrets Manager** with three secrets — empty placeholder values
-   are fine; rotate after first apply:
+3. **Seed Secrets Manager** with the DB master password — an empty placeholder
+   is fine; rotate after first apply:
    - `stocktracker/db/master_password`
-   - `stocktracker/cloudflare/api_token`
-   - `stocktracker/cloudflare/origin_shared_secret`
 
 4. **Configure GitHub branch protection** on `main`:
    - Require PRs (no direct pushes).
@@ -57,20 +53,41 @@ These steps create resources Terraform itself needs to run; they are
 
 ## First-time provision of `production`
 
+The `production` environment is split into two Terraform stacks. Apply the
+**persistent** stack first (CloudFront + frontend bucket — kept up between
+test sessions), then the **ephemeral** stack (VPC, RDS, Lambda, API
+Gateway — apply/destroy per session).
+
 ```bash
-cd infra/envs/production
+# 1. Persistent stack — provisioned once, leave up between test sessions.
+cd infra/envs/production-persistent
+terraform init
+terraform apply
+# Outputs: cloudfront_distribution_id, cloudfront_domain_name, frontend_bucket_name
+# CloudFront takes 5–15 min to reach Deployed.
+
+# 2. Ephemeral stack — apply at the start of each test session.
+cd ../production
 terraform init
 terraform plan -out=tfplan
 terraform apply tfplan
+# Outputs: api_invoke_url, rds_endpoint (private), lambda_function_name
+# Reads the persistent outputs via terraform_remote_state for API CORS.
 ```
 
-Outputs you will care about: `api_invoke_url`, `frontend_bucket_name`,
-`rds_endpoint` (private), `lambda_function_name`.
+The frontend URL is the persistent-stack output `cloudfront_domain_name`
+(`https://<id>.cloudfront.net`). The API URL is the ephemeral-stack output
+`api_invoke_url`.
 
-After the first apply, point the Cloudflare DNS records (managed in the
-`cloudflare` Terraform module) at the API Gateway custom domain target and
-the S3 bucket website endpoint. Cloudflare records are **proxied** for the
-frontend and **DNS-only** for the API.
+## Two-stack workflow (per test session)
+
+| When | What to run |
+|---|---|
+| Start of a 2-hour test session | `terraform -chdir=infra/envs/production apply` |
+| Frontend code change | `aws s3 sync frontend/dist/ s3://$(terraform -chdir=infra/envs/production-persistent output -raw frontend_bucket_name)/ --delete` then `aws cloudfront create-invalidation --distribution-id $(terraform -chdir=infra/envs/production-persistent output -raw cloudfront_distribution_id) --paths "/" "/index.html"` |
+| End of the session | `terraform -chdir=infra/envs/production destroy` (persistent stack stays up — costs $0 idle) |
+| CloudFront / frontend bucket change | `terraform -chdir=infra/envs/production-persistent apply` (rare; only on persistent-module changes) |
+| Full project teardown (rare) | `terraform -chdir=infra/envs/production-persistent destroy` after the ephemeral destroy |
 
 ## Day-to-day developer flow
 
@@ -82,8 +99,8 @@ frontend and **DNS-only** for the API.
    - Build → `terraform apply` → `db-migrate` → `backend-deploy` →
      `frontend-deploy` → `smoke`.
    - The deployment summary is in the run's "Summary" tab.
-4. Verify in browser: `https://app.<domain>` and
-   `https://api.<domain>/q/health`.
+4. Verify in browser: `https://<cloudfront-domain>/` and
+   `https://<api-invoke-url>/q/health` (use the Terraform outputs).
 
 ## Rollback
 
@@ -100,7 +117,9 @@ When a bad deployment lands:
 ## Smoke check (manual, for debugging)
 
 ```bash
-./scripts/smoke-check.sh https://app.<domain> https://api.<domain>
+./scripts/smoke-check.sh \
+  "https://$(terraform -chdir=infra/envs/production-persistent output -raw cloudfront_domain_name)" \
+  "$(terraform -chdir=infra/envs/production output -raw api_invoke_url)"
 ```
 
 The script exits non-zero on any non-2xx response.
@@ -131,7 +150,7 @@ This feature does not modify how `backend/` or `frontend/` run locally.
 |---------|---------------------|
 | PR is "blocked" but no failed check is visible | Branch protection requires `gates` — check if a job was skipped (e.g. fork PR). |
 | `terraform apply` fails with state lock error | Another CD run is in progress, or a previous run was killed mid-apply. Check DynamoDB lock table; force-unlock only after confirming no active run. |
-| Frontend shows old version after deploy | Cloudflare cache purge step in the workflow logs; if that succeeded, force-refresh the browser; check Cloudflare dashboard for the purge event. |
+| Frontend shows old version after deploy | Check the `aws cloudfront create-invalidation` step in the workflow logs. Confirm completion with `aws cloudfront list-invalidations --distribution-id $DIST_ID` and `aws cloudfront get-invalidation --distribution-id $DIST_ID --id $INV_ID`. Then force-refresh the browser. |
 | Backend returns 502 | Lambda timed out or threw on init. Inspect `/aws/lambda/stocktracker-production-app` log group; check whether Secrets Manager retrieval is the cause. |
 | API requests get CORS errors | Confirm the request origin is listed in `AllowOrigins` (HTTP API stage config); browsers cache preflight up to 600s. |
 | `db-migrate` job fails | Inspect the migrator Lambda's log group; the failed Flyway version is named in the error. Fix forward in code; do not edit `flyway_schema_history` by hand. |

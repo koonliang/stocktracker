@@ -1,5 +1,9 @@
 name: destroy-production
 
+# Tears down the EPHEMERAL stack only (VPC, RDS, Lambda, API Gateway).
+# The persistent stack (CloudFront + frontend S3 bucket) is intentionally
+# NOT touched here — see destroy-persistent.yml for full wipe.
+
 on:
   workflow_dispatch:
     inputs:
@@ -46,10 +50,6 @@ jobs:
 
       - name: Terraform destroy
         env:
-          TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN || 'plan-only-placeholder-not-valid-for-api-calls' }}
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
-          TF_VAR_domain_name: ${{ vars.DOMAIN_NAME }}
-          TF_VAR_acm_certificate_arn: ${{ vars.ACM_CERTIFICATE_ARN }}
-          TF_VAR_cloudflare_zone_id: ${{ vars.CLOUDFLARE_ZONE_ID }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
         run: terraform destroy -input=false -auto-approve -lock-timeout=10m
