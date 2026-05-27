@@ -190,10 +190,7 @@ data "aws_iam_policy_document" "gha_deploy_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "${local.repo_subject}:ref:refs/heads/main",
-        "${local.repo_subject}:environment:production"
-      ]
+      values = ["${local.repo_subject}:*"]
     }
   }
 }
