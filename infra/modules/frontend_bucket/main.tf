@@ -39,7 +39,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
 # created.
 
 data "aws_iam_policy_document" "oac" {
-  count = var.cloudfront_distribution_arn == "" ? 0 : 1
+  count = var.enable_oac_policy ? 1 : 0
 
   statement {
     sid     = "AllowCloudFrontReadOAC"
@@ -62,7 +62,7 @@ data "aws_iam_policy_document" "oac" {
 }
 
 resource "aws_s3_bucket_policy" "oac" {
-  count  = var.cloudfront_distribution_arn == "" ? 0 : 1
+  count  = var.enable_oac_policy ? 1 : 0
   bucket = aws_s3_bucket.this.id
   policy = data.aws_iam_policy_document.oac[0].json
 

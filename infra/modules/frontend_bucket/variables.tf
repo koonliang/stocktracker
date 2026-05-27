@@ -4,7 +4,13 @@ variable "bucket_name" {
 }
 
 variable "cloudfront_distribution_arn" {
-  description = "ARN of the CloudFront distribution allowed to read this bucket via OAC. Empty leaves the bucket private with no policy attached (safe default)."
+  description = "ARN of the CloudFront distribution allowed to read this bucket via OAC."
   type        = string
-  default     = ""
+  default     = null
+}
+
+variable "enable_oac_policy" {
+  description = "Whether to attach an OAC bucket policy. Use a static boolean so Terraform can evaluate count at plan time."
+  type        = bool
+  default     = false
 }

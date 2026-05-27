@@ -30,6 +30,7 @@ module "frontend_bucket" {
   source                      = "../../modules/frontend_bucket"
   bucket_name                 = local.bucket_name
   cloudfront_distribution_arn = module.cloudfront.distribution_arn
+  enable_oac_policy           = true
 }
 
 module "cloudfront" {
