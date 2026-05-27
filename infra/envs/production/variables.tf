@@ -9,3 +9,9 @@ variable "provisioned_concurrency" {
   type        = number
   default     = 0
 }
+
+variable "rds_master_password" {
+  description = "Master password for the RDS MySQL instance."
+  type        = string
+  sensitive   = true
+}

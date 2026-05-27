@@ -79,6 +79,7 @@ jobs:
       id-token: write
     outputs:
       lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
+      migrator_function_name: ${{ steps.outputs.outputs.migrator_function_name }}
       api_invoke_url: ${{ steps.outputs.outputs.api_invoke_url }}
       cloudfront_domain_name: ${{ steps.outputs.outputs.cloudfront_domain_name }}
       cloudfront_distribution_id: ${{ steps.outputs.outputs.cloudfront_distribution_id }}
@@ -111,22 +112,74 @@ jobs:
         env:
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
+          TF_VAR_rds_master_password: ${{ secrets.RDS_MASTER_PASSWORD }}
         run: terraform apply -input=false -auto-approve -lock-timeout=10m
 
       - name: Capture outputs
         id: outputs
         run: |
           set -euo pipefail
-          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name; do
+          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name migrator_function_name; do
             v=$(terraform output -raw "$k" 2>/dev/null || true)
             echo "$k=$v" >> "$GITHUB_OUTPUT"
           done
           domain=$(terraform output -raw cloudfront_domain_name 2>/dev/null || true)
           echo "public_frontend_url=https://${domain}" >> "$GITHUB_OUTPUT"
 
+  db-migrate:
+    name: db-migrate
+    needs: [build, terraform-apply]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-${{ env.DEPLOY_SHA }}
+
+      - name: Upload migrator code
+        env:
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.migrator_function_name }}
+        run: |
+          aws lambda update-function-code \
+            --function-name "$FUNCTION_NAME" \
+            --zip-file fileb://backend/target/function.zip >/dev/null
+          aws lambda wait function-updated --function-name "$FUNCTION_NAME"
+
+      - name: Run Flyway migration
+        env:
+          FUNCTION_NAME: ${{ needs.terraform-apply.outputs.migrator_function_name }}
+        run: |
+          set -euo pipefail
+          response=$(aws lambda invoke \
+            --function-name "$FUNCTION_NAME" \
+            --invocation-type RequestResponse \
+            --payload '{}' \
+            --cli-read-timeout 300 \
+            /tmp/migrate-response.json)
+          echo "Lambda response metadata: $response"
+
+          error=$(echo "$response" | jq -r '.FunctionError // empty')
+          if [ -n "$error" ]; then
+            echo "::error::Migration Lambda returned FunctionError: $error"
+            cat /tmp/migrate-response.json
+            exit 1
+          fi
+
+          echo "Migration result:"
+          cat /tmp/migrate-response.json
+
   backend-deploy:
     name: backend-deploy
-    needs: terraform-apply
+    needs: [terraform-apply, db-migrate]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -224,7 +277,7 @@ jobs:
 
   summary:
     name: summary
-    needs: [build, terraform-apply, backend-deploy, frontend-deploy, smoke]
+    needs: [build, terraform-apply, db-migrate, backend-deploy, frontend-deploy, smoke]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -232,6 +285,7 @@ jobs:
         env:
           STATUS_BUILD: ${{ needs.build.result }}
           STATUS_APPLY: ${{ needs.terraform-apply.result }}
+          STATUS_MIGRATE: ${{ needs.db-migrate.result }}
           STATUS_BACKEND: ${{ needs.backend-deploy.result }}
           STATUS_FRONTEND: ${{ needs.frontend-deploy.result }}
           STATUS_SMOKE: ${{ needs.smoke.result }}
@@ -260,6 +314,7 @@ jobs:
             echo "| public_frontend_url | ${PUBLIC_URL:-n/a} |"
             echo "| build | ${STATUS_BUILD} |"
             echo "| terraform-apply | ${STATUS_APPLY} |"
+            echo "| db-migrate | ${STATUS_MIGRATE} |"
             echo "| backend-deploy | ${STATUS_BACKEND} |"
             echo "| frontend-deploy | ${STATUS_FRONTEND} |"
             echo "| smoke | ${STATUS_SMOKE} |"

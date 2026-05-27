@@ -61,8 +61,35 @@ module "lambda_backend" {
   provisioned_concurrent_executions = var.provisioned_concurrency
 
   environment_variables = {
-    QUARKUS_PROFILE = "prod"
-    AWS_REGION_NAME = var.aws_region
+    QUARKUS_PROFILE                 = "prod"
+    AWS_REGION_NAME                 = var.aws_region
+    QUARKUS_DATASOURCE_JDBC_URL     = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
+    QUARKUS_DATASOURCE_USERNAME     = "stocktracker"
+    QUARKUS_DATASOURCE_PASSWORD     = var.rds_master_password
+    QUARKUS_FLYWAY_MIGRATE_AT_START = "false"
+  }
+}
+
+module "rds_mysql" {
+  source            = "../../modules/rds_mysql"
+  name_prefix       = local.name_prefix
+  subnet_ids        = module.network.private_subnet_ids
+  security_group_id = module.network.rds_security_group_id
+  master_password   = var.rds_master_password
+}
+
+module "lambda_migrator" {
+  source             = "../../modules/lambda_migrator"
+  name_prefix        = "${local.name_prefix}-migrator"
+  subnet_ids         = module.network.private_subnet_ids
+  security_group_id  = module.network.lambda_security_group_id
+  log_retention_days = 14
+
+  environment_variables = {
+    QUARKUS_PROFILE             = "migrate"
+    QUARKUS_DATASOURCE_JDBC_URL = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
+    QUARKUS_DATASOURCE_USERNAME = "stocktracker"
+    QUARKUS_DATASOURCE_PASSWORD = var.rds_master_password
   }
 }
 

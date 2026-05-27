@@ -35,3 +35,11 @@ output "cloudfront_distribution_id" {
 output "frontend_bucket_name" {
   value = data.terraform_remote_state.persistent.outputs.frontend_bucket_name
 }
+
+output "rds_endpoint" {
+  value = module.rds_mysql.endpoint
+}
+
+output "migrator_function_name" {
+  value = module.lambda_migrator.function_name
+}

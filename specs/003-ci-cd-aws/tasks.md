@@ -125,11 +125,11 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 **Independent Test**: Add a non-destructive migration (`backend/src/main/resources/db/migration/V*.sql`) creating a new column. Merge → column appears in RDS, backend reads/writes it, `flyway_schema_history` records the version.
 
-- [ ] T036 [P] [US4] Author `infra/modules/rds_mysql/` (DB subnet group across two private subnets, parameter group, MySQL 8.0 `db.t4g.small`, no public endpoint, 7-day automated backup retention, security-group ingress only from Lambda SG)
-- [ ] T037 [US4] Author sibling module `infra/modules/lambda_migrator/` — same `function.zip` artifact, different handler entry that runs Flyway and exits, with its own IAM role (Secrets Manager + RDS network access only) and its own CloudWatch log group; wire into `infra/envs/production/main.tf`
-- [ ] T038 [US4] Add a Quarkus profile or alternate main class in `backend/` so the migrator Lambda invocation runs Flyway `migrate` against the configured datasource and exits with non-zero on failure (use Quarkus's existing `quarkus-flyway` extension)
-- [ ] T039 [US4] Insert a `db-migrate` job into `.github/workflows/cd.yml` between `terraform-apply` and `backend-deploy` that synchronously invokes the migrator Lambda (`aws lambda invoke --invocation-type RequestResponse`) and fails the workflow on non-zero status or non-empty `FunctionError`
-- [ ] T040 [US4] Document migration authoring conventions and the forward-only rule in `backend/README.md` (filename pattern, non-destructive guidance, link to `quickstart.md` troubleshooting)
+- [X] T036 [P] [US4] Author `infra/modules/rds_mysql/` (DB subnet group across two private subnets, parameter group, MySQL 8.0 `db.t4g.small`, no public endpoint, 7-day automated backup retention, security-group ingress only from Lambda SG)
+- [X] T037 [US4] Author sibling module `infra/modules/lambda_migrator/` — same `function.zip` artifact, different handler entry that runs Flyway and exits, with its own IAM role (Secrets Manager + RDS network access only) and its own CloudWatch log group; wire into `infra/envs/production/main.tf`
+- [X] T038 [US4] Add a Quarkus profile or alternate main class in `backend/` so the migrator Lambda invocation runs Flyway `migrate` against the configured datasource and exits with non-zero on failure (use Quarkus's existing `quarkus-flyway` extension)
+- [X] T039 [US4] Insert a `db-migrate` job into `.github/workflows/cd.yml` between `terraform-apply` and `backend-deploy` that synchronously invokes the migrator Lambda (`aws lambda invoke --invocation-type RequestResponse`) and fails the workflow on non-zero status or non-empty `FunctionError`
+- [X] T040 [US4] Document migration authoring conventions and the forward-only rule in `backend/README.md` (filename pattern, non-destructive guidance, link to `quickstart.md` troubleshooting)
 
 **Checkpoint**: Schema migrations gate the backend promote; failure preserves prior version.
 
