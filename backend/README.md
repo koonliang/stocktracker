@@ -63,9 +63,13 @@ Example: `V2__add_dividends_column.sql`
 ### How migrations run in production
 
 On every merge to `main`, the CD pipeline invokes a dedicated **migrator
-Lambda** (`MigrationHandler`) before promoting the new application code.
-If the migration fails, the application Lambda alias is **not** updated and
-the previous version keeps serving. See
+Lambda** before promoting the new application code. The migrator runs the same
+deployment artifact under the `migrate` Quarkus profile, which applies Flyway
+migrations at startup (`quarkus.flyway.migrate-at-start`). The backend HTTP
+Lambda has migration-at-start disabled (`QUARKUS_FLYWAY_MIGRATE_AT_START=false`)
+so schema changes only ever apply through the migrator.
+If the migration fails, the migrator's startup fails and the application Lambda
+alias is **not** updated, so the previous version keeps serving. See
 [quickstart.md](../specs/003-ci-cd-aws/quickstart.md) for troubleshooting.
 
 ### Local development

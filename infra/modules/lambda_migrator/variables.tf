@@ -4,9 +4,9 @@ variable "name_prefix" {
 }
 
 variable "handler" {
-  description = "Lambda handler for the Flyway migrator entry point."
+  description = "Lambda handler. Same Quarkus HTTP handler as the backend; Flyway runs at startup via the 'migrate' profile."
   type        = string
-  default     = "com.stocktracker.migration.MigrationHandler::handleRequest"
+  default     = "io.quarkus.amazon.lambda.http.LambdaHttpHandler::handleRequest"
 }
 
 variable "memory_size" {
