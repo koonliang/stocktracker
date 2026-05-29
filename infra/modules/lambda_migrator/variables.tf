@@ -4,9 +4,12 @@ variable "name_prefix" {
 }
 
 variable "handler" {
-  description = "Lambda handler. Same Quarkus HTTP handler as the backend; Flyway runs at startup via the 'migrate' profile."
+  # QuarkusStreamHandler boots Quarkus (running Flyway at startup via the
+  # 'migrate' profile), then dispatches the invocation. Same entry point as the
+  # backend. See lambda_backend for why the inner LambdaHttpHandler fails.
+  description = "Lambda handler (JVM managed runtime). Boots Quarkus; Flyway runs at startup via the 'migrate' profile."
   type        = string
-  default     = "io.quarkus.amazon.lambda.http.LambdaHttpHandler::handleRequest"
+  default     = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
 }
 
 variable "memory_size" {

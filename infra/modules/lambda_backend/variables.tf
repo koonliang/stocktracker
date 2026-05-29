@@ -4,9 +4,13 @@ variable "name_prefix" {
 }
 
 variable "handler" {
-  description = "Lambda handler. Default targets quarkus-amazon-lambda-http."
+  # QuarkusStreamHandler is the JVM managed-runtime entry point: it boots the
+  # Quarkus application and dispatches events into the HTTP layer. Pointing at
+  # the inner LambdaHttpHandler directly never boots Quarkus ("No virtual
+  # channel available"). Matches Quarkus' generated sam.jvm.yaml.
+  description = "Lambda handler. Default targets quarkus-amazon-lambda-http (JVM managed runtime)."
   type        = string
-  default     = "io.quarkus.amazon.lambda.http.LambdaHttpHandler::handleRequest"
+  default     = "io.quarkus.amazon.lambda.runtime.QuarkusStreamHandler::handleRequest"
 }
 
 variable "memory_size" {
