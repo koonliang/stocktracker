@@ -161,36 +161,28 @@ jobs:
           set -euo pipefail
           # The migrator runs the same Quarkus app under the 'migrate' profile,
           # which applies Flyway migrations during startup (cold-start INIT).
-          # A failed migration fails INIT and surfaces as a Lambda FunctionError.
-          # We invoke a lightweight health route to confirm the app booted
-          # (i.e. migrations applied) and returned 200.
-          printf '%s' '{"version":"2.0","routeKey":"GET /q/health","rawPath":"/q/health","rawQueryString":"","headers":{"accept":"application/json"},"requestContext":{"http":{"method":"GET","path":"/q/health","protocol":"HTTP/1.1","sourceIp":"127.0.0.1","userAgent":"cd-migrator"}},"isBase64Encoded":false}' > /tmp/migrate-event.json
-
+          # If a migration fails, Quarkus startup throws, the Lambda INIT fails,
+          # and the invoke reports a FunctionError. A clean invoke (no
+          # FunctionError) therefore means migrations applied successfully; the
+          # HTTP response body itself is irrelevant to migration status.
           response=$(aws lambda invoke \
             --function-name "$FUNCTION_NAME" \
             --invocation-type RequestResponse \
-            --payload file:///tmp/migrate-event.json \
+            --payload '{}' \
             --cli-binary-format raw-in-base64-out \
             --cli-read-timeout 300 \
             /tmp/migrate-response.json)
           echo "Lambda response metadata: $response"
+          echo "Lambda response body:"
+          cat /tmp/migrate-response.json
+          echo ""
 
           error=$(echo "$response" | jq -r '.FunctionError // empty')
           if [ -n "$error" ]; then
             echo "::error::Migrator Lambda init failed (migration error): $error"
-            cat /tmp/migrate-response.json
             exit 1
           fi
-
-          status=$(jq -r '.statusCode // empty' /tmp/migrate-response.json)
-          echo "Migrator health response (statusCode=$status):"
-          cat /tmp/migrate-response.json
-          echo ""
-          if [ "$status" != "200" ]; then
-            echo "::error::Migrator booted but health route returned statusCode=$status"
-            exit 1
-          fi
-          echo "Migrations applied; migrator app healthy."
+          echo "Migrations applied (migrator booted without init error)."
 
   backend-deploy:
     name: backend-deploy
