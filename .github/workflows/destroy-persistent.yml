@@ -1,0 +1,68 @@
+name: Destroy (persistent)
+
+# Manual-only, no schedule. Destroys the persistent stack — CloudFront
+# distribution + frontend S3 bucket. CloudFront disable-and-delete takes
+# 10-20 min. Use only when wiping the project entirely; for normal session
+# teardown, use destroy.yml (ephemeral stack only).
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DESTROY-PERSISTENT to proceed'
+        required: true
+        type: string
+
+concurrency:
+  group: cd-persistent-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation token
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          if [ "$CONFIRM" != "DESTROY-PERSISTENT" ]; then
+            echo "Refusing to run: confirm input must be the literal string DESTROY-PERSISTENT." >&2
+            exit 1
+          fi
+
+  terraform-destroy:
+    name: terraform-destroy (persistent)
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra/envs/production-persistent
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform destroy
+        env:
+          TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+        run: terraform destroy -input=false -auto-approve -lock-timeout=30m

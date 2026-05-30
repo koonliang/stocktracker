@@ -69,7 +69,6 @@
       <artifactId>commons-csv</artifactId>
       <version>1.11.0</version>
     </dependency>
-
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>

@@ -68,6 +68,12 @@ function messageFromError(error: unknown): string {
 }
 
 function applyDashboard(response: DashboardResponse) {
+  // Guard against a malformed body (e.g. an HTML SPA-fallback page served with
+  // a 200 when the API URL is misconfigured). Without this the store would set
+  // holdings = undefined and the dashboard would crash on `holdings.length`.
+  if (!response || !Array.isArray(response.holdings) || response.summary == null) {
+    throw new Error('Unexpected dashboard response from the server.');
+  }
   return {
     holdings: response.holdings,
     summary: response.summary,

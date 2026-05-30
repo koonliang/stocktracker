@@ -36,6 +36,48 @@ Quarkus Dev Services will provision an ephemeral database.
 ./mvnw -DskipTests compile
 ```
 
+## Database migrations
+
+Migrations use [Flyway](https://flywaydb.org/) and live in
+`src/main/resources/db/migration/`.
+
+### Filename pattern
+
+```
+V<version>__<description>.sql
+```
+
+Example: `V2__add_dividends_column.sql`
+
+### Conventions
+
+- **Forward-only**: never edit or delete a migration that has been merged to
+  `main`. Fix mistakes with a new migration.
+- **Non-destructive**: prefer `ADD COLUMN` with defaults over `DROP COLUMN`.
+  If a column must be removed, do it in a separate migration after the
+  application code no longer references it.
+- **Idempotent where possible**: use `IF NOT EXISTS` / `IF EXISTS` guards.
+- **No data transformations in DDL migrations**: separate schema changes from
+  large data backfills to keep migration time predictable.
+
+### How migrations run in production
+
+On every merge to `main`, the CD pipeline invokes a dedicated **migrator
+Lambda** before promoting the new application code. The migrator runs the same
+deployment artifact under the `migrate` Quarkus profile, which applies Flyway
+migrations at startup (`quarkus.flyway.migrate-at-start`). The backend HTTP
+Lambda has migration-at-start disabled (`QUARKUS_FLYWAY_MIGRATE_AT_START=false`)
+so schema changes only ever apply through the migrator.
+If the migration fails, the migrator's startup fails and the application Lambda
+alias is **not** updated, so the previous version keeps serving. See
+[quickstart.md](../specs/003-ci-cd-aws/quickstart.md) for troubleshooting.
+
+### Local development
+
+Flyway runs automatically on startup (`quarkus.flyway.migrate-at-start=true`).
+With `docker compose up --build` from the repo root, the MySQL container is
+provisioned and migrations apply on first backend boot.
+
 ## Local stack verification
 
 After `docker compose up --build` from the repository root:

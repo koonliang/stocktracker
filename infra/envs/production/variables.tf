@@ -4,33 +4,23 @@ variable "aws_region" {
   default     = "ap-southeast-1"
 }
 
-variable "domain_name" {
-  description = "Apex domain that hosts `app.<domain>` (frontend) and `api.<domain>` (backend). Empty disables the custom domain + Cloudflare wiring (see infra/README.md)."
-  type        = string
-  default     = ""
-}
-
-variable "acm_certificate_arn" {
-  description = "ACM certificate ARN in the same region — required when domain_name is set."
-  type        = string
-  default     = ""
-}
-
-variable "cloudflare_zone_id" {
-  description = "Cloudflare zone ID for `domain_name`. Required when domain_name is set."
-  type        = string
-  default     = ""
-}
-
-variable "cloudflare_api_token" {
-  description = "Cloudflare API token. The default is a placeholder that lets `terraform plan` succeed without configuration when the cloudflare module is disabled (no domain_name). Override via TF_VAR_cloudflare_api_token (or a tfvars file) before any apply that touches Cloudflare resources."
-  type        = string
-  default     = "plan-only-placeholder-not-valid-for-api-calls"
-  sensitive   = true
-}
-
 variable "provisioned_concurrency" {
   description = "Provisioned concurrency on the application Lambda's `production` alias. 0 disables it."
   type        = number
   default     = 0
+}
+
+variable "rds_master_password" {
+  description = "Master password for the RDS MySQL instance (8-41 chars; no '/', '\"', '@', or spaces)."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition = (
+      length(var.rds_master_password) >= 8 &&
+      length(var.rds_master_password) <= 41 &&
+      can(regex("^[^/@\" ]+$", var.rds_master_password))
+    )
+    error_message = "rds_master_password must be 8-41 characters and must not contain '/', '\"', '@', or spaces (RDS MySQL constraints). Check the RDS_MASTER_PASSWORD GitHub Actions secret."
+  }
 }

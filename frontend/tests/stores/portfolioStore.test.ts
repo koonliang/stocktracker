@@ -1,5 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePortfolioStore } from '@/stores/portfolioStore';
+import { getDashboard } from '@/api/dashboardApi';
+
+vi.mock('@/api/dashboardApi', () => ({
+  getDashboard: vi.fn(),
+}));
+
+const getDashboardMock = vi.mocked(getDashboard);
 
 function reset() {
   localStorage.clear();
@@ -9,6 +16,36 @@ function reset() {
 describe('portfolioStore', () => {
   beforeEach(reset);
   afterEach(reset);
+
+  describe('loadDashboard', () => {
+    afterEach(() => getDashboardMock.mockReset());
+
+    it('sets success state for a well-formed response', async () => {
+      const summary = {
+        totalMarketValue: 100,
+        totalCostBasis: 90,
+        totalUnrealizedPnL: 10,
+        totalUnrealizedPnLPct: 0.11,
+        totalDayChange: 1,
+        totalDayChangePct: 0.01,
+      };
+      getDashboardMock.mockResolvedValue({ holdings: [], summary });
+      await usePortfolioStore.getState().loadDashboard();
+      const state = usePortfolioStore.getState();
+      expect(state.dashboardStatus).toBe('success');
+      expect(state.summary).toEqual(summary);
+    });
+
+    it('sets error state (not a crash) for a malformed response', async () => {
+      // e.g. an HTML SPA-fallback page returned with a 200 when the API URL
+      // is misconfigured — holdings is not an array.
+      getDashboardMock.mockResolvedValue('<!doctype html>' as never);
+      await usePortfolioStore.getState().loadDashboard();
+      const state = usePortfolioStore.getState();
+      expect(state.dashboardStatus).toBe('error');
+      expect(state.error).toBeTruthy();
+    });
+  });
 
   it('addTransaction appends with a generated id', () => {
     const store = usePortfolioStore.getState();

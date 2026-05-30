@@ -51,7 +51,7 @@ jobs:
     outputs:
       lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
       frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
-      cloudflare_zone_id: ${{ steps.outputs.outputs.cloudflare_zone_id }}
+      cloudfront_distribution_id: ${{ steps.outputs.outputs.cloudfront_distribution_id }}
       public_frontend_url: ${{ steps.outputs.outputs.public_frontend_url }}
     defaults:
       run:
@@ -78,10 +78,12 @@ jobs:
         id: outputs
         run: |
           set -euo pipefail
-          for k in lambda_function_name frontend_bucket_name cloudflare_zone_id public_frontend_url; do
+          for k in lambda_function_name frontend_bucket_name cloudfront_distribution_id; do
             v=$(terraform output -raw "$k" 2>/dev/null || true)
             echo "$k=$v" >> "$GITHUB_OUTPUT"
           done
+          domain=$(terraform output -raw cloudfront_domain_name 2>/dev/null || true)
+          echo "public_frontend_url=https://${domain}" >> "$GITHUB_OUTPUT"
 
   backend-deploy:
     name: backend-deploy
@@ -160,20 +162,10 @@ jobs:
         run: |
           aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete
 
-      - name: Purge Cloudflare cache
-        if: needs.fetch-targets.outputs.cloudflare_zone_id != ''
+      - name: Invalidate CloudFront cache
         env:
-          ZONE_ID: ${{ needs.fetch-targets.outputs.cloudflare_zone_id }}
-          PUBLIC_URL: ${{ needs.fetch-targets.outputs.public_frontend_url }}
+          DIST_ID: ${{ needs.fetch-targets.outputs.cloudfront_distribution_id }}
         run: |
-          set -euo pipefail
-          TOKEN=$(aws secretsmanager get-secret-value \
-            --secret-id stocktracker/cloudflare/api_token \
-            --query SecretString --output text)
-          echo "::add-mask::$TOKEN"
-          curl --fail --silent --show-error \
-            -X POST "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            --data "{\"files\":[\"${PUBLIC_URL}/\",\"${PUBLIC_URL}/index.html\"]}" \
-            > /dev/null
+          aws cloudfront create-invalidation \
+            --distribution-id "$DIST_ID" \
+            --paths "/" "/index.html" >/dev/null

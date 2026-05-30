@@ -9,10 +9,10 @@ Alternatives** format.
 ## R-001: API Gateway in front of Lambda? (User question)
 
 **Decision**: Yes — use **AWS API Gateway HTTP API** in front of the backend
-Lambda. Path: `Browser → Cloudflare (frontend only) → S3` for the static site,
-and `Browser → API Gateway HTTP API → Lambda → MySQL RDS (private)` for the API.
-The frontend calls the API at a separate `api.<domain>` host that resolves to
-API Gateway directly (not via Cloudflare) for v1.
+Lambda. Path: `Browser → CloudFront → S3 (private origin, OAC)` for the static
+site, and `Browser → API Gateway HTTP API → Lambda → MySQL RDS (private)` for
+the API. v1 uses the default CloudFront and API Gateway hostnames (no custom
+domain).
 
 **Rationale**:
 
@@ -31,12 +31,11 @@ API Gateway directly (not via Cloudflare) for v1.
    but not identical) event shape; supporting it requires a different adapter
    path and forfeits some Quarkus-supported features (e.g., the bundled
    `awslambda-deployment` profile is tuned for API Gateway).
-4. **It decouples the API edge from Cloudflare.** The frontend is served via
-   Cloudflare-fronted S3; if we *also* fronted the API with Cloudflare, browser
-   CORS / cookie semantics still need to be handled at the API layer, and we
-   double up on edge platforms. Keeping the API edge on AWS makes the failure
-   domain smaller (one provider per concern) and avoids Cloudflare's caching
-   ever interfering with non-idempotent API responses by accident.
+4. **Single-provider edge.** Both frontend (CloudFront → S3) and API (API
+   Gateway → Lambda) live entirely within AWS. One IAM model, one billing
+   surface, one set of logs. CloudFront does not sit in front of the API
+   either — keeping the API edge on API Gateway avoids extra latency for
+   non-idempotent traffic and keeps the failure domain small.
 5. **It opens upgrade paths cheaply.** WAF, usage plans, custom authorizers,
    and per-route throttling are configuration, not rework, if we ever need
    them. Function URLs cannot grow into these without bolting on CloudFront.
@@ -59,10 +58,10 @@ API Gateway directly (not via Cloudflare) for v1.
   designed for long-lived containers/instances, costs ~$16/month minimum even
   idle, and gives us no API-shaped features (throttling per route, request
   validation). Reasonable for hybrid container+Lambda fleets; overkill here.
-- **Cloudflare Workers / Cloudflare in front of API too.** *Rejected for v1* —
-  introduces a second edge platform on the API path with minimal benefit at our
-  scale and traffic profile. Worth revisiting if we ever need geo-routing,
-  edge auth, or a unified edge for both frontend and API.
+- **CloudFront in front of API Gateway as well.** *Rejected for v1* — adds
+  edge latency for non-idempotent API traffic, requires extra cache-bypass
+  configuration, and provides no benefit until we want a custom domain
+  shared between frontend and API. Revisit if a unified edge is ever needed.
 
 **Considerations / trade-offs to be aware of**:
 
@@ -70,8 +69,10 @@ API Gateway directly (not via Cloudflare) for v1.
   sustained that is ~$2.59/day for API Gateway alone — acceptable.
 - **Cold start**: API Gateway adds < 10 ms overhead; the dominant cost is the
   Quarkus JVM cold start. Mitigation: see R-003.
-- **CORS**: Configured at the HTTP API stage (allowed origins =
-  `https://<frontend-host>`). Handled in Terraform; no app-side code needed.
+- **CORS**: Configured at the HTTP API stage. Allowed origin is sourced from
+  the persistent stack's `cloudfront_domain_name` output via
+  `terraform_remote_state` so the value is always in sync with the live
+  CloudFront distribution. Handled in Terraform; no app-side code needed.
 - **Auth**: For v1 the API is unauthenticated (the spec deferred end-user auth).
   When auth is added, an HTTP API JWT authorizer is the natural extension.
 - **Observability**: API Gateway access logs → CloudWatch Logs; Lambda logs →
@@ -238,45 +239,53 @@ level.
 ## R-009: Frontend protection — preventing direct S3 access
 
 **Decision**: S3 bucket is **private** (no public ACL, public access fully
-blocked). A Cloudflare-only access path is enforced by:
+blocked). Access is restricted to the CloudFront distribution via **Origin
+Access Control (OAC)**:
 
-1. The S3 bucket policy allowing `s3:GetObject` only when the request includes
-   a custom header `X-Origin-Auth: <shared-secret>`.
-2. A Cloudflare Transform Rule that injects `X-Origin-Auth` on every request
-   forwarded to the S3 origin.
-3. The shared secret stored in AWS Secrets Manager and referenced by
-   Terraform; rotation is a Terraform-applied change.
+1. CloudFront signs origin requests with SigV4 using a service principal of
+   `cloudfront.amazonaws.com`.
+2. The S3 bucket policy allows `s3:GetObject` only when the principal is
+   `cloudfront.amazonaws.com` AND the `aws:SourceArn` condition matches the
+   distribution ARN.
+3. The bucket uses the S3 REST endpoint as the CloudFront origin (not the
+   website endpoint). SPA fallback (404 → `/index.html`) is handled by
+   CloudFront custom error responses, not S3 website routing.
 
-**Rationale**: Satisfies FR-009 ("direct public access to S3 should be
-restricted") with a mechanism that is straightforward in Terraform, has no
-runtime cost, and does not require AWS-side signing (e.g., CloudFront OAC).
-Defense-in-depth: even if someone discovers the S3 bucket, requests without
-the header return 403.
+**Rationale**: AWS-native, no shared secrets, no second-vendor injection rule.
+Satisfies FR-009 with a mechanism that is straightforward in Terraform and
+has no runtime cost.
 
 **Alternatives considered**:
 
-- **CloudFront OAC + Cloudflare in front.** Doubles up on CDN; CloudFront's
-  signed-URL semantics complicate static asset caching at Cloudflare.
+- **Legacy Origin Access Identity (OAI).** Older mechanism, superseded by
+  OAC, which supports SSE-KMS and all S3 regions including newer ones.
+- **Shared-secret header injected by CloudFront origin custom headers.**
+  Works, but introduces a secret that has to live in Secrets Manager and
+  rotate. OAC removes that burden.
 - **Public S3 website.** Rejected — violates FR-009.
 
 ---
 
-## R-010: Cloudflare cache invalidation on deploy
+## R-010: CloudFront cache invalidation on deploy
 
 **Decision**: After uploading the new frontend bundle to S3, the CD workflow
-calls the Cloudflare API to **purge the entire zone** for the
-`frontend.<domain>` host. Vite emits hashed asset filenames, so the only
-non-hashed asset that needs invalidation is `index.html`; we purge by URL for
-`index.html` plus the root `/` to keep the blast radius small.
+runs `aws cloudfront create-invalidation --distribution-id "$DIST_ID"
+--paths "/" "/index.html"`. Vite emits hashed asset filenames, so the only
+non-hashed asset that needs invalidation is `index.html`; the root `/` is
+included so the default-root-object lookup also picks up the new file.
 
-**Rationale**: Surgical purge (single-URL) avoids invalidating long-lived
-hashed assets and matches SC-007 (< 5 min user-visible refresh).
+**Rationale**: Surgical purge avoids invalidating long-lived hashed assets
+and stays within the always-free 1 000 invalidation paths/month budget
+(every deploy uses 2 paths). Matches SC-007 (< 5 min user-visible refresh).
+The deploy IAM role's `cloudfront:CreateInvalidation` permission is enough —
+no API token, no second-vendor secret.
 
 **Alternatives considered**:
 
-- **Full zone purge.** Simple, but invalidates other paths unnecessarily.
-- **Cache TTL = 0 on `index.html`.** Works but tightens TTL globally; per-
-  deploy purge is more controlled.
+- **Wildcard invalidation `/*`.** Same effect, but counts as 1 path; works,
+  but invalidates hashed assets unnecessarily on every deploy.
+- **Cache TTL = 0 on `index.html`.** Works but tightens TTL globally;
+  per-deploy invalidation is more controlled.
 
 ---
 
@@ -286,6 +295,18 @@ hashed assets and matches SC-007 (< 5 min user-visible refresh).
 versioning enabled and SSE-S3 encryption. Both resources live in a
 **bootstrap** Terraform configuration applied once manually before any
 environment can be provisioned.
+
+The production environment is split across two state files in the same
+backend bucket so their lifecycles can be managed independently:
+
+- `production/persistent.tfstate` — CloudFront distribution, OAC, frontend
+  S3 bucket. Provisioned once and left up between test sessions because
+  CloudFront takes 10–20 min to disable-and-delete and is free at idle.
+- `production/terraform.tfstate` — VPC, NAT, RDS, Lambda, API Gateway,
+  Secrets Manager, security groups. Applied at the start of each test
+  session and destroyed at the end to stop NAT/RDS hourly charges. Reads
+  the persistent state via `terraform_remote_state` to source the
+  CloudFront domain for API Gateway CORS.
 
 **Rationale**: Standard pattern; satisfies FR-018.
 
@@ -299,19 +320,31 @@ environment can be provisioned.
 
 ## R-012: Pipeline structure (workflow files)
 
-**Decision**: Three workflows.
+**Decision**: Six workflows.
 
-- `ci.yml` — triggered on `pull_request` to `main`. Jobs: `backend-test`,
-  `frontend-test`, `terraform-plan` (only when `infra/**` changes), and a
-  required `gates` job that depends on all of the above. Forks: jobs run with
-  read-only credentials (no OIDC AWS role assumption); `terraform-plan` is
-  skipped on fork PRs.
-- `cd.yml` — triggered on `push` to `main`. Jobs: `terraform-apply`,
-  `db-migrate`, `backend-deploy`, `frontend-deploy`, `smoke`. The
-  `concurrency: production` group ensures only one CD run per environment.
-- `rollback.yml` — `workflow_dispatch` with a `commit_sha` input. Re-runs
-  `cd.yml`'s deploy steps using the artifact built from that SHA (artifacts
-  are retained for 30 days in GitHub Actions).
+- `ci.yml` — `pull_request` to `main`. Jobs: `backend-test`, `frontend-test`,
+  `terraform-plan` (matrix across both stacks; persistent or ephemeral plans
+  run only when their respective paths change), and a required `gates` job.
+  Fork PRs run tests only; no AWS role assumption.
+- `cd.yml` — `push` to `main`. Applies the **ephemeral** stack
+  (`infra/envs/production/`), runs migrations, deploys backend, deploys
+  frontend (`aws s3 sync` + `aws cloudfront create-invalidation`), and runs
+  smoke tests. Reads `cloudfront_distribution_id` and `frontend_bucket_name`
+  from the persistent stack via `terraform output`. `concurrency: production`
+  serializes runs.
+- `cd-persistent.yml` — `push` to `main` filtered to
+  `infra/envs/production-persistent/**` and `infra/modules/{cloudfront,frontend_bucket}/**`,
+  plus `workflow_dispatch`. Applies the persistent stack only.
+- `destroy.yml` — `workflow_dispatch`. Destroys the **ephemeral** stack only.
+  The persistent stack is intentionally untouched so subsequent re-applies
+  skip the CloudFront 10–20 min wait.
+- `destroy-persistent.yml` — `workflow_dispatch` only, no schedule. Full wipe
+  of the persistent stack. Used only when the project is being torn down.
+- `drift-check.yml` — scheduled. Matrix across both stacks; reports drift in
+  either.
+- `rollback.yml` — `workflow_dispatch` with a `commit_sha` input. Re-runs the
+  ephemeral deploy steps using the artifact built from that SHA, including
+  the CloudFront invalidation.
 
 **Rationale**: Matches FR-001 / FR-006 / FR-013 / FR-014 directly. Splitting
 CI from CD makes status checks composable and lets fork PRs run safely.
@@ -356,8 +389,9 @@ be planned, tasked, or implemented:
 - Blue/green or canary deployment strategies (the alias-pointer swap on a
   failed deploy is the only "safety" mechanism)
 - Auto-scaling RDS, read replicas, or Aurora migration
-- WAF rules on API Gateway
-- Custom Cloudflare Workers
+- WAF rules on API Gateway or CloudFront (Shield Standard is on by default)
+- Custom domain, Route 53 zone, ACM certificate (default cloudfront.net and
+  execute-api hostnames are used in v1)
 - End-user authentication (deferred to a later spec)
 - SnapStart / GraalVM native image (revisit after v1 metrics)
 - Disaster recovery automation beyond RDS automated backups

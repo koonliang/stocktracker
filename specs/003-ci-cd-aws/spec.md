@@ -3,7 +3,7 @@
 **Feature Branch**: `003-ci-cd-aws`
 **Created**: 2026-05-01
 **Status**: Draft
-**Input**: User description: "CI feature: github action for PR creation and merge to main. CD feature to AWS via terraform: deploy backend to AWS lambda, provision MySQL RDS, frontend to S3 bucket. Frontend flow: Cloudflare CDN -> S3. Backend flow: Lambda -> MySQL"
+**Input**: User description: "CI feature: github action for PR creation and merge to main. CD feature to AWS via terraform: deploy backend to AWS lambda, provision MySQL RDS, frontend to S3 bucket. Frontend flow: CloudFront CDN -> S3 (private origin, OAC). Backend flow: Lambda -> MySQL"
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -34,7 +34,7 @@ As a maintainer, when a PR is merged into `main`, the latest backend and fronten
 **Acceptance Scenarios**:
 
 1. **Given** a commit lands on `main`, **When** the deployment pipeline runs, **Then** the backend artifact is deployed to AWS Lambda and the frontend bundle is uploaded to S3.
-2. **Given** the frontend has been deployed, **When** an end user requests the site URL, **Then** the response is served via Cloudflare CDN backed by the S3 origin.
+2. **Given** the frontend has been deployed, **When** an end user requests the site URL, **Then** the response is served via AWS CloudFront backed by the private S3 origin.
 3. **Given** a deployment fails partway through, **When** the pipeline detects the failure, **Then** it halts subsequent steps, surfaces the error, and leaves the previously running version serving traffic.
 4. **Given** a deployment completes, **When** a smoke check runs against the public URL and a backend health endpoint, **Then** both return success before the deployment is marked complete.
 
@@ -42,7 +42,7 @@ As a maintainer, when a PR is merged into `main`, the latest backend and fronten
 
 ### User Story 3 - Reproducible Infrastructure as Code (Priority: P2)
 
-As an operator, I can provision or rebuild the entire AWS environment (Lambda, MySQL RDS, S3 bucket, Cloudflare CDN linkage, networking, IAM) from version-controlled infrastructure definitions so that the environment is reproducible and auditable.
+As an operator, I can provision or rebuild the entire AWS environment (Lambda, MySQL RDS, S3 bucket, CloudFront distribution, networking, IAM) from version-controlled infrastructure definitions so that the environment is reproducible and auditable.
 
 **Why this priority**: Reproducibility, disaster recovery, and review-ability of infrastructure changes. Important but depends on US1/US2 being in place to be valuable.
 
@@ -90,7 +90,7 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 
 - A deployment is triggered while a previous one is still running — the pipeline must serialize or cancel-and-supersede deployments to avoid racing apply steps.
 - The frontend deploy succeeds but the backend deploy fails (or vice versa) — the system must surface partial-deploy state clearly and not present a mixed version to users without warning.
-- Cloudflare cache holds a stale frontend bundle after a new deploy — cache invalidation must run as part of the frontend deploy.
+- CloudFront cache holds a stale frontend bundle after a new deploy — a CloudFront invalidation must run as part of the frontend deploy.
 - The managed database is at capacity or unavailable during deploy — the pipeline must fail fast with an actionable error and not promote the new backend.
 - A pull request is opened from a fork — the pipeline must run validation checks but must not expose deployment credentials to untrusted code.
 - Rolling back: a deployment introduces a regression caught after merge — operators must be able to redeploy a prior known-good commit through the same pipeline.
@@ -113,8 +113,8 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 - **FR-006**: On every merge to `main`, the system MUST trigger a deployment pipeline that builds and deploys both the backend and frontend.
 - **FR-007**: The deployment pipeline MUST deploy the backend as an AWS Lambda function reachable over HTTPS by the frontend.
 - **FR-008**: The deployment pipeline MUST upload the built frontend bundle to an AWS S3 bucket configured as the static origin.
-- **FR-009**: End users MUST reach the frontend via Cloudflare CDN, with S3 as the origin; direct public access to the S3 origin SHOULD be restricted.
-- **FR-010**: After uploading new frontend assets, the deployment MUST invalidate the Cloudflare cache so users receive the new version.
+- **FR-009**: End users MUST reach the frontend via AWS CloudFront, with a private S3 bucket as the origin protected by Origin Access Control (OAC); direct public access to the S3 origin MUST be denied.
+- **FR-010**: After uploading new frontend assets, the deployment MUST issue a CloudFront invalidation for `/` and `/index.html` so users receive the new version.
 - **FR-011**: The deployment pipeline MUST run a post-deploy smoke check against the public frontend URL and a backend health endpoint, and MUST mark the deployment failed if either fails.
 - **FR-012**: If any deployment step fails, the system MUST halt subsequent steps and leave the previously running version serving traffic.
 - **FR-013**: Operators MUST be able to redeploy a previously merged commit through the same pipeline (rollback by re-deploy).
@@ -122,7 +122,8 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 
 #### Infrastructure as Code
 
-- **FR-015**: The AWS environment (Lambda, MySQL RDS, S3 bucket, Cloudflare-to-S3 linkage, networking, IAM roles/policies) MUST be defined as version-controlled Terraform configuration in the repository.
+- **FR-015**: The AWS environment (Lambda, MySQL RDS, S3 bucket, CloudFront distribution + OAC, networking, IAM roles/policies) MUST be defined as version-controlled Terraform configuration in the repository.
+- **FR-015a**: Terraform configuration MUST be split into two stacks with independent state: a **persistent** stack (CloudFront, frontend S3 bucket) that is provisioned once and left up between test sessions, and an **ephemeral** stack (VPC, RDS, Lambda, API Gateway, security groups) that can be provisioned and destroyed per session. The ephemeral stack reads persistent outputs via `terraform_remote_state`. The persistent stack MUST NOT depend on the ephemeral stack.
 - **FR-016**: The infrastructure pipeline MUST produce a plan/preview on PRs that touch infrastructure files and attach it to the PR for review.
 - **FR-017**: The infrastructure pipeline MUST apply approved changes only after merge to `main`.
 - **FR-018**: Terraform state MUST be stored in durable remote storage with locking to prevent concurrent modification.
@@ -173,7 +174,7 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 - The target cloud is a single AWS account and a single region for the initial production environment; multi-region is out of scope for v1.
 - Only one deployment environment (`production`) is required for v1; additional environments (staging, preview) may be added later using the same definitions.
 - The repository is hosted on GitHub and pipelines are implemented with GitHub Actions.
-- Cloudflare is already an account the team controls; provisioning the Cloudflare account itself is out of scope, but its DNS/CDN configuration for this site is in scope.
+- v1 uses the default `*.cloudfront.net` hostname for the frontend and the default API Gateway hostname for the API. No custom domain, Route 53 zone, or ACM certificate is provisioned. A custom domain may be added later without breaking the architecture.
 - Frontend assets are static; no server-side rendering is required.
 - The backend fits within AWS Lambda's runtime, package size, and cold-start tolerance limits established in earlier specs.
 - Database schema changes are non-destructive by default and applied forward-only via migrations; destructive changes require an explicit out-of-band process.
