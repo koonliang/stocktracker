@@ -44,29 +44,17 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Set up Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
       - name: Package backend Lambda
         run: bash scripts/package-lambda.sh
 
-      - name: Build frontend bundle
-        working-directory: frontend
-        run: |
-          npm ci
-          npm run build
-
+      # The frontend bundle is built in frontend-deploy (after terraform-apply),
+      # so it can bake in VITE_API_BASE_URL from the API Gateway invoke URL.
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-${{ env.DEPLOY_SHA }}
           path: |
             backend/target/function.zip
-            frontend/dist/**
           retention-days: 30
           if-no-files-found: error
 
@@ -243,22 +231,47 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
-      - name: Download artifact
-        uses: actions/download-artifact@v4
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
         with:
-          name: app-${{ env.DEPLOY_SHA }}
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Build with the live API Gateway URL baked in. Backend resources are
+      # served under /api/* (e.g. @Path("/api/dashboard")) and the frontend
+      # client appends resource paths to VITE_API_BASE_URL, so it must end /api.
+      - name: Build frontend bundle
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ needs.terraform-apply.outputs.api_invoke_url }}/api
+        run: |
+          npm ci
+          npm run build
 
       - name: Sync frontend bundle to S3
         env:
           BUCKET: ${{ needs.terraform-apply.outputs.frontend_bucket_name }}
         run: |
-          aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete
+          # Content-hashed assets are immutable — cache them for a year.
+          aws s3 sync frontend/dist/ "s3://${BUCKET}/" --delete \
+            --exclude "index.html" \
+            --cache-control "public, max-age=31536000, immutable"
+          # index.html is the entry point — never let a stale copy pin old
+          # asset hashes; always revalidate.
+          aws s3 cp frontend/dist/index.html "s3://${BUCKET}/index.html" \
+            --cache-control "no-cache, must-revalidate" \
+            --content-type "text/html"
 
       - name: Invalidate CloudFront cache
         env:
