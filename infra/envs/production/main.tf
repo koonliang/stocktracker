@@ -86,10 +86,10 @@ module "lambda_migrator" {
   log_retention_days = 14
 
   environment_variables = {
-    QUARKUS_PROFILE                 = "migrate"
-    QUARKUS_DATASOURCE_JDBC_URL     = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
-    QUARKUS_DATASOURCE_USERNAME     = "stocktracker"
-    QUARKUS_DATASOURCE_PASSWORD     = var.rds_master_password
+    QUARKUS_PROFILE                    = "migrate"
+    QUARKUS_DATASOURCE_JDBC_URL        = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
+    QUARKUS_DATASOURCE_USERNAME        = "stocktracker"
+    QUARKUS_DATASOURCE_PASSWORD        = var.rds_master_password
     STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "false"
   }
 }
