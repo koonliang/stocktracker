@@ -8,14 +8,12 @@ provider "aws" {
 
 # ---------- Locals ----------
 
-data "aws_caller_identity" "current" {}
 data "aws_availability_zones" "available" {
   state = "available"
 }
 
 locals {
   name_prefix = "stocktracker-production"
-  account_id  = data.aws_caller_identity.current.account_id
 
   # Two AZs, deterministic ordering so the subnet/AZ mapping is stable across
   # plans even if AWS reshuffles the response.
