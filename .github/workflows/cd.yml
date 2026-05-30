@@ -1,8 +1,8 @@
 name: CD
 
 on:
-  push:
-    branches: [main]
+  # Manual-only: deploys (incl. terraform apply of the ephemeral stack) are
+  # triggered deliberately, not on every merge to main, to control cost.
   workflow_dispatch:
     inputs:
       commit_sha:
