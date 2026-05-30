@@ -132,6 +132,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-${{ env.DEPLOY_SHA }}
+          # Single-file artifact unpacks to function.zip at the root; restore the
+          # backend/target/ prefix the deploy commands expect.
+          path: backend/target
 
       - name: Upload migrator code
         env:
@@ -192,6 +195,9 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: app-${{ env.DEPLOY_SHA }}
+          # Single-file artifact unpacks to function.zip at the root; restore the
+          # backend/target/ prefix the deploy commands expect.
+          path: backend/target
 
       - name: Update function code
         env:
