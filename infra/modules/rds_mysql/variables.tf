@@ -43,12 +43,6 @@ variable "master_username" {
   default     = "stocktracker"
 }
 
-variable "master_password" {
-  description = "Master DB password."
-  type        = string
-  sensitive   = true
-}
-
 variable "backup_retention_days" {
   description = "Automated backup retention (days)."
   type        = number

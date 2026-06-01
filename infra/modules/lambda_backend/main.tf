@@ -49,13 +49,14 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Read access to the project's namespaced secrets only.
+# Read access to the project's namespaced secrets and the RDS-managed
+# credential secret (its ARN sits outside the stocktracker/* namespace).
 data "aws_iam_policy_document" "secrets_read" {
   statement {
     sid       = "ReadProjectSecrets"
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [var.secrets_arn_pattern]
+    resources = compact([var.secrets_arn_pattern, var.datasource_password_secret_arn])
   }
 }
 
@@ -83,6 +84,11 @@ resource "aws_lambda_function" "this" {
   timeout       = var.timeout_seconds
   architectures = ["x86_64"]
   publish       = true
+
+  # AWS Parameters and Secrets Lambda Extension: caches the RDS-managed secret
+  # behind a localhost endpoint so Quarkus resolves the DB password once per
+  # container without a direct Secrets Manager round-trip per request.
+  layers = var.secrets_extension_layer_arn != "" ? [var.secrets_extension_layer_arn] : null
 
   filename         = data.archive_file.placeholder.output_path
   source_code_hash = data.archive_file.placeholder.output_base64sha256

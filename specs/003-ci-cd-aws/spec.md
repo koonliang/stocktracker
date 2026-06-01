@@ -5,6 +5,15 @@
 **Status**: Draft
 **Input**: User description: "CI feature: github action for PR creation and merge to main. CD feature to AWS via terraform: deploy backend to AWS lambda, provision MySQL RDS, frontend to S3 bucket. Frontend flow: CloudFront CDN -> S3 (private origin, OAC). Backend flow: Lambda -> MySQL"
 
+## Clarifications
+
+### Session 2026-06-01
+
+- Q: How should the RDS MySQL master password be coordinated with the Secrets Manager secret that Lambda reads? → A: RDS-managed secret (`manage_master_user_password = true`); RDS owns the secret in Secrets Manager and Lambda reads that RDS-managed secret ARN.
+- Q: When the DB master password is rotated, how should the running backend Lambda pick up the new value? → A: On the next deploy / cold start; the secret is resolved at startup and cached for the container lifetime (no in-lifetime refresh).
+- Q: What scope should the gitleaks secret-scan gate cover on PRs? → A: Full git history (scan the entire repository on each PR, not just the PR diff).
+- Q: Are there any other runtime third-party secrets the backend needs in v1? → A: None. The RDS-managed DB password is the only runtime secret. The existing `RDS_MASTER_PASSWORD` GitHub repo secret is interim and MUST be removed once Phase 7 (RDS-managed secret) is implemented.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Automated PR Validation (Priority: P1)
@@ -82,7 +91,7 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 **Acceptance Scenarios**:
 
 1. **Given** the pipeline needs cloud credentials, **When** a job runs, **Then** it obtains short-lived credentials via a federated identity rather than long-lived static keys.
-2. **Given** the backend needs a database password, **When** Lambda starts, **Then** it retrieves the value from the managed secret store at runtime.
+2. **Given** the backend needs a database password, **When** Lambda starts, **Then** it retrieves the value from the managed secret store at runtime and caches it for the container lifetime; a rotated password is picked up on the next deploy or cold start.
 
 ---
 
@@ -140,7 +149,10 @@ As an operator, sensitive values (database credentials, API keys, deployment cre
 
 - **FR-024**: Pipeline jobs that act on AWS MUST authenticate via a federated identity that issues short-lived credentials (e.g., OIDC), not long-lived static access keys.
 - **FR-025**: Runtime secrets (database credentials, third-party API keys) MUST be retrieved from a managed secret store and MUST NOT be committed to the repository.
+- **FR-025a**: The RDS master password MUST be an RDS-managed secret (`manage_master_user_password = true`) so that RDS owns and stores the credential in Secrets Manager; the plaintext password MUST NOT appear in Terraform state. The backend Lambda reads this RDS-managed secret ARN at runtime. The DB master password is the only runtime secret in v1; no other third-party API keys are in scope.
+- **FR-025b**: The interim `RDS_MASTER_PASSWORD` GitHub Actions repository secret MUST be removed once the RDS-managed secret path (Phase 7) is in place, leaving no statically-stored DB password outside Secrets Manager.
 - **FR-026**: Pipeline logs MUST NOT print secret values, and the pipeline MUST mask or redact known secret variables.
+- **FR-026a**: The PR pipeline MUST run an automated secret scan over the full git history (not only the PR diff) and fail the required check if any plaintext secret is detected.
 
 #### Observability
 

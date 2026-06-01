@@ -35,7 +35,12 @@ resource "aws_db_instance" "this" {
 
   db_name  = var.db_name
   username = var.master_username
-  password = var.master_password
+
+  # RDS owns the master credential and stores it in Secrets Manager — no
+  # plaintext password in Terraform state or variables (spec FR-025a). The
+  # generated secret ARN is exposed via the master_user_secret_arn output for
+  # the Lambda to read at runtime.
+  manage_master_user_password = true
 
   db_subnet_group_name   = aws_db_subnet_group.this.name
   parameter_group_name   = aws_db_parameter_group.this.name

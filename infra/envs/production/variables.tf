@@ -10,17 +10,9 @@ variable "provisioned_concurrency" {
   default     = 0
 }
 
-variable "rds_master_password" {
-  description = "Master password for the RDS MySQL instance (8-41 chars; no '/', '\"', '@', or spaces)."
+variable "secrets_extension_layer_arn" {
+  description = "ARN of the AWS Parameters and Secrets Lambda Extension layer (region/account-specific). Attached to the backend and migrator Lambdas so they resolve the RDS-managed DB password from the cached localhost endpoint."
   type        = string
-  sensitive   = true
-
-  validation {
-    condition = (
-      length(var.rds_master_password) >= 8 &&
-      length(var.rds_master_password) <= 41 &&
-      can(regex("^[^/@\" ]+$", var.rds_master_password))
-    )
-    error_message = "rds_master_password must be 8-41 characters and must not contain '/', '\"', '@', or spaces (RDS MySQL constraints). Check the RDS_MASTER_PASSWORD GitHub Actions secret."
-  }
+  # ap-southeast-1, x86_64. See https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieving-secrets_lambda.html
+  default = "arn:aws:lambda:ap-southeast-1:044395824272:layer:AWS-Parameters-and-Secrets-Lambda-Extension:11"
 }

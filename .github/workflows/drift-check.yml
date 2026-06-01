@@ -54,7 +54,6 @@ jobs:
         env:
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
-          TF_VAR_rds_master_password: ${{ secrets.RDS_MASTER_PASSWORD }}
         run: |
           set +e
           terraform plan -input=false -no-color -lock-timeout=5m \
