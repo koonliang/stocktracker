@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -73,26 +74,67 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
     return SECRET_ARN != null && !SECRET_ARN.isBlank();
   }
 
+  // The extension opens its localhost port before it finishes registering with
+  // the Lambda runtime, so a call made during Quarkus config validation (Lambda
+  // INIT phase) can land before the extension is ready to serve secrets. Retry
+  // briefly to ride out that startup window.
+  private static final int MAX_ATTEMPTS = 10;
+  private static final Duration RETRY_DELAY = Duration.ofMillis(500);
+
   private String fetchPassword() {
-    try {
-      String token = System.getenv("AWS_SESSION_TOKEN");
-      HttpRequest request =
-          HttpRequest.newBuilder()
-              .uri(
-                  URI.create(
-                      "http://localhost:2773/secretsmanager/get?secretId="
-                          + URLEncoder.encode(SECRET_ARN, StandardCharsets.UTF_8)))
-              .header("X-Aws-Parameters-Secrets-Token", token == null ? "" : token)
-              .GET()
-              .build();
-      HttpResponse<String> response =
-          HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
-      if (response.statusCode() != 200) {
-        throw new IllegalStateException(
-            "Secrets Manager extension returned HTTP " + response.statusCode());
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+    String token = System.getenv("AWS_SESSION_TOKEN");
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(
+                URI.create(
+                    "http://localhost:2773/secretsmanager/get?secretId="
+                        + URLEncoder.encode(SECRET_ARN, StandardCharsets.UTF_8)))
+            .header("X-Aws-Parameters-Secrets-Token", token == null ? "" : token)
+            .timeout(Duration.ofSeconds(5))
+            .GET()
+            .build();
+
+    RuntimeException lastFailure = null;
+    for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        HttpResponse<String> response =
+            client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+          return extractPassword(response.body());
+        }
+        lastFailure =
+            new IllegalStateException(
+                "Secrets Manager extension returned HTTP "
+                    + response.statusCode()
+                    + ": "
+                    + response.body());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Interrupted resolving datasource password", e);
+      } catch (Exception e) {
+        lastFailure = new IllegalStateException("Secrets Manager extension request failed", e);
       }
+      if (attempt < MAX_ATTEMPTS) {
+        try {
+          Thread.sleep(RETRY_DELAY.toMillis());
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("Interrupted resolving datasource password", e);
+        }
+      }
+    }
+    throw new IllegalStateException(
+        "Failed to resolve datasource password from Secrets Manager extension after "
+            + MAX_ATTEMPTS
+            + " attempts",
+        lastFailure);
+  }
+
+  private String extractPassword(String body) {
+    try {
       ObjectMapper mapper = new ObjectMapper();
-      JsonNode secretString = mapper.readTree(response.body()).get("SecretString");
+      JsonNode secretString = mapper.readTree(body).get("SecretString");
       if (secretString == null) {
         throw new IllegalStateException("Secret response missing 'SecretString'");
       }
@@ -101,12 +143,8 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
         throw new IllegalStateException("RDS-managed secret missing 'password'");
       }
       return password.asText();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted resolving datasource password", e);
     } catch (Exception e) {
-      throw new IllegalStateException(
-          "Failed to resolve datasource password from Secrets Manager extension", e);
+      throw new IllegalStateException("Failed to parse Secrets Manager extension response", e);
     }
   }
 }
