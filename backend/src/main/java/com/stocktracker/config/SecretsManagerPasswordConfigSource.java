@@ -74,15 +74,17 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
     return SECRET_ARN != null && !SECRET_ARN.isBlank();
   }
 
-  // The extension opens its localhost port before it finishes registering with
-  // the Lambda runtime, so a call made during Quarkus config validation (Lambda
-  // INIT phase) can land before the extension is ready to serve secrets. Retry
-  // briefly to ride out that startup window.
-  private static final int MAX_ATTEMPTS = 10;
+  // The extension opens its localhost port only once its own cold start finishes
+  // (~9s on a cold JVM init), which is later than Quarkus config validation runs
+  // during the Lambda INIT phase. Retry on a fixed deadline — long enough to ride
+  // out the extension's startup — rather than a fixed attempt count that can
+  // expire before the port is serving. Affordable here: the migrator runs once
+  // per deploy with a 120s function timeout.
+  private static final Duration RETRY_BUDGET = Duration.ofSeconds(20);
   private static final Duration RETRY_DELAY = Duration.ofMillis(500);
 
   private String fetchPassword() {
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2)).build();
+    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
     String token = System.getenv("AWS_SESSION_TOKEN");
     HttpRequest request =
         HttpRequest.newBuilder()
@@ -95,8 +97,11 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
             .GET()
             .build();
 
+    long deadline = System.nanoTime() + RETRY_BUDGET.toNanos();
+    int attempt = 0;
     RuntimeException lastFailure = null;
-    for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    while (true) {
+      attempt++;
       try {
         HttpResponse<String> response =
             client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -115,19 +120,22 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
       } catch (Exception e) {
         lastFailure = new IllegalStateException("Secrets Manager extension request failed", e);
       }
-      if (attempt < MAX_ATTEMPTS) {
-        try {
-          Thread.sleep(RETRY_DELAY.toMillis());
-        } catch (InterruptedException e) {
-          Thread.currentThread().interrupt();
-          throw new IllegalStateException("Interrupted resolving datasource password", e);
-        }
+      if (System.nanoTime() >= deadline) {
+        break;
+      }
+      try {
+        Thread.sleep(RETRY_DELAY.toMillis());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("Interrupted resolving datasource password", e);
       }
     }
     throw new IllegalStateException(
         "Failed to resolve datasource password from Secrets Manager extension after "
-            + MAX_ATTEMPTS
-            + " attempts",
+            + attempt
+            + " attempts over "
+            + RETRY_BUDGET.toSeconds()
+            + "s",
         lastFailure);
   }
 
