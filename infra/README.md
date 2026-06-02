@@ -248,10 +248,12 @@ Repository **variables** (`Settings → Secrets and variables → Actions → Va
 
 Repository **secrets** (`Settings → Secrets and variables → Actions → Secrets`):
 
-- `RDS_MASTER_PASSWORD` — the RDS master password, passed to Terraform as
-  `TF_VAR_rds_master_password` by every workflow that applies the ephemeral
-  stack (`cd.yml`, `destroy.yml`, `drift-check.yml`). Must satisfy the RDS
-  constraints validated in `infra/envs/production/variables.tf`.
+- None required. The RDS master password is an **RDS-managed secret**
+  (`manage_master_user_password = true`): RDS generates and stores it in
+  Secrets Manager, Terraform never sees the plaintext, and the Lambdas read it
+  at startup directly via the AWS SDK (env var `DATASOURCE_PASSWORD_SECRET_ARN`).
+  The interim `RDS_MASTER_PASSWORD` repo secret is no longer used and should be
+  deleted.
 
 No third-party API tokens are required — `GITHUB_TOKEN` is provided
 automatically, and CloudFront invalidation uses the deploy role's IAM (already

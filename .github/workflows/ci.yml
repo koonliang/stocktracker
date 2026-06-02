@@ -137,7 +137,6 @@ jobs:
         env:
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
-          TF_VAR_rds_master_password: ${{ secrets.RDS_MASTER_PASSWORD }}
         run: |
           set -o pipefail
           terraform plan -input=false -no-color -lock-timeout=5m | tee plan.txt
@@ -182,6 +181,12 @@ jobs:
     needs: [backend-test, frontend-test, terraform-plan]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so the secret scan covers every commit, not just HEAD.
+          fetch-depth: 0
+      - name: Scan git history for secrets
+        run: bash scripts/scan-secrets.sh
       - name: Aggregate required checks
         run: |
           backend='${{ needs.backend-test.result }}'

@@ -52,7 +52,7 @@ data "aws_iam_policy_document" "secrets_read" {
     sid       = "ReadProjectSecrets"
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [var.secrets_arn_pattern]
+    resources = compact([var.secrets_arn_pattern, var.datasource_password_secret_arn])
   }
 }
 

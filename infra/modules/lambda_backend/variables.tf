@@ -41,6 +41,12 @@ variable "secrets_arn_pattern" {
   default     = "arn:aws:secretsmanager:*:*:secret:stocktracker/*"
 }
 
+variable "datasource_password_secret_arn" {
+  description = "ARN of the RDS-managed secret holding the DB master credential. Granted to the execution role and exposed to the function as DATASOURCE_PASSWORD_SECRET_ARN."
+  type        = string
+  default     = ""
+}
+
 variable "environment_variables" {
   description = "Plain (non-secret) Lambda env vars — DB host, region, etc."
   type        = map(string)

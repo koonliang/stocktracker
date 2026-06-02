@@ -11,6 +11,10 @@
 *.txt text eol=lf
 *.sh text eol=lf
 
+# Maven wrapper shell script (no extension) — must stay LF so it runs in
+# Linux containers (e.g. the backend Docker build).
+mvnw text eol=lf
+
 # Force CRLF for Windows scripts
 *.bat text eol=crlf
 *.cmd text eol=crlf

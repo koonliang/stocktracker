@@ -9,10 +9,10 @@ import org.jboss.logging.Logger;
 /**
  * Temporary diagnostic for the Lambda "No virtual channel available" failure.
  *
- * <p>Two StartupEvent observers bracket all other startup work (CDI invokes
- * lower @Priority first). If BEGIN logs but COMPLETE does not, some startup
- * bean in between threw and aborted boot. If neither logs, the Quarkus
- * application never started at all. Remove once the boot issue is resolved.
+ * <p>Two StartupEvent observers bracket all other startup work (CDI invokes lower @Priority first).
+ * If BEGIN logs but COMPLETE does not, some startup bean in between threw and aborted boot. If
+ * neither logs, the Quarkus application never started at all. Remove once the boot issue is
+ * resolved.
  */
 @ApplicationScoped
 public class StartupProbe {

@@ -49,13 +49,14 @@ resource "aws_iam_role_policy_attachment" "vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Read access to the project's namespaced secrets only.
+# Read access to the project's namespaced secrets and the RDS-managed
+# credential secret (its ARN sits outside the stocktracker/* namespace).
 data "aws_iam_policy_document" "secrets_read" {
   statement {
     sid       = "ReadProjectSecrets"
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-    resources = [var.secrets_arn_pattern]
+    resources = compact([var.secrets_arn_pattern, var.datasource_password_secret_arn])
   }
 }
 

@@ -100,7 +100,6 @@ jobs:
         env:
           TF_VAR_aws_region: ${{ vars.AWS_REGION }}
           TF_VAR_provisioned_concurrency: ${{ vars.PROVISIONED_CONCURRENCY || 0 }}
-          TF_VAR_rds_master_password: ${{ secrets.RDS_MASTER_PASSWORD }}
         run: terraform apply -input=false -auto-approve -lock-timeout=10m
 
       - name: Capture outputs
@@ -161,7 +160,7 @@ jobs:
             --invocation-type RequestResponse \
             --payload '{}' \
             --cli-binary-format raw-in-base64-out \
-            --cli-read-timeout 300 \
+            --cli-read-timeout 360 \
             /tmp/migrate-response.json)
           echo "Lambda response metadata: $response"
           echo "Lambda response body:"

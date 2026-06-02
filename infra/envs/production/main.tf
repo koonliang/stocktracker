@@ -58,13 +58,19 @@ module "lambda_backend" {
 
   provisioned_concurrent_executions = var.provisioned_concurrency
 
+  # RDS owns the DB password in Secrets Manager (FR-025a). The function reads it
+  # directly via the AWS SDK at startup — see DATASOURCE_PASSWORD_SECRET_ARN.
+  datasource_password_secret_arn = module.rds_mysql.master_user_secret_arn
+
   environment_variables = {
     QUARKUS_PROFILE                 = "prod"
     AWS_REGION_NAME                 = var.aws_region
     QUARKUS_DATASOURCE_JDBC_URL     = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
     QUARKUS_DATASOURCE_USERNAME     = "stocktracker"
-    QUARKUS_DATASOURCE_PASSWORD     = var.rds_master_password
+    DATASOURCE_PASSWORD_SECRET_ARN  = module.rds_mysql.master_user_secret_arn
     QUARKUS_FLYWAY_MIGRATE_AT_START = "false"
+    # Reference data is seeded by the migrator, not the request-serving backend.
+    STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "false"
   }
 }
 
@@ -73,7 +79,6 @@ module "rds_mysql" {
   name_prefix       = local.name_prefix
   subnet_ids        = module.network.private_subnet_ids
   security_group_id = module.network.rds_security_group_id
-  master_password   = var.rds_master_password
 }
 
 module "lambda_migrator" {
@@ -83,12 +88,18 @@ module "lambda_migrator" {
   security_group_id  = module.network.lambda_security_group_id
   log_retention_days = 14
 
+  # Seeding ~39k reference-data rows runs longer than the default 120s.
+  timeout_seconds = 300
+
+  datasource_password_secret_arn = module.rds_mysql.master_user_secret_arn
+
   environment_variables = {
-    QUARKUS_PROFILE                    = "migrate"
-    QUARKUS_DATASOURCE_JDBC_URL        = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
-    QUARKUS_DATASOURCE_USERNAME        = "stocktracker"
-    QUARKUS_DATASOURCE_PASSWORD        = var.rds_master_password
-    STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "false"
+    QUARKUS_PROFILE                = "migrate"
+    QUARKUS_DATASOURCE_JDBC_URL    = "jdbc:mysql://${module.rds_mysql.address}:${module.rds_mysql.port}/${module.rds_mysql.db_name}"
+    QUARKUS_DATASOURCE_USERNAME    = "stocktracker"
+    DATASOURCE_PASSWORD_SECRET_ARN = module.rds_mysql.master_user_secret_arn
+    # The migrator (not the backend) owns reference-data seeding.
+    STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "true"
   }
 }
 

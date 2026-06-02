@@ -218,6 +218,13 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
       "logs:*",
       "secretsmanager:*",
       "dynamodb:*",
+      # RDS `manage_master_user_password` stores the master credential in
+      # Secrets Manager encrypted by the default `aws/secretsmanager` KMS key.
+      # The calling principal must resolve and grant use of that key, else
+      # CreateDBInstance fails with KMSKeyNotAccessibleFault (key [null]).
+      "kms:DescribeKey",
+      "kms:CreateGrant",
+      "kms:GenerateDataKey",
       "acm:DescribeCertificate",
       "acm:ListCertificates"
     ]

@@ -12,7 +12,12 @@ services:
     volumes:
       - stocktracker-mysql-data:/var/lib/mysql
     healthcheck:
-      test: ['CMD-SHELL', 'mysqladmin ping -h localhost -uroot -proot']
+      # -h 127.0.0.1 forces a TCP probe (not the unix socket). During MySQL's
+      # first-run volume init a temporary server listens on the socket only
+      # (--skip-networking), so a socket ping would report healthy before the
+      # real server accepts TCP — the backend would then hit "connection
+      # refused". Probing TCP makes `healthy` mean 3306 is actually ready.
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -P 3306 -uroot -proot --silent']
       interval: 10s
       timeout: 5s
       retries: 10
