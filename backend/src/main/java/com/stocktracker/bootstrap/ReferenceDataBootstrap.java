@@ -12,21 +12,28 @@ import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.Map;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class ReferenceDataBootstrap {
   @Inject InstrumentRepository instrumentRepository;
   @Inject ObjectMapper objectMapper;
+  @Inject EntityManager entityManager;
+
+  @Inject
+  @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
+  boolean enabled;
 
   @Transactional
   void onStart(@Observes @Priority(1) StartupEvent ignored) throws Exception {
-    if (instrumentRepository.count() > 0) {
+    if (!enabled || instrumentRepository.count() > 0) {
       return;
     }
 
@@ -48,6 +55,7 @@ public class ReferenceDataBootstrap {
 
       JsonNode prices = objectMapper.readTree(pricesStream);
       Iterator<Map.Entry<String, JsonNode>> priceFields = prices.fields();
+      int inserted = 0;
       while (priceFields.hasNext()) {
         var entry = priceFields.next();
         for (JsonNode barNode : entry.getValue()) {
@@ -60,8 +68,16 @@ public class ReferenceDataBootstrap {
           bar.closePrice = decimal(barNode, "close");
           bar.volume = barNode.get("volume").asLong();
           bar.persist();
+          // Flush and detach periodically so the price-bar dataset (tens of
+          // thousands of rows) does not accumulate in the persistence context.
+          if (++inserted % 1000 == 0) {
+            entityManager.flush();
+            entityManager.clear();
+          }
         }
       }
+      entityManager.flush();
+      entityManager.clear();
 
       JsonNode stats = objectMapper.readTree(statsStream);
       Iterator<Map.Entry<String, JsonNode>> statFields = stats.fields();
