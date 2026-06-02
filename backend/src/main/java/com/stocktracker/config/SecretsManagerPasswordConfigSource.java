@@ -74,13 +74,11 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
     return SECRET_ARN != null && !SECRET_ARN.isBlank();
   }
 
-  // The extension opens its localhost port only once its own cold start finishes
-  // (~9s on a cold JVM init), which is later than Quarkus config validation runs
-  // during the Lambda INIT phase. Retry on a fixed deadline — long enough to ride
-  // out the extension's startup — rather than a fixed attempt count that can
-  // expire before the port is serving. Affordable here: the migrator runs once
-  // per deploy with a 120s function timeout.
-  private static final Duration RETRY_BUDGET = Duration.ofSeconds(20);
+  // A serving extension responds instantly, so a short retry only rides out the
+  // brief window where the localhost port is not yet accepting connections. Use
+  // 127.0.0.1 (not "localhost"): the extension binds IPv4 only, but "localhost"
+  // can resolve to IPv6 ::1, where every connect is refused regardless of waiting.
+  private static final Duration RETRY_BUDGET = Duration.ofSeconds(5);
   private static final Duration RETRY_DELAY = Duration.ofMillis(500);
 
   private String fetchPassword() {
@@ -90,7 +88,7 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
         HttpRequest.newBuilder()
             .uri(
                 URI.create(
-                    "http://localhost:2773/secretsmanager/get?secretId="
+                    "http://127.0.0.1:2773/secretsmanager/get?secretId="
                         + URLEncoder.encode(SECRET_ARN, StandardCharsets.UTF_8)))
             .header("X-Aws-Parameters-Secrets-Token", token == null ? "" : token)
             .timeout(Duration.ofSeconds(5))
@@ -99,7 +97,11 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
 
     long deadline = System.nanoTime() + RETRY_BUDGET.toNanos();
     int attempt = 0;
-    RuntimeException lastFailure = null;
+    // Keep the real reason every attempt fails (HTTP status + body, or the
+    // connection exception) so a persistent failure surfaces the cause instead
+    // of a generic "N attempts" message.
+    String lastFailure = null;
+    Throwable lastCause = null;
     while (true) {
       attempt++;
       try {
@@ -108,17 +110,14 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
         if (response.statusCode() == 200) {
           return extractPassword(response.body());
         }
-        lastFailure =
-            new IllegalStateException(
-                "Secrets Manager extension returned HTTP "
-                    + response.statusCode()
-                    + ": "
-                    + response.body());
+        lastFailure = "HTTP " + response.statusCode() + " from extension: " + response.body();
+        lastCause = null;
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException("Interrupted resolving datasource password", e);
       } catch (Exception e) {
-        lastFailure = new IllegalStateException("Secrets Manager extension request failed", e);
+        lastFailure = e.getClass().getSimpleName() + ": " + e.getMessage();
+        lastCause = e;
       }
       if (System.nanoTime() >= deadline) {
         break;
@@ -135,8 +134,9 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
             + attempt
             + " attempts over "
             + RETRY_BUDGET.toSeconds()
-            + "s",
-        lastFailure);
+            + "s; last failure: "
+            + lastFailure,
+        lastCause);
   }
 
   private String extractPassword(String body) {
