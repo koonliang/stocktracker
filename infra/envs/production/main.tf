@@ -59,9 +59,8 @@ module "lambda_backend" {
   provisioned_concurrent_executions = var.provisioned_concurrency
 
   # RDS owns the DB password in Secrets Manager (FR-025a). The function reads it
-  # via the Secrets Manager extension at startup — see DATASOURCE_PASSWORD_SECRET_ARN.
+  # directly via the AWS SDK at startup — see DATASOURCE_PASSWORD_SECRET_ARN.
   datasource_password_secret_arn = module.rds_mysql.master_user_secret_arn
-  secrets_extension_layer_arn    = var.secrets_extension_layer_arn
 
   environment_variables = {
     QUARKUS_PROFILE                 = "prod"
@@ -88,7 +87,6 @@ module "lambda_migrator" {
   log_retention_days = 14
 
   datasource_password_secret_arn = module.rds_mysql.master_user_secret_arn
-  secrets_extension_layer_arn    = var.secrets_extension_layer_arn
 
   environment_variables = {
     QUARKUS_PROFILE                    = "migrate"

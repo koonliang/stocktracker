@@ -46,12 +46,6 @@ variable "datasource_password_secret_arn" {
   default     = ""
 }
 
-variable "secrets_extension_layer_arn" {
-  description = "ARN of the AWS Parameters and Secrets Lambda Extension layer. Empty disables the layer."
-  type        = string
-  default     = ""
-}
-
 variable "environment_variables" {
   description = "Lambda env vars — DB host, credentials, Flyway config."
   type        = map(string)

@@ -251,9 +251,9 @@ Repository **secrets** (`Settings → Secrets and variables → Actions → Secr
 - None required. The RDS master password is an **RDS-managed secret**
   (`manage_master_user_password = true`): RDS generates and stores it in
   Secrets Manager, Terraform never sees the plaintext, and the Lambdas read it
-  at runtime via the AWS Parameters and Secrets Lambda Extension (env var
-  `DATASOURCE_PASSWORD_SECRET_ARN`). The interim `RDS_MASTER_PASSWORD` repo
-  secret is no longer used and should be deleted.
+  at startup directly via the AWS SDK (env var `DATASOURCE_PASSWORD_SECRET_ARN`).
+  The interim `RDS_MASTER_PASSWORD` repo secret is no longer used and should be
+  deleted.
 
 No third-party API tokens are required — `GITHUB_TOKEN` is provided
 automatically, and CloudFront invalidation uses the deploy role's IAM (already

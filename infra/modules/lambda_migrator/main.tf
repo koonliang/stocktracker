@@ -80,10 +80,6 @@ resource "aws_lambda_function" "this" {
   timeout       = var.timeout_seconds
   architectures = ["x86_64"]
 
-  # AWS Parameters and Secrets Lambda Extension: lets Quarkus resolve the
-  # RDS-managed DB password from the cached localhost endpoint at startup.
-  layers = var.secrets_extension_layer_arn != "" ? [var.secrets_extension_layer_arn] : null
-
   filename         = data.archive_file.placeholder.output_path
   source_code_hash = data.archive_file.placeholder.output_base64sha256
 

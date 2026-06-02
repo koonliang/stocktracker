@@ -2,24 +2,24 @@ package com.stocktracker.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.eclipse.microprofile.config.spi.ConfigSource;
+import software.amazon.awssdk.http.urlconnection.UrlConnectionHttpClient;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 
 /**
- * Resolves {@code quarkus.datasource.password} from the RDS-managed Secrets Manager secret via the
- * AWS Parameters and Secrets Lambda Extension's local cache ({@code http://localhost:2773}). Active
- * only when {@code DATASOURCE_PASSWORD_SECRET_ARN} is set (i.e. on Lambda); otherwise it provides
- * nothing and lower-ordinal sources (env var / application.properties default) keep working for
- * local dev and tests.
+ * Resolves {@code quarkus.datasource.password} from the RDS-managed Secrets Manager secret using
+ * the AWS SDK. Active only when {@code DATASOURCE_PASSWORD_SECRET_ARN} is set (i.e. on Lambda);
+ * otherwise it provides nothing and lower-ordinal sources (env var / application.properties
+ * default) keep working for local dev and tests.
+ *
+ * <p>Quarkus reads this during config validation in the Lambda INIT phase. The SDK calls Secrets
+ * Manager directly, which works in INIT — unlike the Parameters and Secrets Lambda Extension, whose
+ * localhost cache is only available during the INVOKE phase and so returned "not ready to serve
+ * traffic" here.
  *
  * <p>The value is fetched once per container and cached, so a rotated password is picked up on the
  * next deploy / cold start (spec US5 AS2).
@@ -74,85 +74,28 @@ public final class SecretsManagerPasswordConfigSource implements ConfigSource {
     return SECRET_ARN != null && !SECRET_ARN.isBlank();
   }
 
-  // A serving extension responds instantly, so a short retry only rides out the
-  // brief window where the localhost port is not yet accepting connections. Use
-  // 127.0.0.1 (not "localhost"): the extension binds IPv4 only, but "localhost"
-  // can resolve to IPv6 ::1, where every connect is refused regardless of waiting.
-  private static final Duration RETRY_BUDGET = Duration.ofSeconds(5);
-  private static final Duration RETRY_DELAY = Duration.ofMillis(500);
-
   private String fetchPassword() {
-    HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(1)).build();
-    String token = System.getenv("AWS_SESSION_TOKEN");
-    HttpRequest request =
-        HttpRequest.newBuilder()
-            .uri(
-                URI.create(
-                    "http://127.0.0.1:2773/secretsmanager/get?secretId="
-                        + URLEncoder.encode(SECRET_ARN, StandardCharsets.UTF_8)))
-            .header("X-Aws-Parameters-Secrets-Token", token == null ? "" : token)
-            .timeout(Duration.ofSeconds(5))
-            .GET()
-            .build();
-
-    long deadline = System.nanoTime() + RETRY_BUDGET.toNanos();
-    int attempt = 0;
-    // Keep the real reason every attempt fails (HTTP status + body, or the
-    // connection exception) so a persistent failure surfaces the cause instead
-    // of a generic "N attempts" message.
-    String lastFailure = null;
-    Throwable lastCause = null;
-    while (true) {
-      attempt++;
-      try {
-        HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() == 200) {
-          return extractPassword(response.body());
-        }
-        lastFailure = "HTTP " + response.statusCode() + " from extension: " + response.body();
-        lastCause = null;
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("Interrupted resolving datasource password", e);
-      } catch (Exception e) {
-        lastFailure = e.getClass().getSimpleName() + ": " + e.getMessage();
-        lastCause = e;
-      }
-      if (System.nanoTime() >= deadline) {
-        break;
-      }
-      try {
-        Thread.sleep(RETRY_DELAY.toMillis());
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException("Interrupted resolving datasource password", e);
-      }
+    // Credentials and region come from the Lambda environment via the SDK's default
+    // provider chain. url-connection-client avoids pulling in Netty/Apache HttpClient.
+    try (SecretsManagerClient client =
+        SecretsManagerClient.builder().httpClient(UrlConnectionHttpClient.create()).build()) {
+      String secretString =
+          client
+              .getSecretValue(GetSecretValueRequest.builder().secretId(SECRET_ARN).build())
+              .secretString();
+      return extractPassword(secretString);
     }
-    throw new IllegalStateException(
-        "Failed to resolve datasource password from Secrets Manager extension after "
-            + attempt
-            + " attempts over "
-            + RETRY_BUDGET.toSeconds()
-            + "s; last failure: "
-            + lastFailure,
-        lastCause);
   }
 
-  private String extractPassword(String body) {
+  private String extractPassword(String secretString) {
     try {
-      ObjectMapper mapper = new ObjectMapper();
-      JsonNode secretString = mapper.readTree(body).get("SecretString");
-      if (secretString == null) {
-        throw new IllegalStateException("Secret response missing 'SecretString'");
-      }
-      JsonNode password = mapper.readTree(secretString.asText()).get("password");
+      JsonNode password = new ObjectMapper().readTree(secretString).get("password");
       if (password == null) {
         throw new IllegalStateException("RDS-managed secret missing 'password'");
       }
       return password.asText();
     } catch (Exception e) {
-      throw new IllegalStateException("Failed to parse Secrets Manager extension response", e);
+      throw new IllegalStateException("Failed to parse RDS-managed secret", e);
     }
   }
 }

@@ -85,11 +85,6 @@ resource "aws_lambda_function" "this" {
   architectures = ["x86_64"]
   publish       = true
 
-  # AWS Parameters and Secrets Lambda Extension: caches the RDS-managed secret
-  # behind a localhost endpoint so Quarkus resolves the DB password once per
-  # container without a direct Secrets Manager round-trip per request.
-  layers = var.secrets_extension_layer_arn != "" ? [var.secrets_extension_layer_arn] : null
-
   filename         = data.archive_file.placeholder.output_path
   source_code_hash = data.archive_file.placeholder.output_base64sha256
 
