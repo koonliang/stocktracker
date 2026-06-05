@@ -47,6 +47,7 @@ export function ExportButton({ disabled, onExport }: Props) {
     <Button
       variant="secondary"
       size="sm"
+      data-testid="csv-export"
       onClick={() => {
         void handleClick();
       }}

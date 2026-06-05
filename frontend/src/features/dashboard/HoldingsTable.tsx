@@ -161,7 +161,7 @@ export function HoldingsTable({ holdings }: { holdings: Holding[] }) {
   }
 
   return (
-    <Table>
+    <Table data-testid="holdings-table">
       <THead>
         <TR className="hover:bg-transparent">
           {columns.map((col) => (

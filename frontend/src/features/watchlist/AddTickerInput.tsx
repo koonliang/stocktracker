@@ -74,7 +74,12 @@ export function AddTickerInput({ watchlistId }: Props) {
           </p>
         )}
       </div>
-      <Button type="submit" loading={isSubmitting} className="sm:shrink-0">
+      <Button
+        type="submit"
+        loading={isSubmitting}
+        className="sm:shrink-0"
+        data-testid="watchlist-add"
+      >
         <Plus size={14} aria-hidden />
         Add
       </Button>

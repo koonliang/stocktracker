@@ -53,7 +53,7 @@ function tone(n: number): 'positive' | 'negative' | 'neutral' {
 
 export function SummaryTiles({ summary }: Props) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-testid="summary-tiles">
       <Tile
         eyebrow="Market Value"
         value={formatCurrency(summary.totalMarketValue, { cents: false })}

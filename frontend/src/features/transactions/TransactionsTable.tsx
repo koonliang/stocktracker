@@ -26,7 +26,7 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
 
   return (
     <>
-      <Table>
+      <Table data-testid="transactions-table">
         <THead>
           <TR className="hover:bg-transparent">
             <TH>

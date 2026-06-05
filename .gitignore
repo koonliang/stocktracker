@@ -33,3 +33,4 @@ infra/**/tfplan
 # Lambda packaging output
 backend/target/function.zip
 infra/**/*.zip
+/e2e/.allure
