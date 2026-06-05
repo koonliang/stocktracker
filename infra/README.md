@@ -184,9 +184,8 @@ Workflows live in `.github/workflows/`:
 - `rollback.yml` — `workflow_dispatch` only. Redeploys the artifact built
   for a previously successful CD run by 40-char `commit_sha`. Includes a
   CloudFront invalidation step.
-- `drift-check.yml` — runs daily on `cron 0 2 * * *` (and on demand via
-  `workflow_dispatch`). Matrix across both stacks; opens a GitHub issue
-  labelled `drift` per stack on detected drift.
+- `drift-check.yml` — `workflow_dispatch` only (manual). Matrix across both
+  stacks; opens a GitHub issue labelled `drift` per stack on detected drift.
 
 ### Triggering CD
 
