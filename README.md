@@ -165,10 +165,38 @@ The mutable user-owned tables use `BIGINT` primary keys:
 The backend keeps holdings and summary values as derived projections rather than
 persisted tables.
 
+## Deployment & Infrastructure
+
+StockTracker deploys to AWS via Terraform and GitHub Actions. See
+[infra/README.md](./infra/README.md) for the full architecture, provisioning
+steps, and pipeline reference.
+
+Summary of what this feature provisions:
+
+- **CI/CD pipelines** in `.github/workflows/` — PR-time gates (backend tests,
+  frontend tests, Terraform plan, secret scan) plus manual-trigger CD,
+  rollback, drift-check, and destroy workflows. AWS access is via GitHub OIDC,
+  with no long-lived credentials.
+- **Split Terraform stacks** — a persistent stack (CloudFront + private S3
+  frontend bucket, kept up between test sessions, ~$0 idle) and an ephemeral
+  stack (VPC, RDS MySQL, Lambda, API Gateway, applied and destroyed per
+  session).
+- **Frontend edge** — CloudFront serves the private S3 bucket via Origin Access
+  Control; the browser calls the backend cross-origin at the API Gateway URL.
+- **Backend** — API Gateway (HTTP API) proxies `/api/*` to a Quarkus Lambda
+  inside the VPC; a one-shot migrator Lambda runs Flyway on deploy. No NAT
+  gateway — private subnets reach AWS services through interface VPC endpoints.
+- **Database** — RDS MySQL with an RDS-managed master password in Secrets
+  Manager, read by the Lambdas at startup via the AWS SDK.
+- **Bootstrap** — a one-time stack provisioning the Terraform state backend
+  (S3 + DynamoDB lock) and the GitHub OIDC provider + IAM roles.
+
 ## Useful Docs
 
 - [backend/README.md](./backend/README.md)
 - [frontend/README.md](./frontend/README.md)
+- [infra/README.md](./infra/README.md)
+- [specs/003-ci-cd-aws/plan.md](./specs/003-ci-cd-aws/plan.md)
 - [specs/002-connect-frontend-backend/plan.md](./specs/002-connect-frontend-backend/plan.md)
 - [specs/002-connect-frontend-backend/quickstart.md](./specs/002-connect-frontend-backend/quickstart.md)
 - [specs/002-connect-frontend-backend/contracts/rest-api.md](./specs/002-connect-frontend-backend/contracts/rest-api.md)

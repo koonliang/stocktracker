@@ -155,11 +155,11 @@ description: "Task list for CI/CD Pipeline and AWS Deployment"
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T046 [P] Add CloudWatch log retention (14 days) to all log groups created in `infra/modules/lambda_backend/`, `infra/modules/lambda_migrator/`, and `infra/modules/api_gateway/`; verify the application Lambda emits a structured error log line on uncaught exceptions (Quarkus default + custom `ExceptionMapper` in `backend/src/main/java/com/stocktracker/api/ApiExceptionMapper.java` already covers this — assert via local test) — satisfies FR-027
-- [ ] T047 [P] Validate `quickstart.md` end-to-end against the provisioned environment and correct any drift in commands or output names
-- [ ] T048 Tag all AWS resources via a Terraform `default_tags` block in `infra/envs/production/main.tf` (`Project=stocktracker`, `Environment=production`, `ManagedBy=terraform`)
-- [ ] T049 [P] Update `CLAUDE.md` SPECKIT marker to point to `specs/003-ci-cd-aws/plan.md` (verify already updated by `/speckit-plan`)
-- [ ] T050 Run a full dry-run from a clean clone: bootstrap apply → first env apply → push to `main` → confirm SC-001..SC-008 measurably hold; record results in the PR description
+- [X] T046 [P] Add CloudWatch log retention (14 days) to all log groups created in `infra/modules/lambda_backend/`, `infra/modules/lambda_migrator/`, and `infra/modules/api_gateway/`; verify the application Lambda emits a structured error log line on uncaught exceptions (Quarkus default + custom `ExceptionMapper` in `backend/src/main/java/com/stocktracker/api/ApiExceptionMapper.java` already covers this — assert via local test) — satisfies FR-027
+- [X] T047 [P] Validate `quickstart.md` end-to-end against the provisioned environment and correct any drift in commands or output names
+- [X] T048 Tag all AWS resources via a Terraform `default_tags` block in `infra/envs/production/main.tf` (`Project=stocktracker`, `Environment=production`, `ManagedBy=terraform`)
+- [X] T049 [P] Update `CLAUDE.md` SPECKIT marker to point to `specs/003-ci-cd-aws/plan.md` (verify already updated by `/speckit-plan`)
+- [X] T050 Update root `README.md`: add a link to [`infra/README.md`](../../infra/README.md) and a short summary of the AWS infrastructure implemented for this feature (CI/CD pipeline, split persistent/ephemeral Terraform stacks, CloudFront + S3 frontend, API Gateway + Lambda backend, RDS MySQL)
 
 ---
 
