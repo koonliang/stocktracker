@@ -35,8 +35,11 @@ On startup, the backend:
 .
 ├── backend/              Quarkus API, domain model, Flyway schema, seed data
 ├── frontend/             React app, routes, stores, API client, tests
+├── e2e/                  Selenium + JUnit 5 regression suite (isolated Maven project)
+├── infra/                Terraform stacks and AWS deployment docs
 ├── scripts/              Stack verification helpers
 ├── specs/                Feature specs, plans, contracts, and quickstarts
+├── .github/workflows/    CI/CD and regression pipelines
 └── docker-compose.yml    Default local full-stack workflow
 ```
 
@@ -154,6 +157,18 @@ cd backend
 ./mvnw -DskipTests compile
 ```
 
+End-to-end regression (drives a headless browser against the running stack):
+
+```bash
+docker compose up -d --wait
+mvn -B -f e2e/pom.xml test
+docker compose down -v
+```
+
+The suite runs automatically in CI on PRs to `main`. See
+[e2e/README.md](./e2e/README.md) for journeys, configuration, and the Allure
+HTML report.
+
 ## Data Model Notes
 
 The mutable user-owned tables use `BIGINT` primary keys:
@@ -195,6 +210,7 @@ Summary of what this feature provisions:
 
 - [backend/README.md](./backend/README.md)
 - [frontend/README.md](./frontend/README.md)
+- [e2e/README.md](./e2e/README.md)
 - [infra/README.md](./infra/README.md)
 - [specs/003-ci-cd-aws/plan.md](./specs/003-ci-cd-aws/plan.md)
 - [specs/002-connect-frontend-backend/plan.md](./specs/002-connect-frontend-backend/plan.md)
