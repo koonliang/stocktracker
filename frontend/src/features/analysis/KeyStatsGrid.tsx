@@ -22,7 +22,10 @@ function buildStats(stats: KeyStats | null | undefined): Stat[] {
 export function KeyStatsGrid({ stats }: Props) {
   const items = buildStats(stats);
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3">
+    <dl
+      data-testid="key-stats-grid"
+      className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-border bg-border sm:grid-cols-3"
+    >
       {items.map((s) => (
         <div key={s.label} className="flex flex-col gap-1 bg-surface p-4">
           <dt className="eyebrow">{s.label}</dt>

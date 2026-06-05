@@ -41,6 +41,8 @@ mvn -B -f e2e/pom.xml test -De2e.headless=false
 
 - Test report: `e2e/target/surefire-reports/`
 - Failure screenshots: `e2e/target/screenshots/`
+- Allure HTML report: generate with `mvn -B -f e2e/pom.xml allure:report` (or
+  `allure:serve` to open it), output under `e2e/target/site/allure-maven-plugin/`
 
 ## In CI
 

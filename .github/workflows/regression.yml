@@ -52,6 +52,43 @@ jobs:
         # A non-zero mvn exit fails the job and blocks the PR (FR-004).
         run: mvn -B -f e2e/pom.xml test
 
+      - name: Upload Surefire reports
+        # JUnit/Surefire report for every run, pass or fail (FR-008).
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: e2e/target/surefire-reports/**
+          if-no-files-found: ignore
+
+      - name: Upload failure screenshots
+        # Point-of-failure PNGs written by ScreenshotOnFailure (SC-005).
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure-screenshots
+          path: e2e/target/screenshots/**
+          if-no-files-found: ignore
+
+      - name: Generate Allure report
+        # Build the HTML report from target/allure-results, pass or fail. The
+        # allure-maven plugin downloads the Allure commandline on first run.
+        if: always()
+        run: mvn -B -f e2e/pom.xml allure:report
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report
+          path: e2e/target/site/allure-maven-plugin/**
+          if-no-files-found: ignore
+
+      - name: Dump stack logs
+        # Container logs aid triage when a journey fails; captured before teardown.
+        if: failure()
+        run: docker compose logs --no-color
+
       - name: Tear down
         # Ephemeral DB: drop the volume so no state leaks between runs (FR-006).
         if: always()

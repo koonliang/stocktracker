@@ -70,24 +70,24 @@
 
 ### Stable selectors (frontend hooks — parallel, different files)
 
-- [ ] T011 [P] [US2] Add `data-testid="holdings-table"` and `data-testid="summary-tiles"` to the dashboard components under `frontend/src/features/dashboard/`
-- [ ] T012 [P] [US2] Add watchlist hooks (`data-testid="watchlist-add"`, `watchlist-item-<ticker>`, `watchlist-remove`) to the watchlist components under `frontend/src/features/watchlist/`
-- [ ] T013 [P] [US2] Add `data-testid="key-stats-grid"` to `frontend/src/features/analysis/` (KeyStatsGrid); reuse existing `data-testid="price-chart"`
-- [ ] T014 [P] [US2] Add transaction hooks (`data-testid="csv-import-input"`, `csv-export`, `transactions-table`) to the transactions components under `frontend/src/features/transactions/`
+- [X] T011 [P] [US2] Add `data-testid="holdings-table"` and `data-testid="summary-tiles"` to the dashboard components under `frontend/src/features/dashboard/`
+- [X] T012 [P] [US2] Add watchlist hooks (`data-testid="watchlist-add"`, `watchlist-item-<ticker>`, `watchlist-remove`) to the watchlist components under `frontend/src/features/watchlist/`
+- [X] T013 [P] [US2] Add `data-testid="key-stats-grid"` to `frontend/src/features/analysis/` (KeyStatsGrid); reuse existing `data-testid="price-chart"`
+- [X] T014 [P] [US2] Add transaction hooks (`data-testid="csv-import-input"`, `csv-export`, `transactions-table`) to the transactions components under `frontend/src/features/transactions/`
 
 ### Page Objects (parallel, different files)
 
-- [ ] T015 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/DashboardPage.java` (route `/`, holdings + summary locators/queries)
-- [ ] T016 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/WatchlistsPage.java` (routes `/watchlists`, `/watchlists/:id`; add/remove actions)
-- [ ] T017 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/AnalysisPage.java` (route `/analysis/:ticker`; chart + key-stats queries)
-- [ ] T018 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/TransactionsPage.java` (route `/transactions`; import/export/table actions; headless download prefs)
+- [X] T015 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/DashboardPage.java` (route `/`, holdings + summary locators/queries)
+- [X] T016 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/WatchlistsPage.java` (routes `/watchlists`, `/watchlists/:id`; add/remove actions)
+- [X] T017 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/AnalysisPage.java` (route `/analysis/:ticker`; chart + key-stats queries)
+- [X] T018 [P] [US2] Implement `e2e/src/test/java/com/stocktracker/e2e/pages/TransactionsPage.java` (route `/transactions`; import/export/table actions; headless download prefs)
 
 ### Journey tests
 
-- [ ] T019 [P] [US2] Implement `e2e/.../journeys/DashboardJourneyTest.java` (J1): holdings table ≥1 row, summary tiles non-empty (Story 2 AS-1)
-- [ ] T020 [P] [US2] Implement `e2e/.../journeys/WatchlistJourneyTest.java` (J2): add instrument appears, remove instrument gone (Story 2 AS-2)
-- [ ] T021 [P] [US2] Implement `e2e/.../journeys/AnalysisJourneyTest.java` (J3): navigate to a seeded ticker, assert price chart + key stats visible (Story 2 AS-3)
-- [ ] T022 [US2] Add fixture `e2e/src/test/resources/transactions-sample.csv` and implement `e2e/.../journeys/CsvImportExportJourneyTest.java` (J4): import rows appear in table, export succeeds (Story 2 AS-4)
+- [X] T019 [P] [US2] Implement `e2e/.../journeys/DashboardJourneyTest.java` (J1): holdings table ≥1 row, summary tiles non-empty (Story 2 AS-1)
+- [X] T020 [P] [US2] Implement `e2e/.../journeys/WatchlistJourneyTest.java` (J2): add instrument appears, remove instrument gone (Story 2 AS-2)
+- [X] T021 [P] [US2] Implement `e2e/.../journeys/AnalysisJourneyTest.java` (J3): navigate to a seeded ticker, assert price chart + key stats visible (Story 2 AS-3)
+- [X] T022 [US2] Add fixture `e2e/src/test/resources/transactions-sample.csv` and implement `e2e/.../journeys/CsvImportExportJourneyTest.java` (J4): import rows appear in table, export succeeds (Story 2 AS-4)
 
 **Checkpoint**: All four journeys pass headless against the compose stack (FR-005, SC-002).
 
@@ -99,10 +99,10 @@
 
 **Independent Test**: Force a journey failure; a screenshot is written and the CI run exposes the report + screenshot artifacts.
 
-- [ ] T023 [US3] Implement `e2e/src/test/java/com/stocktracker/e2e/support/ScreenshotOnFailure.java`: JUnit 5 `TestWatcher`/extension that writes a full-page PNG to `e2e/target/screenshots/<TestName>.png` on failure (FR-009)
-- [ ] T024 [US3] Wire `ScreenshotOnFailure` into `BaseTest.java` (and ensure the failing test's WebDriver is still available when the screenshot is taken)
-- [ ] T025 [US3] Add `actions/upload-artifact@v4` step (`if: always()`) to `.github/workflows/regression.yml` for `e2e/target/surefire-reports/**` (FR-008)
-- [ ] T026 [US3] Add `actions/upload-artifact@v4` step (`if: always()`) for `e2e/target/screenshots/**` and a `docker compose logs` dump (`if: failure()`) to `.github/workflows/regression.yml` (SC-005)
+- [X] T023 [US3] Implement `e2e/src/test/java/com/stocktracker/e2e/support/ScreenshotOnFailure.java`: JUnit 5 `TestWatcher`/extension that writes a full-page PNG to `e2e/target/screenshots/<TestName>.png` on failure (FR-009)
+- [X] T024 [US3] Wire `ScreenshotOnFailure` into `BaseTest.java` (and ensure the failing test's WebDriver is still available when the screenshot is taken)
+- [X] T025 [US3] Add `actions/upload-artifact@v4` step (`if: always()`) to `.github/workflows/regression.yml` for `e2e/target/surefire-reports/**` (FR-008)
+- [X] T026 [US3] Add `actions/upload-artifact@v4` step (`if: always()`) for `e2e/target/screenshots/**` and a `docker compose logs` dump (`if: failure()`) to `.github/workflows/regression.yml` (SC-005)
 
 **Checkpoint**: A forced failure yields a screenshot + report downloadable from the CI run (Story 3 acceptance).
 
@@ -110,9 +110,10 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-- [ ] T027 [P] Run `mvn -B -f e2e/pom.xml spotless:check` and resolve formatting; ensure `frontend` `npm run lint` still passes after the `data-testid` additions (Constitution II/III)
-- [ ] T028 [P] Update `e2e/README.md` and verify `specs/004-selenium-regression-tests/quickstart.md` steps run end-to-end locally
-- [ ] T029 Review suite stability: confirm all waits are explicit (no `Thread.sleep`) and full-suite wall-clock is under 10 minutes (SC-004/SC-006)
+- [X] T027 [P] Run `mvn -B -f e2e/pom.xml spotless:check` and resolve formatting; ensure `frontend` `npm run lint` still passes after the `data-testid` additions (Constitution II/III)
+- [X] T028 [P] Update `e2e/README.md` and verify `specs/004-selenium-regression-tests/quickstart.md` steps run end-to-end locally
+- [X] T029 Review suite stability: confirm all waits are explicit (no `Thread.sleep`) and full-suite wall-clock is under 10 minutes (SC-004/SC-006)
+- [X] T030 Add Allure HTML reporting: `allure-junit5` + `allure-maven` in `e2e/pom.xml`, attach failure screenshots to Allure from `ScreenshotOnFailure.java`, and add `allure:report` generate + `allure-report` artifact-upload steps to `.github/workflows/regression.yml`
 
 ---
 

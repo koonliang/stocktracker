@@ -47,6 +47,7 @@ export function WatchlistRow({
 
   return (
     <li
+      data-testid={`watchlist-item-${symbol}`}
       className="group flex items-center gap-3 border-b border-border px-3 py-3 transition-colors last:border-0 hover:bg-surface-alt/60"
       {...dragHandleProps}
     >
@@ -109,6 +110,7 @@ export function WatchlistRow({
         <button
           type="button"
           onClick={onRemove}
+          data-testid="watchlist-remove"
           aria-label={`Remove ${symbol} from watchlist`}
           className="rounded p-1.5 text-text-muted hover:bg-negative/10 hover:text-negative focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
         >

@@ -2,6 +2,7 @@ package com.stocktracker.e2e.support;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -9,7 +10,11 @@ import org.openqa.selenium.WebDriver;
  * Base class for every journey. Owns the WebDriver lifecycle (a fresh browser per test, quit
  * afterwards) and resolves the frontend base URL from {@code -De2e.baseUrl} (default {@code
  * http://localhost:5173}).
+ *
+ * <p>{@link ScreenshotOnFailure} is registered here so any failing journey writes a
+ * point-of-failure screenshot before the browser is torn down (FR-009).
  */
+@ExtendWith(ScreenshotOnFailure.class)
 public abstract class BaseTest {
 
   /** The application shell renders {@code <main id="main">}; we treat it as the landing element. */

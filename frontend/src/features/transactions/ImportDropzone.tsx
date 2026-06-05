@@ -50,6 +50,7 @@ export function ImportDropzone({ onFile, loading = false }: Props) {
         ref={inputRef}
         type="file"
         accept=".csv,text/csv"
+        data-testid="csv-import-input"
         aria-label="Choose CSV file"
         className="sr-only"
         onChange={(e) => {

@@ -37,6 +37,7 @@ docker compose down -v
 | ---------------- | ----------------------- | ---------------------------------------- |
 | `e2e.baseUrl`    | `http://localhost:5173` | Frontend base URL under test             |
 | `e2e.headless`   | `true`                  | Set `false` to watch the browser locally |
+| `e2e.slowMo`     | `0`                     | Debug-only ms pause between interactions |
 
 Examples:
 
@@ -47,14 +48,39 @@ mvn -B -f e2e/pom.xml test -Dtest=SmokeTest
 # Run headed for debugging
 mvn -B -f e2e/pom.xml test -De2e.headless=false
 
+# Run headed and slowed down so each step is watchable (opt-in; off by default)
+mvn -B -f e2e/pom.xml test -De2e.headless=false -De2e.slowMo=500 -Dtest=WatchlistJourneyTest
+
 # Point at a different frontend
 mvn -B -f e2e/pom.xml test -De2e.baseUrl=http://localhost:3000
 ```
 
 ## Output
 
-- Test report: `e2e/target/surefire-reports/`
-- Failure screenshots: `e2e/target/screenshots/<TestName>.png`
+- Test report (raw): `e2e/target/surefire-reports/`
+- Failure screenshots: `e2e/target/screenshots/<TestClass>.<testMethod>.png`
+  (written automatically at the point of failure by `ScreenshotOnFailure`)
+- Allure HTML report: `e2e/target/site/allure-maven-plugin/index.html` (see below)
+
+## Allure HTML report
+
+The suite writes Allure result JSON to `e2e/target/allure-results/` during the
+run. Turn it into a browsable HTML report (dashboard, per-journey results, with
+failure screenshots attached inline) after a run:
+
+```bash
+# Generate the report into e2e/target/site/allure-maven-plugin/
+mvn -B -f e2e/pom.xml allure:report
+
+# Or generate + open it in a browser in one step
+mvn -B -f e2e/pom.xml allure:serve
+```
+
+The report is generated in **single-file** mode (`<singleFile>true</singleFile>`
+in `pom.xml`): `e2e/target/site/allure-maven-plugin/index.html` is fully
+self-contained (data, JS and CSS inlined), so you can open it directly in a
+browser — including the downloaded CI artifact — with no local server and no
+`file://` restrictions.
 
 ## Formatting
 
@@ -74,5 +100,10 @@ mvn -B -f e2e/pom.xml spotless:apply   # auto-format
 - pushes to `main`
 - manual `workflow_dispatch` (Actions tab -> Run workflow)
 
-A failing journey fails the job and blocks the PR. Surefire reports and failure
-screenshots are uploaded as build artifacts (`if: always()`).
+A failing journey fails the job and blocks the PR. Surefire reports
+(`surefire-reports`), failure screenshots (`failure-screenshots`), and the Allure
+HTML report (`allure-report`) are uploaded as build artifacts on every run
+(`if: always()`), and the container logs are dumped to the job log when a test
+fails (`if: failure()`) — together they make a failed run easy to triage from the
+Actions UI. (Download the `allure-report` artifact and open its `index.html`
+directly — it is a self-contained single file.)
