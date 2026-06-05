@@ -25,15 +25,15 @@ output "api_invoke_url" {
 
 output "cloudfront_domain_name" {
   description = "Public frontend URL — sourced from the persistent stack."
-  value       = data.terraform_remote_state.persistent.outputs.cloudfront_domain_name
+  value       = local.cloudfront_domain_name
 }
 
 output "cloudfront_distribution_id" {
-  value = data.terraform_remote_state.persistent.outputs.cloudfront_distribution_id
+  value = local.cloudfront_distribution_id
 }
 
 output "frontend_bucket_name" {
-  value = data.terraform_remote_state.persistent.outputs.frontend_bucket_name
+  value = local.frontend_bucket_name
 }
 
 output "rds_endpoint" {
