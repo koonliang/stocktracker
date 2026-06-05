@@ -31,8 +31,11 @@ These steps create resources Terraform itself needs to run; they are
    ```
 
    Outputs: `state_bucket_name`, `lock_table_name`. Record both into
-   `infra/envs/production/backend.tf` (already templated; replace the
-   placeholder values).
+   `infra/envs/production/backend.tf` **and**
+   `infra/envs/production-persistent/backend.tf` (both already templated;
+   replace the placeholder values). The bootstrap variables default to
+   `github_org=koonliang`, `github_repo=stocktracker`,
+   `aws_region=ap-southeast-1`; override with `-var` if different.
 
 2. **Create the GitHub OIDC provider and the two deploy roles.** Same
    bootstrap configuration. Outputs: `gha_plan_role_arn`,
@@ -42,9 +45,11 @@ These steps create resources Terraform itself needs to run; they are
    - `AWS_DEPLOY_ROLE_ARN`
    - `AWS_REGION`
 
-3. **Seed Secrets Manager** with the DB master password — an empty placeholder
-   is fine; rotate after first apply:
-   - `stocktracker/db/master_password`
+3. **No DB password to seed.** RDS manages the master password itself
+   (`manage_master_user_password = true`): it generates the password, stores it
+   in Secrets Manager, and the Lambdas read it at runtime via the AWS SDK using
+   the `DATASOURCE_PASSWORD_SECRET_ARN` env var. Terraform never sees the
+   plaintext and there is no manual Secrets Manager step.
 
 4. **Configure GitHub branch protection** on `main`:
    - Require PRs (no direct pushes).

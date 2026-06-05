@@ -7,9 +7,12 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 import java.util.LinkedHashMap;
+import org.jboss.logging.Logger;
 
 @Provider
 public class ApiExceptionMapper implements ExceptionMapper<Throwable> {
+  private static final Logger LOG = Logger.getLogger(ApiExceptionMapper.class);
+
   @Override
   public Response toResponse(Throwable exception) {
     if (exception instanceof ApiException apiException) {
@@ -33,6 +36,15 @@ public class ApiExceptionMapper implements ExceptionMapper<Throwable> {
           .entity(new ApiErrorResponse("validation_error", "Request validation failed", details))
           .build();
     }
+
+    // Uncaught exceptions are handled here, so Quarkus' default unhandled-exception
+    // logging never fires. Emit one structured ERROR line (with the stack trace) so
+    // CloudWatch captures the failure for every 500 the API returns.
+    LOG.errorf(
+        exception,
+        "code=internal_error exception=%s message=%s",
+        exception.getClass().getName(),
+        exception.getMessage());
 
     return Response.serverError()
         .type(MediaType.APPLICATION_JSON)

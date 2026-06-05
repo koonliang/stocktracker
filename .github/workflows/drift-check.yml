@@ -1,8 +1,6 @@
 name: drift-check
 
 on:
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -85,7 +83,7 @@ jobs:
             }
             const marker = `<!-- drift-check:${stackName} -->`;
             const title = `Infrastructure drift detected in production (${stackName} stack)`;
-            const body = `${marker}\nA scheduled \`terraform plan -refresh-only\` against \`${stackPath}\` detected drift between declared and actual state.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n<details><summary>Refresh-only plan output</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n\n</details>`;
+            const body = `${marker}\nA \`terraform plan -refresh-only\` against \`${stackPath}\` detected drift between declared and actual state.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n<details><summary>Refresh-only plan output</summary>\n\n\`\`\`\n${plan}\n\`\`\`\n\n</details>`;
             const { owner, repo } = context.repo;
             const { data: issues } = await github.rest.issues.listForRepo({
               owner, repo, state: 'open', labels: 'drift', per_page: 100,

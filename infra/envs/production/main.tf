@@ -41,6 +41,20 @@ data "terraform_remote_state" "persistent" {
   }
 }
 
+locals {
+  # The persistent stack is applied first and left up; until it has been
+  # applied its remote state carries no outputs. Guard the reads with try()
+  # so `terraform plan` (including the CI plan job) does not hard-fail before
+  # the persistent stack exists. The real values flow through once it is applied.
+  persistent_outputs         = data.terraform_remote_state.persistent.outputs
+  cloudfront_domain_name     = try(local.persistent_outputs.cloudfront_domain_name, "")
+  cloudfront_distribution_id = try(local.persistent_outputs.cloudfront_distribution_id, "")
+  frontend_bucket_name       = try(local.persistent_outputs.frontend_bucket_name, "")
+
+  # No origin until the persistent stack supplies the CloudFront domain.
+  cors_allow_origins = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}"] : []
+}
+
 # ---------- Modules ----------
 
 module "network" {
@@ -111,5 +125,5 @@ module "api_gateway" {
   lambda_alias_arn     = module.lambda_backend.alias_arn
   log_retention_days   = 14
 
-  cors_allow_origins = ["https://${data.terraform_remote_state.persistent.outputs.cloudfront_domain_name}"]
+  cors_allow_origins = local.cors_allow_origins
 }
