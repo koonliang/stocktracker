@@ -1,0 +1,58 @@
+name: Regression
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: regression-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  web-regression:
+    name: web-regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Start stack
+        # --wait honours the compose healthchecks and fails the job early if any
+        # service never becomes healthy (environment-startup failure, distinct
+        # from a test failure) — FR-010.
+        run: docker compose up -d --wait
+
+      - name: Verify frontend reachable
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5173 >/dev/null; then
+              echo "Frontend reachable"
+              exit 0
+            fi
+            echo "Waiting for frontend... ($i)"
+            sleep 2
+          done
+          echo "Frontend did not become reachable" >&2
+          exit 1
+
+      - name: Run regression suite
+        # A non-zero mvn exit fails the job and blocks the PR (FR-004).
+        run: mvn -B -f e2e/pom.xml test
+
+      - name: Tear down
+        # Ephemeral DB: drop the volume so no state leaks between runs (FR-006).
+        if: always()
+        run: docker compose down -v

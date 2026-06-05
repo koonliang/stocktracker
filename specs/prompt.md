@@ -22,3 +22,7 @@ For local development, include docker compose with frontend/backend app and MySQ
 - CD feature to AWS via terraform: deploy backend to AWS lambda, provision MySQL RDS, frontend to S3 bucket. 
 Frontend flow: Cloudflare CDN -> S3
 Backend flow: Lambda -> MySQL
+
+# 004-selenium-regression-tests
+- for regression testing, i want to use selenium with java for automated web testing
+- this should be triggered as part of ci pipeline (run in headless mode)
