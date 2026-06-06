@@ -26,3 +26,8 @@ Backend flow: Lambda -> MySQL
 # 004-selenium-regression-tests
 - for regression testing, i want to use selenium with java for automated web testing
 - this should be triggered as part of ci pipeline (run in headless mode)
+
+# 005-user-authentication
+- for dev mode, user id and password will be sufficient
+- for production mode in aws, suggest if it should integrate with Cognito or use DynamoDB (include a cost analysis)
+- include an account sign up feature and reset password

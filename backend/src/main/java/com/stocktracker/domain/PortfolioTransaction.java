@@ -20,6 +20,9 @@ public class PortfolioTransaction extends PanacheEntityBase {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   public Long id;
 
+  @Column(name = "user_id", nullable = false)
+  public Long userId;
+
   @Column(name = "trade_date", nullable = false)
   public LocalDate tradeDate;
 

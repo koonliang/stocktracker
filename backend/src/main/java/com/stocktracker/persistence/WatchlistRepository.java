@@ -9,12 +9,17 @@ import java.util.Optional;
 
 @ApplicationScoped
 public class WatchlistRepository implements PanacheRepositoryBase<Watchlist, Long> {
-  public Optional<Watchlist> findByNameIgnoreCase(String name) {
-    return find("lower(name) = ?1", name.trim().toLowerCase()).firstResultOptional();
+  public Optional<Watchlist> findByUserAndNameIgnoreCase(Long userId, String name) {
+    return find("userId = ?1 and lower(name) = ?2", userId, name.trim().toLowerCase())
+        .firstResultOptional();
   }
 
-  public List<Watchlist> listByUpdatedAt() {
-    return list("order by updatedAt desc, createdAt desc");
+  public Optional<Watchlist> findByIdAndUser(Long id, Long userId) {
+    return find("id = ?1 and userId = ?2", id, userId).firstResultOptional();
+  }
+
+  public List<Watchlist> listByUserUpdatedAt(Long userId) {
+    return list("userId = ?1 order by updatedAt desc, createdAt desc", userId);
   }
 
   public List<WatchlistItem> listItems(Long watchlistId) {

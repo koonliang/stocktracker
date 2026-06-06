@@ -1,5 +1,7 @@
-import { Route, Routes } from 'react-router-dom';
+import { Outlet, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
+import { ProtectedRoute } from '@/auth/ProtectedRoute';
+import { LoginRoute } from '@/routes/LoginRoute';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { PlaceholderRoute } from '@/routes/PlaceholderRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
@@ -9,8 +11,20 @@ import { TransactionsRoute } from '@/routes/TransactionsRoute';
 
 export function App() {
   return (
-    <AppShell>
-      <Routes>
+    <Routes>
+      {/* Public auth routes render outside the app shell. */}
+      <Route path="/login" element={<LoginRoute />} />
+
+      {/* Everything else requires an authenticated session. */}
+      <Route
+        element={
+          <ProtectedRoute>
+            <AppShell>
+              <Outlet />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<DashboardRoute />} />
         <Route path="/watchlists" element={<WatchlistsRoute />} />
         <Route path="/watchlists/:id" element={<WatchlistDetailRoute />} />
@@ -26,7 +40,7 @@ export function App() {
             />
           }
         />
-      </Routes>
-    </AppShell>
+      </Route>
+    </Routes>
   );
 }

@@ -6,11 +6,20 @@ import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.security.TestSecurity;
+import io.quarkus.test.security.jwt.Claim;
+import io.quarkus.test.security.jwt.JwtSecurity;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @QuarkusTestResource(MySqlTestResource.class)
+@TestSecurity(user = "seed@stocktracker.local")
+@JwtSecurity(
+    claims = {
+      @Claim(key = "sub", value = "1"),
+      @Claim(key = "email", value = "seed@stocktracker.local")
+    })
 class PortfolioServiceTest extends IntegrationTestSupport {
   @Inject PortfolioService portfolioService;
 

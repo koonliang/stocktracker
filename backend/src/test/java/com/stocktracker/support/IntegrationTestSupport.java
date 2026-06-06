@@ -11,6 +11,11 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.BeforeEach;
 
 public abstract class IntegrationTestSupport {
+  /** Deterministic seed account created by migration V2; owns test-persisted data. */
+  protected static final String SEED_USER_EMAIL = "seed@stocktracker.local";
+
+  protected static final long SEED_USER_ID = 1L;
+
   @Inject UserTransaction userTransaction;
   @Inject PortfolioTransactionRepository transactionRepository;
 
@@ -31,6 +36,7 @@ public abstract class IntegrationTestSupport {
     inTransaction(
         () -> {
           var transaction = new PortfolioTransaction();
+          transaction.userId = SEED_USER_ID;
           transaction.tradeDate = LocalDate.parse(date);
           transaction.instrumentSymbol = ticker;
           transaction.transactionType = type;

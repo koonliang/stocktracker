@@ -3,6 +3,7 @@ package com.stocktracker.api;
 import com.stocktracker.dto.WatchlistMutationRequest;
 import com.stocktracker.dto.WatchlistResponse;
 import com.stocktracker.service.WatchlistService;
+import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -16,6 +17,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/api/watchlists")
+@Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class WatchlistResource {

@@ -3,6 +3,7 @@ package com.stocktracker.bootstrap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stocktracker.domain.PortfolioTransaction;
+import com.stocktracker.persistence.AppUserRepository;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
 import io.quarkus.runtime.StartupEvent;
@@ -22,6 +23,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 public class DevDataBootstrap {
   @Inject InstrumentRepository instrumentRepository;
   @Inject PortfolioTransactionRepository transactionRepository;
+  @Inject AppUserRepository appUserRepository;
   @Inject ObjectMapper objectMapper;
 
   @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
@@ -35,6 +37,12 @@ public class DevDataBootstrap {
     if (transactionRepository.count() > 0) {
       return;
     }
+    // The seed user (migration V2) owns demo data so user-scoped queries resolve it.
+    var seedUser =
+        appUserRepository
+            .findByNormalizedEmail("seed@stocktracker.local")
+            .orElseThrow(
+                () -> new IllegalStateException("Seed user missing; V2 migration not applied"));
     try (InputStream stream =
         Thread.currentThread()
             .getContextClassLoader()
@@ -47,6 +55,7 @@ public class DevDataBootstrap {
               "Missing instrument seed data for demo transaction symbol: " + symbol);
         }
         var transaction = new PortfolioTransaction();
+        transaction.userId = seedUser.id;
         transaction.tradeDate = LocalDate.parse(row.get("date").toString());
         transaction.instrumentSymbol = symbol;
         transaction.transactionType = row.get("type").toString();

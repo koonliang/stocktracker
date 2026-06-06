@@ -8,6 +8,7 @@ import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.dto.TransactionResponse;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
+import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -26,19 +27,21 @@ public class PortfolioService {
   @Inject PortfolioTransactionRepository transactionRepository;
   @Inject InstrumentRepository instrumentRepository;
   @Inject TransactionValidationService transactionValidationService;
+  @Inject CurrentUser currentUser;
 
   public DashboardResponse getDashboard() {
-    var transactions = transactionRepository.listAscending();
-    return buildDashboard(transactions);
+    return buildDashboard(transactionRepository.listAscending(currentUser.id()));
   }
 
   public List<TransactionResponse> listTransactions() {
-    return transactionRepository.listDescending().stream().map(this::toResponse).toList();
+    return transactionRepository.listDescending(currentUser.id()).stream()
+        .map(this::toResponse)
+        .toList();
   }
 
   public Map<String, BigDecimal> currentShareBalances() {
     var balances = new LinkedHashMap<String, BigDecimal>();
-    for (var transaction : transactionRepository.listAscending()) {
+    for (var transaction : transactionRepository.listAscending(currentUser.id())) {
       var ticker = transaction.instrumentSymbol;
       var quantity = transaction.quantity;
       var current = balances.getOrDefault(ticker, BigDecimal.ZERO);
@@ -55,8 +58,10 @@ public class PortfolioService {
   public void createTransactions(List<TransactionRequest> requests, String source) {
     var normalized = requests.stream().map(transactionValidationService::normalize).toList();
     transactionValidationService.validateBatch(normalized, currentShareBalances());
+    var userId = currentUser.id();
     for (var request : normalized) {
       var transaction = new PortfolioTransaction();
+      transaction.userId = userId;
       transaction.tradeDate = request.date();
       transaction.instrumentSymbol = request.ticker();
       transaction.transactionType = request.type();
@@ -72,7 +77,7 @@ public class PortfolioService {
   public DashboardResponse deleteTransaction(Long transactionId) {
     var transaction =
         transactionRepository
-            .findByIdOptional(transactionId)
+            .findByIdAndUser(transactionId, currentUser.id())
             .orElseThrow(
                 () ->
                     new ApiException(Status.NOT_FOUND, "not_found", "Transaction does not exist"));
@@ -199,7 +204,11 @@ public class PortfolioService {
   }
 
   public PositionSnapshot findPosition(String symbol) {
-    var dashboard = getDashboard();
+    var user = currentUser.optional().orElse(null);
+    if (user == null) {
+      return null;
+    }
+    var dashboard = buildDashboard(transactionRepository.listAscending(user.id));
     return dashboard.holdings().stream()
         .filter(holding -> holding.ticker().equalsIgnoreCase(symbol))
         .findFirst()

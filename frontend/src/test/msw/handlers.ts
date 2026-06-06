@@ -251,6 +251,29 @@ export async function handleMockApi(
     return json(watchlist);
   }
 
+  if (path === '/api/auth/login' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { email?: string; password?: string };
+    const email = body.email?.trim().toLowerCase() ?? '';
+    if (email === 'unverified@example.com') {
+      return json(
+        { code: 'EMAIL_UNVERIFIED', message: 'Please verify your email' },
+        { status: 403 },
+      );
+    }
+    if (email === 'investor@example.com' && body.password === 'Passw0rd!') {
+      return json({ token: 'mock-jwt', user: { id: 1, email } });
+    }
+    return json({ code: 'AUTH_FAILED', message: 'Invalid email or password' }, { status: 401 });
+  }
+
+  if (path === '/api/auth/me' && method === 'GET') {
+    return json({ id: 1, email: 'investor@example.com' });
+  }
+
+  if (path === '/api/auth/logout' && method === 'POST') {
+    return new Response(null, { status: 204 });
+  }
+
   if (path.startsWith('/api/instruments/') && method === 'GET') {
     const symbol = decodeURIComponent(path.split('/').pop() ?? '').toUpperCase();
     const analysis = buildInstrumentAnalysis(symbol);

@@ -18,6 +18,9 @@ public class Watchlist extends PanacheEntityBase {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   public Long id;
 
+  @Column(name = "user_id", nullable = false)
+  public Long userId;
+
   @Column(nullable = false, length = 40)
   public String name;
 
