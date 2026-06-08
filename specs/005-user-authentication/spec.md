@@ -18,6 +18,10 @@
 - Q: Should social login (Google/Facebook) be part of the browser regression journey? → A: **Excluded from browser e2e**; Google/Facebook are covered by mocked-provider integration tests instead.
 - Q: What scenarios should the new authentication regression journey cover? → A: **Full happy + negative path** — sign-up→verify→sign-in→sign-out, password reset, invalid-credentials rejection, protected-route redirect, and per-user data isolation.
 
+### Session 2026-06-08
+
+- Q: How should the dev-mode seed account (`seed@stocktracker.local`) obtain a password so a developer can sign in as it before the sign-up flow exists? → A: **Dev bootstrap seeds a credential** — `DevDataBootstrap` creates a bcrypt `auth_credential` for the seed user using a documented default dev password (`DevPass123!`), dev-mode only. The password is policy-compliant so dev stays consistent with the documented strength policy.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Sign In to Access My Portfolio (Priority: P1)
@@ -26,7 +30,7 @@ A returning user opens StockTracker, enters their credentials, and is taken to t
 
 **Why this priority**: Authentication is the gate for every other capability in this feature. Per-user data isolation is meaningless without a reliable sign-in. This is the minimum viable slice — a single seeded account that can sign in and out delivers value and is independently demonstrable.
 
-**Independent Test**: Seed one verified account; sign in with correct credentials and confirm the dashboard loads scoped to that account; sign in with wrong credentials and confirm access is denied; sign out and confirm protected pages are no longer reachable.
+**Independent Test**: Seed one verified account (`seed@stocktracker.local`, dev default password `DevPass123!`); sign in with correct credentials and confirm the dashboard loads scoped to that account; sign in with wrong credentials and confirm access is denied; sign out and confirm protected pages are no longer reachable.
 
 **Acceptance Scenarios**:
 
@@ -136,7 +140,7 @@ The existing automated browser regression suite (feature 004) gains a new authen
 **Per-user data isolation**
 
 - **FR-006**: System MUST scope all portfolio, watchlist, and transaction data to the owning user; a user MUST NOT be able to read or modify another user's data.
-- **FR-007**: System MUST migrate pre-existing shared data into a single default/seed account so no data is lost when isolation is introduced.
+- **FR-007**: System MUST migrate pre-existing shared data into a single default/seed account so no data is lost when isolation is introduced. In dev mode, the dev bootstrap MUST also provision a policy-compliant credential for this seed account (default password `DevPass123!`) so it is sign-in-capable before the sign-up flow exists; this credential seeding is dev-mode only and MUST NOT run in production.
 - **FR-008**: System MUST provision a new user with an empty, private dataset on first successful sign-in.
 
 **Account sign-up & verification**

@@ -2,10 +2,13 @@ package com.stocktracker.bootstrap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stocktracker.domain.AppUser;
+import com.stocktracker.domain.AuthCredential;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.persistence.AppUserRepository;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
+import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,6 +29,10 @@ public class DevDataBootstrap {
   @Inject AppUserRepository appUserRepository;
   @Inject ObjectMapper objectMapper;
 
+  /** Documented default dev password for the seed account (policy-compliant; dev-mode only). */
+  private static final String SEED_USER_EMAIL = "seed@stocktracker.local";
+  private static final String SEED_USER_PASSWORD = "DevPass123!";
+
   @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
   boolean enabled;
 
@@ -34,15 +41,17 @@ public class DevDataBootstrap {
     if (!enabled) {
       return;
     }
-    if (transactionRepository.count() > 0) {
-      return;
-    }
     // The seed user (migration V2) owns demo data so user-scoped queries resolve it.
     var seedUser =
         appUserRepository
-            .findByNormalizedEmail("seed@stocktracker.local")
+            .findByNormalizedEmail(SEED_USER_EMAIL)
             .orElseThrow(
                 () -> new IllegalStateException("Seed user missing; V2 migration not applied"));
+    // Make the seed account sign-in-capable before the sign-up flow exists (FR-007); dev-only.
+    ensureSeedCredential(seedUser);
+    if (transactionRepository.count() > 0) {
+      return;
+    }
     try (InputStream stream =
         Thread.currentThread()
             .getContextClassLoader()
@@ -66,5 +75,15 @@ public class DevDataBootstrap {
         transactionRepository.persist(transaction);
       }
     }
+  }
+
+  private void ensureSeedCredential(AppUser seedUser) {
+    if (AuthCredential.count("userId", seedUser.id) > 0) {
+      return;
+    }
+    var credential = new AuthCredential();
+    credential.userId = seedUser.id;
+    credential.passwordHash = BcryptUtil.bcryptHash(SEED_USER_PASSWORD);
+    credential.persist();
   }
 }

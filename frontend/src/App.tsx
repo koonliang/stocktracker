@@ -2,6 +2,8 @@ import { Outlet, Route, Routes } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LoginRoute } from '@/routes/LoginRoute';
+import { SignupRoute } from '@/routes/SignupRoute';
+import { VerifyEmailRoute } from '@/routes/VerifyEmailRoute';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { PlaceholderRoute } from '@/routes/PlaceholderRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
@@ -14,6 +16,8 @@ export function App() {
     <Routes>
       {/* Public auth routes render outside the app shell. */}
       <Route path="/login" element={<LoginRoute />} />
+      <Route path="/signup" element={<SignupRoute />} />
+      <Route path="/verify-email" element={<VerifyEmailRoute />} />
 
       {/* Everything else requires an authenticated session. */}
       <Route

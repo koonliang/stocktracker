@@ -2,7 +2,10 @@ package com.stocktracker.api;
 
 import com.stocktracker.dto.LoginRequest;
 import com.stocktracker.dto.LoginResponse;
+import com.stocktracker.dto.ResendVerificationRequest;
+import com.stocktracker.dto.SignUpRequest;
 import com.stocktracker.dto.UserResponse;
+import com.stocktracker.dto.VerifyEmailRequest;
 import com.stocktracker.security.CurrentUser;
 import com.stocktracker.service.AuthService;
 import io.quarkus.security.Authenticated;
@@ -21,6 +24,24 @@ import jakarta.ws.rs.core.Response;
 public class AuthResource {
   @Inject AuthService authService;
   @Inject CurrentUser currentUser;
+
+  @POST
+  @Path("/signup")
+  public Response signup(SignUpRequest request) {
+    return Response.accepted(authService.signup(request)).build();
+  }
+
+  @POST
+  @Path("/verify-email")
+  public Response verifyEmail(VerifyEmailRequest request) {
+    return Response.ok(authService.verifyEmail(request)).build();
+  }
+
+  @POST
+  @Path("/resend-verification")
+  public Response resendVerification(ResendVerificationRequest request) {
+    return Response.accepted(authService.resendVerification(request)).build();
+  }
 
   @POST
   @Path("/login")

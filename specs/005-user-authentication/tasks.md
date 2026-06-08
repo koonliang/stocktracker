@@ -90,17 +90,17 @@ until verified; empty private dataset on first sign-in.
 **Independent Test**: Sign up new email → verification token issued, sign-in
 refused until verified → after verify, sign-in succeeds with empty dataset.
 
-- [ ] T031 [P] [US2] Create sign-up/verify DTO records (`SignUpRequest`, `VerifyEmailRequest`, `ResendVerificationRequest`, status responses) in `backend/src/main/java/com/stocktracker/dto/`
-- [ ] T032 [P] [US2] Create `EmailSender` abstraction with dev log/mock sink and `quarkus-mailer` impl in `backend/src/main/java/com/stocktracker/service/EmailSender.java`
-- [ ] T033 [US2] Implement token issuance/validation helpers (opaque token + SHA-256 hash, expiry, single-use, supersede prior) in `AuthService` using `VerificationTokenRepository`
-- [ ] T034 [US2] Implement `AuthService.signup`, `verifyEmail`, `resendVerification` (email normalization, password policy, non-enumerating, unverified→ACTIVE on verify) in `backend/src/main/java/com/stocktracker/service/AuthService.java`
-- [ ] T035 [US2] Add `POST /api/auth/signup`, `/verify-email`, `/resend-verification` to `AuthResource` per contracts/auth-api.md
-- [ ] T036 [US2] Create dev-only `DevAuthTokenResource` (`GET /api/dev/auth/latest-token`) gated by `AuthMode==dev` (absent in cognito) in `backend/src/main/java/com/stocktracker/api/DevAuthTokenResource.java` (FR-T02)
-- [ ] T037 [P] [US2] Add `@Scheduled` token-cleanup job (purge expired/consumed) in `backend/src/main/java/com/stocktracker/service/TokenCleanupJob.java`
-- [ ] T038 [P] [US2] Create `frontend/src/routes/SignupRoute.tsx` (form, password-policy feedback, "check your email" state) and `frontend/src/routes/VerifyEmailRoute.tsx` (consumes `?token=`) with `data-testid` hooks
-- [ ] T039 [P] [US2] Backend test: signup creates unverified + token; duplicate email non-enumerating; unverified login blocked; verify activates; expired/used token rejected — `backend/src/test/java/com/stocktracker/api/SignUpVerifyTest.java`
-- [ ] T040 [P] [US2] Backend test: dev token endpoint returns latest token in dev and is absent/404 in cognito mode — `backend/src/test/java/com/stocktracker/api/DevAuthTokenTest.java`
-- [ ] T041 [P] [US2] Frontend test: signup flow + verify route behavior — `frontend/src/routes/SignupRoute.test.tsx`
+- [X] T031 [P] [US2] Create sign-up/verify DTO records (`SignUpRequest`, `VerifyEmailRequest`, `ResendVerificationRequest`, status responses) in `backend/src/main/java/com/stocktracker/dto/`
+- [X] T032 [P] [US2] Create `EmailSender` abstraction with dev log/mock sink and `quarkus-mailer` impl in `backend/src/main/java/com/stocktracker/service/EmailSender.java`
+- [X] T033 [US2] Implement token issuance/validation helpers (opaque token + SHA-256 hash, expiry, single-use, supersede prior) in `AuthService` using `VerificationTokenRepository`
+- [X] T034 [US2] Implement `AuthService.signup`, `verifyEmail`, `resendVerification` (email normalization, password policy, non-enumerating, unverified→ACTIVE on verify) in `backend/src/main/java/com/stocktracker/service/AuthService.java`; also make the dev seed account sign-in-capable: in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` provision a policy-compliant `auth_credential` for `seed@stocktracker.local` (bcrypt-hash default dev password `DevPass123!` via `BcryptUtil.bcryptHash`), guarded by the existing dev `enabled` flag so it never runs in production (FR-007)
+- [X] T035 [US2] Add `POST /api/auth/signup`, `/verify-email`, `/resend-verification` to `AuthResource` per contracts/auth-api.md
+- [X] T036 [US2] Create dev-only `DevAuthTokenResource` (`GET /api/dev/auth/latest-token`) gated by `AuthMode==dev` (absent in cognito) in `backend/src/main/java/com/stocktracker/api/DevAuthTokenResource.java` (FR-T02)
+- [X] T037 [P] [US2] Add `@Scheduled` token-cleanup job (purge expired/consumed) in `backend/src/main/java/com/stocktracker/service/TokenCleanupJob.java`
+- [X] T038 [P] [US2] Create `frontend/src/routes/SignupRoute.tsx` (form, password-policy feedback, "check your email" state) and `frontend/src/routes/VerifyEmailRoute.tsx` (consumes `?token=`) with `data-testid` hooks
+- [X] T039 [P] [US2] Backend test: signup creates unverified + token; duplicate email non-enumerating; unverified login blocked; verify activates; expired/used token rejected — `backend/src/test/java/com/stocktracker/api/SignUpVerifyTest.java`
+- [X] T040 [P] [US2] Backend test: dev token endpoint returns latest token in dev and is absent/404 in cognito mode — `backend/src/test/java/com/stocktracker/api/DevAuthTokenTest.java`
+- [X] T041 [P] [US2] Frontend test: signup flow + verify route behavior — `frontend/src/routes/SignupRoute.test.tsx`
 
 **Checkpoint**: New users can register, verify, and sign in to an empty dataset.
 

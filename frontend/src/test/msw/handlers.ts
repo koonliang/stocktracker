@@ -266,6 +266,38 @@ export async function handleMockApi(
     return json({ code: 'AUTH_FAILED', message: 'Invalid email or password' }, { status: 401 });
   }
 
+  if (path === '/api/auth/signup' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { email?: string; password?: string };
+    const email = body.email?.trim() ?? '';
+    const password = body.password ?? '';
+    const policyOk =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[0-9]/.test(password);
+    if (!email.includes('@') || !policyOk) {
+      return json({ code: 'VALIDATION', message: 'Invalid email or password' }, { status: 400 });
+    }
+    return json({ status: 'verification_sent' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/verify-email' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { token?: string };
+    if (body.token === 'valid-token') {
+      return json({ status: 'verified' });
+    }
+    return json(
+      { code: 'TOKEN_INVALID', message: 'This link is invalid or has expired' },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  if (path === '/api/auth/resend-verification' && method === 'POST') {
+    return json({ status: 'verification_sent' }, { status: 202 });
+  }
+
   if (path === '/api/auth/me' && method === 'GET') {
     return json({ id: 1, email: 'investor@example.com' });
   }

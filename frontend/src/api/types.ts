@@ -131,3 +131,7 @@ export type LoginResponse = {
   token: string;
   user: AuthUser;
 };
+
+export type StatusResponse = {
+  status: string;
+};
