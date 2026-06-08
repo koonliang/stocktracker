@@ -1,0 +1,15 @@
+# gitleaks configuration for the secret-scan gate (scripts/scan-secrets.sh, FR-026a).
+# Extends the bundled default ruleset and allowlists known non-secret fixtures.
+[extend]
+useDefault = true
+
+[allowlist]
+description = """
+Bundled dev-only JWT keypair used to sign/verify self-signed RS256 tokens when
+STOCKTRACKER_AUTH_MODE=dev (smallrye.jwt.sign.key.location / mp.jwt.verify.publickey.location).
+It is intentionally committed so local dev works with zero setup and is NEVER used in
+production, where Cognito issues and signs the JWTs. Not a real secret.
+"""
+paths = [
+  '''backend/src/main/resources/jwt/privateKey\.pem''',
+]

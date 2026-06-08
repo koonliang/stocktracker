@@ -25,5 +25,5 @@ else
 fi
 
 echo "Scanning full git history for secrets..."
-"$gitleaks_bin" detect --source . --redact --no-banner --exit-code 1
+"$gitleaks_bin" detect --source . --config .gitleaks.toml --redact --no-banner --exit-code 1
 echo "No secrets detected in git history."
