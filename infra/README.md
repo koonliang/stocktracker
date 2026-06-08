@@ -53,6 +53,17 @@ Manager, CloudWatch Logs) through interface VPC endpoints. The ephemeral stack
 reads the persistent CloudFront domain via `terraform_remote_state` so API
 Gateway's CORS allow-origin always matches the live frontend.
 
+Authentication in production is owned by an **Amazon Cognito** user pool
+(`modules/cognito`) provisioned in the ephemeral `production` stack. It handles
+email sign-up/verification, password reset, and optional Google/Facebook
+federation (IdP credentials read from Secrets Manager, each created only when
+its secret name is supplied). The backend Lambda runs with
+`STOCKTRACKER_AUTH_MODE=cognito` and only validates pool-issued JWTs
+(`COGNITO_ISSUER` / `COGNITO_JWKS_URL` wired from the module outputs); the app
+client uses the authorization-code flow with callback/logout URLs derived from
+the CloudFront domain. Verified-email account linking is done backend-side, so
+no custom Cognito Lambda trigger is provisioned.
+
 Not shown: the one-time **bootstrap** stack (local state) provisions the
 Terraform state backend (S3 + DynamoDB lock) and GitHub OIDC + IAM roles — see
 [One-time bootstrap](#one-time-bootstrap).
@@ -72,6 +83,7 @@ infra/
 └── modules/                        # Reusable building blocks
     ├── api_gateway/
     ├── cloudfront/
+    ├── cognito/                     # User pool, app client, optional IdPs
     ├── frontend_bucket/
     ├── lambda_backend/
     ├── lambda_migrator/

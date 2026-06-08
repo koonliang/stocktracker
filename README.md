@@ -3,8 +3,10 @@
 StockTracker is a full-stack stock portfolio tracker with a React frontend, a
 Quarkus backend, and a MySQL database.
 
-The app covers four main flows:
+The app covers these main flows:
 
+- user authentication (sign-up, email verification, sign-in/out, password
+  reset) with per-user data scoping
 - portfolio dashboard and derived holdings
 - watchlist management
 - stock analysis with seeded price/stat data
@@ -169,6 +171,44 @@ The suite runs automatically in CI on PRs to `main`. See
 [e2e/README.md](./e2e/README.md) for journeys, configuration, and the Allure
 HTML report.
 
+## Authentication
+
+Every API route except the auth endpoints requires a signed-in user, and all
+user-owned data (transactions, watchlists) is scoped per user. The backend runs
+in one of two modes, selected by `STOCKTRACKER_AUTH_MODE`; the REST layer
+validates JWTs the same way in both.
+
+- **`dev` (default, local):** the backend owns sign-up, email verification,
+  sign-in/out, and password reset, and issues self-signed RS256 JWTs. **No real
+  email is sent** — the verification/reset token is logged and exposed via a
+  dev-only endpoint so flows work without an inbox. To complete a sign-up
+  locally:
+
+  ```bash
+  # 1. Sign up at http://localhost:5173/signup, then fetch the token:
+  curl "http://localhost:8080/api/dev/auth/latest-token?email=you@example.com&purpose=EMAIL_VERIFICATION"
+  # (or: docker compose logs backend | grep email_dev_sink)
+
+  # 2. Open the verify link with that token:
+  #    http://localhost:5173/verify-email?token=<rawToken>
+  ```
+
+  Use `purpose=PASSWORD_RESET` and `/reset-password?token=...` for the reset
+  flow. Bootstrap also seeds two verified accounts —
+  `seed@stocktracker.local` (owns demo data) and `empty@stocktracker.local` —
+  both with password `DevPass123!`.
+
+- **`cognito` (production):** an AWS Cognito user pool owns sign-up,
+  verification, password reset, and Google/Facebook federation, and sends the
+  real emails. The backend only validates Cognito-issued JWTs; the dev
+  `/api/auth/*` and dev-token endpoints go dark (return 404). Verified-email
+  account linking between local and federated identities is done backend-side
+  on first token by `AccountLinkingService`.
+
+`/api/auth/*` is protected by a per-IP and per-email sliding-window rate limit
+(`STOCKTRACKER_AUTH_RATE_LIMIT_MAX` / `_WINDOW`). See
+[backend/README.md](./backend/README.md) for endpoint and config detail.
+
 ## Data Model Notes
 
 The mutable user-owned tables use `BIGINT` primary keys:
@@ -203,6 +243,9 @@ Summary of what this feature provisions:
   gateway — private subnets reach AWS services through interface VPC endpoints.
 - **Database** — RDS MySQL with an RDS-managed master password in Secrets
   Manager, read by the Lambdas at startup via the AWS SDK.
+- **Authentication** — a Cognito user pool (email sign-up/verification,
+  password reset, optional Google/Facebook federation) issues the JWTs the
+  backend Lambda validates; the backend runs with `STOCKTRACKER_AUTH_MODE=cognito`.
 - **Bootstrap** — a one-time stack provisioning the Terraform state backend
   (S3 + DynamoDB lock) and the GitHub OIDC provider + IAM roles.
 

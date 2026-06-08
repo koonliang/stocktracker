@@ -28,6 +28,57 @@ For backend-only work outside Docker:
 The application expects MySQL unless you are running the test suite, where
 Quarkus Dev Services will provision an ephemeral database.
 
+## Authentication
+
+The backend gates every non-auth API route behind a signed-in user and scopes
+user-owned data per user (`CurrentUser`). It runs in one of two modes via
+`STOCKTRACKER_AUTH_MODE`; the resource layer validates JWTs identically in both
+(dev self-signed RS256 vs Cognito-issued).
+
+| Mode               | Sign-up / verify / reset            | JWTs                  | Email                                  |
+| ------------------ | ----------------------------------- | --------------------- | -------------------------------------- |
+| `dev` (default)    | Owned by `AuthService` (`/api/auth/*`) | Self-signed RS256     | Not sent — token logged + dev endpoint |
+| `cognito` (prod)   | Owned by the Cognito user pool      | Cognito-issued, validated | Sent by Cognito                    |
+
+Endpoints (dev mode):
+
+```text
+POST /api/auth/signup                 sign up (issues an email-verification token)
+POST /api/auth/verify-email           activate an account from a verification token
+POST /api/auth/resend-verification    re-issue verification for a pending account
+POST /api/auth/login                  sign in (returns an access token)
+POST /api/auth/forgot-password        request a password-reset token
+POST /api/auth/reset-password         set a new password from a reset token
+GET  /api/dev/auth/latest-token       dev-only: read the latest raw token (404 in cognito mode)
+```
+
+In dev mode **no real email is sent**: `EmailSender` logs the raw token
+(`event=email_dev_sink ...`) and `DevTokenStore` mirrors it for the dev-only
+`GET /api/dev/auth/latest-token?email=<email>&purpose=EMAIL_VERIFICATION|PASSWORD_RESET`
+endpoint, so verify/reset flows run without an inbox. The DB only ever stores
+the SHA-256 hash of each token. To verify a local sign-up:
+
+```sh
+curl "http://localhost:8080/api/dev/auth/latest-token?email=you@example.com&purpose=EMAIL_VERIFICATION"
+# then open http://localhost:5173/verify-email?token=<rawToken>
+```
+
+In `cognito` mode the `/api/auth/*` and dev-token endpoints return 404; Cognito
+owns those flows and the backend only validates pool-issued JWTs via
+`COGNITO_ISSUER` / `COGNITO_JWKS_URL`. Verified-email linking of local and
+federated identities is performed on first token by `AccountLinkingService`.
+
+Relevant config (`application.properties`):
+
+- `stocktracker.auth.mode` — `dev` or `cognito` (`STOCKTRACKER_AUTH_MODE`)
+- `stocktracker.auth.verification-token.ttl-seconds` / `reset-token.ttl-seconds`
+- `stocktracker.auth.access-token.ttl-seconds` (`STOCKTRACKER_AUTH_TOKEN_TTL`)
+- `stocktracker.auth.rate-limit.max-attempts` / `window-seconds` — per-IP and
+  per-email sliding-window throttle on `/api/auth/*`
+
+Password policy: minimum 8 characters with an uppercase, lowercase, and digit
+(`PasswordPolicy`), enforced identically at sign-up and reset.
+
 ## Quality gates
 
 ```sh
