@@ -29,9 +29,13 @@ public class DevDataBootstrap {
   @Inject AppUserRepository appUserRepository;
   @Inject ObjectMapper objectMapper;
 
-  /** Documented default dev password for the seed account (policy-compliant; dev-mode only). */
+  /** Documented default dev password for the seed accounts (policy-compliant; dev-mode only). */
   private static final String SEED_USER_EMAIL = "seed@stocktracker.local";
+
   private static final String SEED_USER_PASSWORD = "DevPass123!";
+  // A second verified account with no data, used by the e2e per-user isolation scenario (FR-006).
+  private static final String EMPTY_USER_EMAIL = "empty@stocktracker.local";
+  private static final String EMPTY_USER_PASSWORD = "DevPass123!";
 
   @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
   boolean enabled;
@@ -49,6 +53,8 @@ public class DevDataBootstrap {
                 () -> new IllegalStateException("Seed user missing; V2 migration not applied"));
     // Make the seed account sign-in-capable before the sign-up flow exists (FR-007); dev-only.
     ensureSeedCredential(seedUser);
+    // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
+    ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
     if (transactionRepository.count() > 0) {
       return;
     }
@@ -85,5 +91,23 @@ public class DevDataBootstrap {
     credential.userId = seedUser.id;
     credential.passwordHash = BcryptUtil.bcryptHash(SEED_USER_PASSWORD);
     credential.persist();
+  }
+
+  /** Finds or creates a verified, sign-in-capable account with the given dev password. */
+  private void ensureVerifiedUser(String email, String password) {
+    var user = appUserRepository.findByNormalizedEmail(email).orElse(null);
+    if (user == null) {
+      user = new AppUser();
+      user.email = AppUser.normalizeEmail(email);
+      user.status = AppUser.Status.ACTIVE;
+      user.emailVerified = true;
+      appUserRepository.persist(user);
+    }
+    if (AuthCredential.count("userId", user.id) == 0) {
+      var credential = new AuthCredential();
+      credential.userId = user.id;
+      credential.passwordHash = BcryptUtil.bcryptHash(password);
+      credential.persist();
+    }
   }
 }

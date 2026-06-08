@@ -298,6 +298,36 @@ export async function handleMockApi(
     return json({ status: 'verification_sent' }, { status: 202 });
   }
 
+  if (path === '/api/auth/forgot-password' && method === 'POST') {
+    // Non-enumerating: always the same accepted response (FR-016).
+    return json({ status: 'reset_sent' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/reset-password' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      token?: string;
+      newPassword?: string;
+    };
+    if (body.token !== 'valid-reset-token') {
+      return json(
+        { code: 'TOKEN_INVALID', message: 'This link is invalid or has expired' },
+        { status: 400 },
+      );
+    }
+    const password = body.newPassword ?? '';
+    const policyOk =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[0-9]/.test(password);
+    if (!policyOk) {
+      return json({ code: 'VALIDATION', message: 'Password does not meet the policy' }, {
+        status: 400,
+      });
+    }
+    return json({ status: 'reset' });
+  }
+
   if (path === '/api/auth/me' && method === 'GET') {
     return json({ id: 1, email: 'investor@example.com' });
   }

@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
-import { ApiError } from '@/api/client';
+import { ApiError, setAuthToken } from '@/api/client';
 import { fetchMe, login as loginRequest, logout as logoutRequest } from '@/api/authApi';
 import { useAuthStore } from '@/stores/authStore';
-import { authMode, type AuthMode } from './authConfig';
+import { authMode, cognitoConfig, type AuthMode } from './authConfig';
 
 export type LoginResult = { ok: true } | { ok: false; reason: 'invalid' | 'unverified' | 'server' };
 
@@ -31,14 +31,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useAuthStore((s) => s.clearSession);
 
   // Revalidate a persisted token on load so a stale session can't grant access.
+  // In cognito mode, first complete any pending hosted-UI auth-code callback.
   useEffect(() => {
+    if (authMode === 'cognito') {
+      completeCognitoCallback(setSession).catch(() => clearSession());
+      return;
+    }
     const { token, status } = useAuthStore.getState();
-    if (authMode === 'dev' && token && status === 'authenticated') {
+    if (token && status === 'authenticated') {
       fetchMe()
         .then(setUser)
         .catch(() => clearSession());
     }
-  }, [setUser, clearSession]);
+  }, [setSession, setUser, clearSession]);
 
   async function login(email: string, password: string): Promise<LoginResult> {
     if (authMode === 'cognito') {
@@ -77,9 +82,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Cognito hosted-UI redirect is wired in User Story 4; dev mode never calls this.
-function redirectToHostedUi(_provider?: SocialProvider): void {
-  throw new Error('Cognito hosted UI is not configured yet');
+/** Sends the browser to the Cognito Hosted UI authorize endpoint (optionally a social IdP). */
+function redirectToHostedUi(provider?: SocialProvider): void {
+  const { domain, clientId, redirectUri, scopes } = cognitoConfig;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: 'code',
+    scope: scopes,
+    redirect_uri: redirectUri,
+  });
+  if (provider) {
+    params.set('identity_provider', provider === 'google' ? 'Google' : 'Facebook');
+  }
+  window.location.assign(`https://${domain}/oauth2/authorize?${params.toString()}`);
+}
+
+/**
+ * On return from the Hosted UI (`?code=...`), exchanges the auth code for tokens at the Cognito
+ * token endpoint, then bootstraps the local session via the JIT-provisioned `/api/auth/me`.
+ */
+async function completeCognitoCallback(
+  setSession: (token: string, user: { id: number; email: string }) => void,
+): Promise<void> {
+  const url = new URL(window.location.href);
+  const code = url.searchParams.get('code');
+  if (!code) {
+    return;
+  }
+  const { domain, clientId, redirectUri } = cognitoConfig;
+  const body = new URLSearchParams({
+    grant_type: 'authorization_code',
+    client_id: clientId,
+    code,
+    redirect_uri: redirectUri,
+  });
+  const response = await fetch(`https://${domain}/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body,
+  });
+  if (!response.ok) {
+    throw new Error('Token exchange failed');
+  }
+  const tokens = (await response.json()) as { id_token: string };
+  // The id_token carries email + identities claims that CurrentUser resolves/links.
+  setAuthToken(tokens.id_token);
+  const user = await fetchMe();
+  setSession(tokens.id_token, user);
+  // Strip the code from the URL so a refresh doesn't re-trigger the exchange.
+  window.history.replaceState({}, '', redirectUri.replace(/\/auth\/callback$/, '/'));
 }
 
 export function useAuth(): AuthContextValue {

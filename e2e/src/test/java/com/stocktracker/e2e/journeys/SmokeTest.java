@@ -14,6 +14,7 @@ class SmokeTest extends BaseTest {
 
   @Test
   void appShellLoads() {
+    signInAsSeedUser();
     open("/");
 
     assertThat(driver.getTitle()).isEqualTo("StockTracker");

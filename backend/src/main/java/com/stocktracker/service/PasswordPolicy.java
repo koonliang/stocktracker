@@ -9,8 +9,7 @@ import java.util.regex.Pattern;
  * sign-up and password reset. Returns the list of unmet rules so the API can surface them.
  */
 public final class PasswordPolicy {
-  private static final Pattern EMAIL =
-      Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
+  private static final Pattern EMAIL = Pattern.compile("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$");
 
   private PasswordPolicy() {}
 

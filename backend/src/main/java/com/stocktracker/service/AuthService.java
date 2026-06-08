@@ -5,9 +5,11 @@ import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.AuthCredential;
 import com.stocktracker.domain.VerificationToken;
 import com.stocktracker.domain.VerificationToken.Purpose;
+import com.stocktracker.dto.ForgotPasswordRequest;
 import com.stocktracker.dto.LoginRequest;
 import com.stocktracker.dto.LoginResponse;
 import com.stocktracker.dto.ResendVerificationRequest;
+import com.stocktracker.dto.ResetPasswordRequest;
 import com.stocktracker.dto.SignUpRequest;
 import com.stocktracker.dto.StatusResponse;
 import com.stocktracker.dto.UserResponse;
@@ -44,6 +46,9 @@ public class AuthService {
 
   @ConfigProperty(name = "stocktracker.auth.verification-token.ttl-seconds", defaultValue = "86400")
   long verificationTtlSeconds;
+
+  @ConfigProperty(name = "stocktracker.auth.reset-token.ttl-seconds", defaultValue = "3600")
+  long resetTtlSeconds;
 
   /**
    * Verifies email+password and returns a signed JWT. Failures are generic (FR-002): an unknown
@@ -143,6 +148,55 @@ public class AuthService {
     return new StatusResponse("verification_sent");
   }
 
+  /**
+   * Issues a password-reset token for a sign-in-capable account and emails it (FR-015). The
+   * response is identical whether or not the email maps to an account (FR-016, SC-005,
+   * non-enumerating).
+   */
+  @Transactional
+  public StatusResponse forgotPassword(ForgotPasswordRequest request) {
+    var user = users.findByNormalizedEmail(AppUser.normalizeEmail(request.email())).orElse(null);
+    if (user != null && user.status == AppUser.Status.ACTIVE) {
+      var rawToken = issueToken(user, Purpose.PASSWORD_RESET, resetTtlSeconds);
+      emailSender.sendPasswordReset(user.email, rawToken);
+      LOG.infof("event=password_reset_requested user_id=%d", user.id);
+    }
+    return new StatusResponse("reset_sent");
+  }
+
+  /**
+   * Sets a new password from a valid reset token, then invalidates existing sessions by stamping
+   * {@code sessionsInvalidBefore} so tokens issued before now are rejected (FR-017/018). The new
+   * password must satisfy the policy (FR-010). The token is single-use (SC-007).
+   */
+  @Transactional
+  public StatusResponse resetPassword(ResetPasswordRequest request) {
+    var violations = PasswordPolicy.passwordViolations(request.newPassword());
+    if (!violations.isEmpty()) {
+      throw new ApiException(
+          Status.BAD_REQUEST,
+          "VALIDATION",
+          "Password does not meet the strength policy",
+          Map.of("rules", violations));
+    }
+    var token = consumeToken(request.token(), Purpose.PASSWORD_RESET);
+    var user = users.findById(token.userId);
+    if (user == null) {
+      throw new ApiException(
+          Status.BAD_REQUEST, "TOKEN_INVALID", "This link is invalid or has expired");
+    }
+    var credential = AuthCredential.<AuthCredential>find("userId", user.id).firstResult();
+    if (credential == null) {
+      credential = new AuthCredential();
+      credential.userId = user.id;
+      credential.persist();
+    }
+    credential.passwordHash = BcryptUtil.bcryptHash(request.newPassword());
+    user.sessionsInvalidBefore = LocalDateTime.now();
+    LOG.infof("event=password_reset user_id=%d", user.id);
+    return new StatusResponse("reset");
+  }
+
   private void issueAndSendVerification(AppUser user) {
     var rawToken = issueToken(user, Purpose.EMAIL_VERIFICATION, verificationTtlSeconds);
     emailSender.sendVerification(user.email, rawToken);
@@ -170,8 +224,7 @@ public class AuthService {
   /** Validates a raw token for the expected purpose and marks it consumed (single-use, SC-007). */
   VerificationToken consumeToken(String rawToken, Purpose purpose) {
     var now = LocalDateTime.now();
-    var token =
-        rawToken == null ? null : tokens.findByHash(sha256(rawToken)).orElse(null);
+    var token = rawToken == null ? null : tokens.findByHash(sha256(rawToken)).orElse(null);
     if (token == null || token.purpose != purpose || !token.isUsable(now)) {
       throw new ApiException(
           Status.BAD_REQUEST, "TOKEN_INVALID", "This link is invalid or has expired");

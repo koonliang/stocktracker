@@ -29,6 +29,20 @@ export function resendVerification(email: string) {
   });
 }
 
+export function forgotPassword(email: string) {
+  return apiRequest<StatusResponse>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+export function resetPassword(token: string, newPassword: string) {
+  return apiRequest<StatusResponse>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, newPassword }),
+  });
+}
+
 export function fetchMe() {
   return apiRequest<AuthUser>('/auth/me');
 }

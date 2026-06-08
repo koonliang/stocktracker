@@ -20,6 +20,7 @@ class CsvImportExportJourneyTest extends BaseTest {
   void importThenExport() throws Exception {
     Path csv = Paths.get(getClass().getResource("/transactions-sample.csv").toURI());
 
+    signInAsSeedUser();
     open("/transactions");
     TransactionsPage transactions = new TransactionsPage(driver, waits);
 

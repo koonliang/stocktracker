@@ -4,6 +4,8 @@ import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LoginRoute } from '@/routes/LoginRoute';
 import { SignupRoute } from '@/routes/SignupRoute';
 import { VerifyEmailRoute } from '@/routes/VerifyEmailRoute';
+import { ForgotPasswordRoute } from '@/routes/ForgotPasswordRoute';
+import { ResetPasswordRoute } from '@/routes/ResetPasswordRoute';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { PlaceholderRoute } from '@/routes/PlaceholderRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
@@ -18,6 +20,8 @@ export function App() {
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/signup" element={<SignupRoute />} />
       <Route path="/verify-email" element={<VerifyEmailRoute />} />
+      <Route path="/forgot-password" element={<ForgotPasswordRoute />} />
+      <Route path="/reset-password" element={<ResetPasswordRoute />} />
 
       {/* Everything else requires an authenticated session. */}
       <Route

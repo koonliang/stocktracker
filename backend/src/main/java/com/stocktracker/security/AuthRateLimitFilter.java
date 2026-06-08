@@ -2,11 +2,10 @@ package com.stocktracker.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stocktracker.dto.ApiErrorResponse;
-import io.vertx.core.http.HttpServerRequest;
+import io.quarkus.vertx.http.runtime.CurrentVertxRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
@@ -33,7 +32,9 @@ public class AuthRateLimitFilter implements ContainerRequestFilter {
 
   @Inject ObjectMapper objectMapper;
 
-  @Context HttpServerRequest httpRequest;
+  // Inject the request via CDI (a stable @RequestScoped bean) rather than @Context field injection
+  // of the Vert.x HttpServerRequest, which is fragile under ArC bean-resolution in this provider.
+  @Inject CurrentVertxRequest currentRequest;
 
   private final Map<String, Deque<Long>> hits = new ConcurrentHashMap<>();
 
@@ -45,10 +46,7 @@ public class AuthRateLimitFilter implements ContainerRequestFilter {
     }
 
     var now = System.currentTimeMillis();
-    var ip =
-        httpRequest != null && httpRequest.remoteAddress() != null
-            ? httpRequest.remoteAddress().hostAddress()
-            : "unknown";
+    var ip = remoteIp();
     if (isOverLimit("ip:" + ip, now) | isOverLimit("email:" + extractEmail(context), now)) {
       context.abortWith(
           Response.status(429)
@@ -58,6 +56,14 @@ public class AuthRateLimitFilter implements ContainerRequestFilter {
                       "rate_limited", "Too many attempts, please try again later", null))
               .build());
     }
+  }
+
+  private String remoteIp() {
+    var context = currentRequest.getCurrent();
+    if (context == null || context.request() == null || context.request().remoteAddress() == null) {
+      return "unknown";
+    }
+    return context.request().remoteAddress().hostAddress();
   }
 
   private boolean isOverLimit(String key, long now) {

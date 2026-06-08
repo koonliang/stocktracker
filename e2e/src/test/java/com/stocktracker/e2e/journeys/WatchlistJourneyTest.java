@@ -16,6 +16,7 @@ class WatchlistJourneyTest extends BaseTest {
     // Unique name so repeated local runs against a persistent DB don't collide.
     String name = "E2E " + System.currentTimeMillis();
 
+    signInAsSeedUser();
     open("/watchlists");
     WatchlistsPage watchlists = new WatchlistsPage(driver, waits).createWatchlist(name);
 

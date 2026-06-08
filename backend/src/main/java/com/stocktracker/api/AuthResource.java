@@ -1,8 +1,10 @@
 package com.stocktracker.api;
 
+import com.stocktracker.dto.ForgotPasswordRequest;
 import com.stocktracker.dto.LoginRequest;
 import com.stocktracker.dto.LoginResponse;
 import com.stocktracker.dto.ResendVerificationRequest;
+import com.stocktracker.dto.ResetPasswordRequest;
 import com.stocktracker.dto.SignUpRequest;
 import com.stocktracker.dto.UserResponse;
 import com.stocktracker.dto.VerifyEmailRequest;
@@ -47,6 +49,18 @@ public class AuthResource {
   @Path("/login")
   public LoginResponse login(LoginRequest request) {
     return authService.login(request);
+  }
+
+  @POST
+  @Path("/forgot-password")
+  public Response forgotPassword(ForgotPasswordRequest request) {
+    return Response.accepted(authService.forgotPassword(request)).build();
+  }
+
+  @POST
+  @Path("/reset-password")
+  public Response resetPassword(ResetPasswordRequest request) {
+    return Response.ok(authService.resetPassword(request)).build();
   }
 
   @GET

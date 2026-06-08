@@ -53,6 +53,10 @@ locals {
 
   # No origin until the persistent stack supplies the CloudFront domain.
   cors_allow_origins = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}"] : []
+
+  # Hosted-UI redirect targets; only meaningful once the CloudFront origin exists.
+  cognito_callback_urls = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}/auth/callback"] : []
+  cognito_logout_urls   = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}/login"] : []
 }
 
 # ---------- Modules ----------
@@ -85,7 +89,26 @@ module "lambda_backend" {
     QUARKUS_FLYWAY_MIGRATE_AT_START = "false"
     # Reference data is seeded by the migrator, not the request-serving backend.
     STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "false"
+    # Production delegates identity to Cognito; the backend only validates pool-issued
+    # JWTs (contracts/cognito.md). The dev /api/auth/* + dev token endpoints go dark.
+    STOCKTRACKER_AUTH_MODE = "cognito"
+    COGNITO_ISSUER         = module.cognito.issuer
+    COGNITO_JWKS_URL       = module.cognito.jwks_url
   }
+}
+
+module "cognito" {
+  source        = "../../modules/cognito"
+  name_prefix   = local.name_prefix
+  domain_prefix = "${local.name_prefix}-auth"
+
+  callback_urls = local.cognito_callback_urls
+  logout_urls   = local.cognito_logout_urls
+
+  # Google/Facebook credentials live in Secrets Manager; supply the secret names to
+  # enable each provider (empty by default so a base apply/validate stays clean).
+  google_secret_name   = var.cognito_google_secret_name
+  facebook_secret_name = var.cognito_facebook_secret_name
 }
 
 module "rds_mysql" {

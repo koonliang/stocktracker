@@ -114,12 +114,12 @@ existing sessions invalidated.
 **Independent Test**: Request reset for verified email → token issued → set new
 password → old password rejected, new accepted; expired/used token rejected.
 
-- [ ] T042 [P] [US3] Create reset DTO records (`ForgotPasswordRequest`, `ResetPasswordRequest`, status responses) in `backend/src/main/java/com/stocktracker/dto/`
-- [ ] T043 [US3] Implement `AuthService.forgotPassword` (issue PASSWORD_RESET token, identical response regardless of existence) and `resetPassword` (validate token, policy, update hash, set `sessions_invalid_before=now` for FR-018) in `backend/src/main/java/com/stocktracker/service/AuthService.java`
-- [ ] T044 [US3] Add `POST /api/auth/forgot-password` and `/reset-password` to `AuthResource` per contracts/auth-api.md
-- [ ] T045 [P] [US3] Create `frontend/src/routes/ForgotPasswordRoute.tsx` (neutral confirmation) and `frontend/src/routes/ResetPasswordRoute.tsx` (consumes `?token=`, policy feedback) with `data-testid` hooks; add authApi reset calls
-- [ ] T046 [P] [US3] Backend test: forgot-password non-enumerating; reset updates password, invalidates prior sessions, old password rejected; expired/used token rejected — `backend/src/test/java/com/stocktracker/api/PasswordResetTest.java`
-- [ ] T047 [P] [US3] Frontend test: forgot + reset flows — `frontend/src/routes/ResetPasswordRoute.test.tsx`
+- [X] T042 [P] [US3] Create reset DTO records (`ForgotPasswordRequest`, `ResetPasswordRequest`, status responses) in `backend/src/main/java/com/stocktracker/dto/`
+- [X] T043 [US3] Implement `AuthService.forgotPassword` (issue PASSWORD_RESET token, identical response regardless of existence) and `resetPassword` (validate token, policy, update hash, set `sessions_invalid_before=now` for FR-018) in `backend/src/main/java/com/stocktracker/service/AuthService.java`
+- [X] T044 [US3] Add `POST /api/auth/forgot-password` and `/reset-password` to `AuthResource` per contracts/auth-api.md
+- [X] T045 [P] [US3] Create `frontend/src/routes/ForgotPasswordRoute.tsx` (neutral confirmation) and `frontend/src/routes/ResetPasswordRoute.tsx` (consumes `?token=`, policy feedback) with `data-testid` hooks; add authApi reset calls
+- [X] T046 [P] [US3] Backend test: forgot-password non-enumerating; reset updates password, invalidates prior sessions, old password rejected; expired/used token rejected — `backend/src/test/java/com/stocktracker/api/PasswordResetTest.java`
+- [X] T047 [P] [US3] Frontend test: forgot + reset flows — `frontend/src/routes/ResetPasswordRoute.test.tsx`
 
 **Checkpoint**: Forgotten-password recovery works end-to-end.
 
@@ -134,14 +134,14 @@ email auto-linking; covered by mocked-provider integration tests (no browser e2e
 mocked verified identity whose email matches an existing account → linked, single
 account, existing data; unverified provider email → not linked.
 
-- [ ] T048 [P] [US4] Implement `AccountLinkingService` (auto-link on provider `email_verified=true` matching existing account per FR-S03; refuse link on unverified/absent email per FR-S04; create `SocialIdentity`) in `backend/src/main/java/com/stocktracker/service/AccountLinkingService.java`
-- [ ] T049 [US4] Extend `CurrentUser` to resolve/link federated Cognito tokens (provider + subject from `identities` claim) via `AccountLinkingService` (JIT) in `backend/src/main/java/com/stocktracker/security/CurrentUser.java`
-- [ ] T050 [P] [US4] Add cognito-mode JWT validation env wiring (`COGNITO_ISSUER`, `COGNITO_JWKS_URL`) docs/config in `backend/src/main/resources/application.properties` per contracts/cognito.md
-- [ ] T051 [P] [US4] Create Terraform `infra/modules/cognito/` (user pool, app client, hosted-UI domain, Google + Facebook `aws_cognito_identity_provider`, verified-email linking, outputs issuer/JWKS) with `variables.tf`/`outputs.tf`
-- [ ] T052 [US4] Instantiate the cognito module and pass `STOCKTRACKER_AUTH_MODE=cognito` + `COGNITO_*` env vars to `lambda_backend` in `infra/envs/production/main.tf` (and `production-persistent` as applicable)
-- [ ] T053 [US4] Implement frontend cognito `AuthProvider` strategy (Hosted UI redirect + auth-code callback) and wire "Continue with Google/Facebook" buttons in `frontend/src/auth/AuthProvider.tsx` + `frontend/src/routes/LoginRoute.tsx`
-- [ ] T054 [P] [US4] Backend integration test with mocked provider claims: new federated account; auto-link on verified matching email (no duplicate); refuse link on unverified email — `backend/src/test/java/com/stocktracker/service/AccountLinkingTest.java` (FR-T04)
-- [ ] T055 [US4] Validate Terraform (`terraform -chdir=infra/envs/production validate`/`fmt`) and document plan output in PR notes
+- [X] T048 [P] [US4] Implement `AccountLinkingService` (auto-link on provider `email_verified=true` matching existing account per FR-S03; refuse link on unverified/absent email per FR-S04; create `SocialIdentity`) in `backend/src/main/java/com/stocktracker/service/AccountLinkingService.java`
+- [X] T049 [US4] Extend `CurrentUser` to resolve/link federated Cognito tokens (provider + subject from `identities` claim) via `AccountLinkingService` (JIT) in `backend/src/main/java/com/stocktracker/security/CurrentUser.java`
+- [X] T050 [P] [US4] Add cognito-mode JWT validation env wiring (`COGNITO_ISSUER`, `COGNITO_JWKS_URL`) docs/config in `backend/src/main/resources/application.properties` per contracts/cognito.md
+- [X] T051 [P] [US4] Create Terraform `infra/modules/cognito/` (user pool, app client, hosted-UI domain, Google + Facebook `aws_cognito_identity_provider`, verified-email linking, outputs issuer/JWKS) with `variables.tf`/`outputs.tf`
+- [X] T052 [US4] Instantiate the cognito module and pass `STOCKTRACKER_AUTH_MODE=cognito` + `COGNITO_*` env vars to `lambda_backend` in `infra/envs/production/main.tf` (and `production-persistent` as applicable)
+- [X] T053 [US4] Implement frontend cognito `AuthProvider` strategy (Hosted UI redirect + auth-code callback) and wire "Continue with Google/Facebook" buttons in `frontend/src/auth/AuthProvider.tsx` + `frontend/src/routes/LoginRoute.tsx`
+- [X] T054 [P] [US4] Backend integration test with mocked provider claims: new federated account; auto-link on verified matching email (no duplicate); refuse link on unverified email — `backend/src/test/java/com/stocktracker/service/AccountLinkingTest.java` (FR-T04)
+- [X] T055 [US4] Validate Terraform (`terraform -chdir=infra/envs/production validate`/`fmt`) and document plan output in PR notes
 
 **Checkpoint**: Social login works via Cognito with correct linking; logic covered
 by deterministic mocked tests.
@@ -156,11 +156,11 @@ by deterministic mocked tests.
 **Independent Test**: Run the regression suite against a fresh stack; the auth
 journey passes all scenarios in CI within the time budget.
 
-- [ ] T056 [US5] Enable two verified seed users (one with data, one empty) for the isolation scenario in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and seed data; ensure `STOCKTRACKER_AUTH_MODE=dev` in `docker-compose.yml` backend env
-- [ ] T057 [P] [US5] Create `DevTokenClient` (java.net.http) hitting `/api/dev/auth/latest-token` in `e2e/src/test/java/com/stocktracker/e2e/support/DevTokenClient.java`
-- [ ] T058 [P] [US5] Create page objects `LoginPage`, `SignupPage`, `ForgotPasswordPage` in `e2e/src/test/java/com/stocktracker/e2e/pages/` using the `data-testid` hooks
-- [ ] T059 [US5] Create `AuthJourneyTest` covering all 5 scenarios from contracts/e2e-journey.md in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
-- [ ] T060 [P] [US5] Verify the auth journey runs in `.github/workflows/regression.yml` (no structural change expected) and produces failure screenshots; adjust only if env/seed wiring requires it
+- [X] T056 [US5] Enable two verified seed users (one with data, one empty) for the isolation scenario in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and seed data; ensure `STOCKTRACKER_AUTH_MODE=dev` in `docker-compose.yml` backend env
+- [X] T057 [P] [US5] Create `DevTokenClient` (java.net.http) hitting `/api/dev/auth/latest-token` in `e2e/src/test/java/com/stocktracker/e2e/support/DevTokenClient.java`
+- [X] T058 [P] [US5] Create page objects `LoginPage`, `SignupPage`, `ForgotPasswordPage` in `e2e/src/test/java/com/stocktracker/e2e/pages/` using the `data-testid` hooks
+- [X] T059 [US5] Create `AuthJourneyTest` covering all 5 scenarios from contracts/e2e-journey.md in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
+- [X] T060 [P] [US5] Verify the auth journey runs in `.github/workflows/regression.yml` (no structural change expected) and produces failure screenshots; adjust only if env/seed wiring requires it
 
 **Checkpoint**: Authentication regressions are caught on every PR (FR-T05/SC-010).
 
@@ -168,11 +168,11 @@ journey passes all scenarios in CI within the time budget.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T061 [P] Add structured auth event logging (sign-in success/failure, sign-up, verify, reset) without secrets in `AuthService`/`AuthResource` (FR-021)
-- [ ] T062 [P] Verify rate limiting covers signup/resend/forgot/login uniformly and add a backend test — `backend/src/test/java/com/stocktracker/api/AuthRateLimitTest.java` (FR-020/SC-006)
-- [ ] T063 [P] Update `frontend/README.md` and `e2e/README.md` for the auth flows and dev token endpoint; confirm `quickstart.md` curl steps work end-to-end
-- [ ] T064 [P] Run all quality gates: `backend ./mvnw -B verify spotless:check`, `frontend npm run lint && npm run test && npx tsc --noEmit`, `e2e mvn -B -f e2e/pom.xml test spotless:check` (Constitution gates)
-- [ ] T065 Security check: confirm `/api/dev/auth/*` and the dev keypair are absent in cognito/prod packaging; confirm passwords never logged or returned (FR-019/FR-T02)
+- [X] T061 [P] Add structured auth event logging (sign-in success/failure, sign-up, verify, reset) without secrets in `AuthService`/`AuthResource` (FR-021)
+- [X] T062 [P] Verify rate limiting covers signup/resend/forgot/login uniformly and add a backend test — `backend/src/test/java/com/stocktracker/api/AuthRateLimitTest.java` (FR-020/SC-006)
+- [X] T063 [P] Update `frontend/README.md` and `e2e/README.md` for the auth flows and dev token endpoint; confirm `quickstart.md` curl steps work end-to-end
+- [X] T064 [P] Run all quality gates: `backend ./mvnw -B verify spotless:check`, `frontend npm run lint && npm run test && npx tsc --noEmit`, `e2e mvn -B -f e2e/pom.xml test spotless:check` (Constitution gates)
+- [X] T065 Security check: confirm `/api/dev/auth/*` and the dev keypair are absent in cognito/prod packaging; confirm passwords never logged or returned (FR-019/FR-T02)
 
 ---
 

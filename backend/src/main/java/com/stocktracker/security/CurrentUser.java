@@ -2,13 +2,18 @@ package com.stocktracker.security;
 
 import com.stocktracker.api.ApiException;
 import com.stocktracker.domain.AppUser;
+import com.stocktracker.domain.SocialIdentity;
 import com.stocktracker.persistence.AppUserRepository;
+import com.stocktracker.service.AccountLinkingService;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.json.JsonArray;
+import jakarta.json.JsonValue;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Locale;
 import java.util.Optional;
 import org.eclipse.microprofile.jwt.JsonWebToken;
 
@@ -23,6 +28,7 @@ public class CurrentUser {
   @Inject JsonWebToken jwt;
   @Inject AppUserRepository users;
   @Inject AuthMode authMode;
+  @Inject AccountLinkingService accountLinking;
 
   private boolean resolved;
   private AppUser cached;
@@ -55,17 +61,78 @@ public class CurrentUser {
       user = users.findById(Long.valueOf(subject));
     }
     String email = jwt.getClaim("email");
-    if (user == null && email != null && !email.isBlank()) {
-      user = users.findByNormalizedEmail(email).orElse(null);
-      if (user == null && authMode.isCognito()) {
-        user = provision(email);
+    if (user == null && authMode.isCognito()) {
+      // Federated (Google/Facebook) tokens are resolved/linked by provider subject (FR-S03/S04);
+      // a non-federated Cognito token falls back to email-keyed JIT provisioning.
+      var federated = federatedIdentity();
+      if (federated != null) {
+        user =
+            accountLinking.resolveOrLink(
+                federated.provider, federated.subject, email, emailVerified());
+      } else if (email != null && !email.isBlank()) {
+        user = users.findByNormalizedEmail(email).orElse(null);
+        if (user == null) {
+          user = provision(email);
+        }
       }
+    } else if (user == null && email != null && !email.isBlank()) {
+      user = users.findByNormalizedEmail(email).orElse(null);
     }
     if (user == null) {
       return null;
     }
     rejectIfStaleSession(user);
     return user;
+  }
+
+  private record FederatedIdentity(SocialIdentity.Provider provider, String subject) {}
+
+  /**
+   * Reads the Cognito {@code identities} claim (present on federated sign-ins) and maps it to a
+   * provider + provider-subject. Returns {@code null} for non-federated tokens.
+   */
+  private FederatedIdentity federatedIdentity() {
+    var claim = jwt.<JsonValue>getClaim("identities");
+    if (claim == null || claim.getValueType() != JsonValue.ValueType.ARRAY) {
+      return null;
+    }
+    var array = (JsonArray) claim;
+    if (array.isEmpty()) {
+      return null;
+    }
+    var entry = array.getJsonObject(0);
+    var provider = mapProvider(entry.getString("providerName", null));
+    var subject = entry.getString("userId", null);
+    if (provider == null || subject == null || subject.isBlank()) {
+      return null;
+    }
+    return new FederatedIdentity(provider, subject);
+  }
+
+  private SocialIdentity.Provider mapProvider(String providerName) {
+    if (providerName == null) {
+      return null;
+    }
+    return switch (providerName.toUpperCase(Locale.ROOT)) {
+      case "GOOGLE" -> SocialIdentity.Provider.GOOGLE;
+      case "FACEBOOK" -> SocialIdentity.Provider.FACEBOOK;
+      default -> null;
+    };
+  }
+
+  /** Cognito sends {@code email_verified} as a boolean or a string; accept either. */
+  private boolean emailVerified() {
+    var claim = jwt.<JsonValue>getClaim("email_verified");
+    if (claim == null) {
+      return false;
+    }
+    if (claim.getValueType() == JsonValue.ValueType.TRUE) {
+      return true;
+    }
+    if (claim instanceof jakarta.json.JsonString jsonString) {
+      return Boolean.parseBoolean(jsonString.getString());
+    }
+    return false;
   }
 
   private void rejectIfStaleSession(AppUser user) {

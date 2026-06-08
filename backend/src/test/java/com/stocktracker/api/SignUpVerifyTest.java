@@ -66,8 +66,7 @@ class SignUpVerifyTest extends IntegrationTestSupport {
     signup(EMAIL);
     var user = AppUser.<AppUser>find("email", EMAIL).firstResult();
     org.junit.jupiter.api.Assertions.assertEquals(AppUser.Status.UNVERIFIED, user.status);
-    org.junit.jupiter.api.Assertions.assertEquals(
-        1, VerificationToken.count("userId", user.id));
+    org.junit.jupiter.api.Assertions.assertEquals(1, VerificationToken.count("userId", user.id));
   }
 
   @Test
@@ -121,7 +120,13 @@ class SignUpVerifyTest extends IntegrationTestSupport {
     var token = latestVerificationToken(EMAIL);
     var body = Map.of("token", token);
 
-    given().contentType(ContentType.JSON).body(body).when().post("/api/auth/verify-email").then().statusCode(200);
+    given()
+        .contentType(ContentType.JSON)
+        .body(body)
+        .when()
+        .post("/api/auth/verify-email")
+        .then()
+        .statusCode(200);
 
     // Single-use: replaying the consumed token fails.
     given()

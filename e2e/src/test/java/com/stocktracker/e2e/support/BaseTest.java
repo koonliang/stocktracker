@@ -1,5 +1,6 @@
 package com.stocktracker.e2e.support;
 
+import com.stocktracker.e2e.pages.LoginPage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +20,14 @@ public abstract class BaseTest {
 
   /** The application shell renders {@code <main id="main">}; we treat it as the landing element. */
   private static final By APP_SHELL = By.id("main");
+
+  private static final By APP_SHELL_AUTHENTICATED =
+      By.cssSelector("[data-testid='app-shell-authenticated']");
+
+  /** Bootstrap-seeded, verified account that owns the demo portfolio data (see e2e/README.md). */
+  protected static final String SEED_EMAIL = "seed@stocktracker.local";
+
+  protected static final String SEED_PASSWORD = "DevPass123!";
 
   private static final String DEFAULT_BASE_URL = "http://localhost:5173";
 
@@ -40,6 +49,16 @@ public abstract class BaseTest {
 
   protected String baseUrl() {
     return System.getProperty("e2e.baseUrl", DEFAULT_BASE_URL);
+  }
+
+  /**
+   * Signs in the bootstrap-seeded demo user via the UI and waits for the authenticated app shell.
+   * Protected journeys must call this before navigating, since anonymous requests now redirect to
+   * {@code /login}.
+   */
+  protected void signInAsSeedUser() {
+    new LoginPage(driver, waits, baseUrl()).open().signIn(SEED_EMAIL, SEED_PASSWORD);
+    waits.untilVisible(APP_SHELL_AUTHENTICATED);
   }
 
   /**

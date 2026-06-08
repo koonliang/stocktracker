@@ -10,8 +10,8 @@ import org.jboss.logging.Logger;
 
 /**
  * Delivers verification/reset emails. In dev mode the raw token is logged (and exposed via the
- * dev-only token endpoint) so flows work without a live inbox; otherwise it goes out via
- * {@code quarkus-mailer}. Production uses Cognito and never exercises this sender.
+ * dev-only token endpoint) so flows work without a live inbox; otherwise it goes out via {@code
+ * quarkus-mailer}. Production uses Cognito and never exercises this sender.
  */
 @ApplicationScoped
 public class EmailSender {
@@ -33,7 +33,6 @@ public class EmailSender {
       LOG.infof("event=email_dev_sink purpose=%s email=%s token=%s", purpose, email, rawToken);
       return;
     }
-    mailer.send(
-        Mail.withText(email, subject, subject + " using this token: " + rawToken));
+    mailer.send(Mail.withText(email, subject, subject + " using this token: " + rawToken));
   }
 }

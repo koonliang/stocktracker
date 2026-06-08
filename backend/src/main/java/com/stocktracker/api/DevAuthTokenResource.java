@@ -35,8 +35,7 @@ public class DevAuthTokenResource {
     var entry =
         devTokenStore
             .latest(email == null ? "" : email, parsedPurpose)
-            .orElseThrow(
-                () -> new ApiException(Status.NOT_FOUND, "not_found", "No usable token"));
+            .orElseThrow(() -> new ApiException(Status.NOT_FOUND, "not_found", "No usable token"));
     return Response.ok(
             Map.of(
                 "token", entry.token(),
