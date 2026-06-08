@@ -321,9 +321,12 @@ export async function handleMockApi(
       /[a-z]/.test(password) &&
       /[0-9]/.test(password);
     if (!policyOk) {
-      return json({ code: 'VALIDATION', message: 'Password does not meet the policy' }, {
-        status: 400,
-      });
+      return json(
+        { code: 'VALIDATION', message: 'Password does not meet the policy' },
+        {
+          status: 400,
+        },
+      );
     }
     return json({ status: 'reset' });
   }

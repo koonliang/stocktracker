@@ -18,4 +18,3 @@ export const cognitoConfig = {
     (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''),
   scopes: 'openid email profile',
 };
-
