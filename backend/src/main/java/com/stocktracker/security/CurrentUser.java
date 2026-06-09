@@ -137,17 +137,27 @@ public class CurrentUser {
   }
 
   private void rejectIfStaleSession(AppUser user) {
-    if (user.sessionsInvalidBefore == null) {
+    if (user.sessionsInvalidBeforeMs == null && user.sessionsInvalidBefore == null) {
+      return;
+    }
+    var issuedAtMillis = issuedAtMillis();
+    if (issuedAtMillis != null && user.sessionsInvalidBeforeMs != null) {
+      if (issuedAtMillis <= user.sessionsInvalidBeforeMs) {
+        throw new ApiException(
+            Status.UNAUTHORIZED, "session_expired", "Session is no longer valid");
+      }
       return;
     }
     var issuedAt = issuedAt();
-    if (issuedAt != null && issuedAt.isBefore(user.sessionsInvalidBefore)) {
+    if (issuedAt != null
+        && user.sessionsInvalidBefore != null
+        && !issuedAt.isAfter(user.sessionsInvalidBefore)) {
       throw new ApiException(Status.UNAUTHORIZED, "session_expired", "Session is no longer valid");
     }
   }
 
   private LocalDateTime issuedAt() {
-    var issuedAtMillis = issuedAtMillisClaim();
+    var issuedAtMillis = issuedAtMillis();
     if (issuedAtMillis != null && issuedAtMillis > 0) {
       return LocalDateTime.ofInstant(Instant.ofEpochMilli(issuedAtMillis), ZoneOffset.UTC);
     }
@@ -156,6 +166,18 @@ public class CurrentUser {
       return null;
     }
     return LocalDateTime.ofEpochSecond(issuedAtSeconds, 0, ZoneOffset.UTC);
+  }
+
+  private Long issuedAtMillis() {
+    var issuedAtMillis = issuedAtMillisClaim();
+    if (issuedAtMillis != null && issuedAtMillis > 0) {
+      return issuedAtMillis;
+    }
+    long issuedAtSeconds = jwt.getIssuedAtTime();
+    if (issuedAtSeconds <= 0) {
+      return null;
+    }
+    return issuedAtSeconds * 1000;
   }
 
   private Long issuedAtMillisClaim() {

@@ -1,7 +1,15 @@
+import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
 
 export function SignedOutRoute() {
+  const clearSession = useAuthStore((s) => s.clearSession);
+
+  useEffect(() => {
+    clearSession();
+  }, [clearSession]);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-text">
       <div className="w-full max-w-sm">

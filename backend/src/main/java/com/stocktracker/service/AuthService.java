@@ -25,7 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Map;
@@ -192,7 +194,9 @@ public class AuthService {
       credential.persist();
     }
     credential.passwordHash = BcryptUtil.bcryptHash(request.newPassword());
-    user.sessionsInvalidBefore = LocalDateTime.now();
+    var invalidBefore = Instant.now();
+    user.sessionsInvalidBeforeMs = invalidBefore.toEpochMilli();
+    user.sessionsInvalidBefore = LocalDateTime.ofInstant(invalidBefore, ZoneOffset.UTC);
     LOG.infof("event=password_reset user_id=%d", user.id);
     return new StatusResponse("reset");
   }

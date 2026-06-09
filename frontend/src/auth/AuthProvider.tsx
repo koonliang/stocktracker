@@ -76,8 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function logout(): Promise<void> {
     if (authMode === 'dev') {
       await logoutRequest().catch(() => undefined);
+      clearSession();
+      return;
     }
-    clearSession();
     if (authMode === 'cognito') {
       redirectToHostedLogout();
     }

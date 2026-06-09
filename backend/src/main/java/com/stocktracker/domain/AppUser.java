@@ -45,6 +45,9 @@ public class AppUser extends PanacheEntityBase {
   @Column(name = "sessions_invalid_before")
   public LocalDateTime sessionsInvalidBefore;
 
+  @Column(name = "sessions_invalid_before_ms")
+  public Long sessionsInvalidBeforeMs;
+
   @PrePersist
   void prePersist() {
     if (createdAt == null) {
