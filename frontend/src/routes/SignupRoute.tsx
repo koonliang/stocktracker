@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
@@ -8,13 +8,11 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { PASSWORD_RULES, passwordMeetsPolicy } from '@/auth/passwordPolicy';
-import { useAuth, type SocialProvider } from '@/auth/AuthProvider';
 import { isCognitoMode, redirectToHostedUi } from '@/auth/authConfig';
 
 type FormValues = { email: string; password: string };
 
 export function SignupRoute() {
-  const { loginWithProvider } = useAuth();
   const [submitted, setSubmitted] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -26,12 +24,28 @@ export function SignupRoute() {
 
   const password = watch('password');
 
-  async function onSubmit(values: FormValues) {
-    // In cognito mode Cognito owns sign-up + verification; hand off to the Hosted UI.
+  // In cognito mode Cognito owns sign-up + verification (incl. social), so go straight
+  // to the Hosted UI rather than rendering the dev email/password form first.
+  useEffect(() => {
     if (isCognitoMode) {
       redirectToHostedUi({ flow: 'signup' });
-      return;
     }
+  }, []);
+  if (isCognitoMode) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-text">
+        <div className="w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-2">
+            <LineChart size={22} className="text-accent" aria-hidden />
+            <span className="font-display text-title">StockTracker</span>
+          </div>
+          <p className="text-small text-text-muted">Redirecting to sign-up…</p>
+        </div>
+      </div>
+    );
+  }
+
+  async function onSubmit(values: FormValues) {
     setFormError(null);
     try {
       await signupRequest(values.email, values.password);
@@ -129,17 +143,6 @@ export function SignupRoute() {
               </Button>
             </form>
 
-            {isCognitoMode ? (
-              <div className="mt-4 space-y-2">
-                <SocialButton provider="google" onClick={loginWithProvider}>
-                  Continue with Google
-                </SocialButton>
-                <SocialButton provider="facebook" onClick={loginWithProvider}>
-                  Continue with Facebook
-                </SocialButton>
-              </div>
-            ) : null}
-
             <div className="mt-6 text-small text-text-muted">
               <Link to="/login" className="hover:text-text">
                 Already have an account? Sign in
@@ -149,21 +152,5 @@ export function SignupRoute() {
         )}
       </div>
     </div>
-  );
-}
-
-function SocialButton({
-  provider,
-  onClick,
-  children,
-}: {
-  provider: SocialProvider;
-  onClick: (provider: SocialProvider) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Button type="button" variant="secondary" className="w-full" onClick={() => onClick(provider)}>
-      {children}
-    </Button>
   );
 }

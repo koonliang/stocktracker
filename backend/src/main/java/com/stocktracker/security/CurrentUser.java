@@ -9,7 +9,6 @@ import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonValue;
-import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -72,7 +71,8 @@ public class CurrentUser {
       } else if (email != null && !email.isBlank()) {
         user = users.findByNormalizedEmail(email).orElse(null);
         if (user == null) {
-          user = provision(email);
+          // Through the injected proxy so @Transactional applies (self-invocation would not).
+          user = accountLinking.provisionByEmail(email);
         }
       }
     } else if (user == null && email != null && !email.isBlank()) {
@@ -144,15 +144,5 @@ public class CurrentUser {
     if (issuedAt > 0 && issuedInstant.isBefore(user.sessionsInvalidBefore)) {
       throw new ApiException(Status.UNAUTHORIZED, "session_expired", "Session is no longer valid");
     }
-  }
-
-  @Transactional
-  AppUser provision(String email) {
-    var user = new AppUser();
-    user.email = AppUser.normalizeEmail(email);
-    user.status = AppUser.Status.ACTIVE;
-    user.emailVerified = true;
-    users.persist(user);
-    return user;
   }
 }

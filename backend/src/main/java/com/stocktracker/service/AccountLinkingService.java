@@ -56,6 +56,21 @@ public class AccountLinkingService {
     return user;
   }
 
+  /**
+   * Provisions a non-federated (email+password) Cognito account on its first validated token.
+   * Runs in its own transaction so the {@code persist} has an active context — it must be invoked
+   * through the injected proxy, never by self-invocation.
+   */
+  @Transactional
+  public AppUser provisionByEmail(String email) {
+    var user = new AppUser();
+    user.email = AppUser.normalizeEmail(email);
+    user.status = AppUser.Status.ACTIVE;
+    user.emailVerified = true;
+    users.persist(user);
+    return user;
+  }
+
   private AppUser createAccount(
       SocialIdentity.Provider provider,
       String subject,

@@ -92,6 +92,10 @@ export async function completeCognitoCallback(
   if (!code) {
     return;
   }
+  // Auth codes are single-use — strip it from the URL before exchanging so a remount
+  // (e.g. StrictMode) or refresh can't replay the same code and fail.
+  url.searchParams.delete('code');
+  window.history.replaceState({}, '', url.toString());
   const { domain, clientId, redirectUri } = cognitoConfig;
   const body = new URLSearchParams({
     grant_type: 'authorization_code',
