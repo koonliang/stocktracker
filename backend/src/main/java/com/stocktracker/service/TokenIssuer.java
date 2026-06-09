@@ -4,6 +4,7 @@ import com.stocktracker.domain.AppUser;
 import io.smallrye.jwt.build.Jwt;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -21,10 +22,12 @@ public class TokenIssuer {
   String issuer;
 
   public String issue(AppUser user) {
+    var now = Instant.now();
     return Jwt.issuer(issuer)
         .subject(String.valueOf(user.id))
         .upn(user.email)
         .claim("email", user.email)
+        .claim("st_iat_ms", now.toEpochMilli())
         .groups(Set.of("user"))
         .expiresIn(Duration.ofSeconds(ttlSeconds))
         .sign();

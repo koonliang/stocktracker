@@ -18,7 +18,7 @@ public class MySqlTestResource implements QuarkusTestResourceLifecycleManager {
 
     return Map.of(
         "quarkus.datasource.devservices.enabled", "false",
-        "quarkus.datasource.jdbc.url", mysql.getJdbcUrl(),
+        "quarkus.datasource.jdbc.url", disableSsl(mysql.getJdbcUrl()),
         "quarkus.datasource.username", mysql.getUsername(),
         "quarkus.datasource.password", mysql.getPassword());
   }
@@ -28,5 +28,9 @@ public class MySqlTestResource implements QuarkusTestResourceLifecycleManager {
     if (mysql != null) {
       mysql.stop();
     }
+  }
+
+  private String disableSsl(String jdbcUrl) {
+    return jdbcUrl + (jdbcUrl.contains("?") ? "&" : "?") + "sslMode=DISABLED";
   }
 }

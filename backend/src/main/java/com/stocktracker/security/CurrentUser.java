@@ -10,6 +10,7 @@ import jakarta.inject.Inject;
 import jakarta.json.JsonArray;
 import jakarta.json.JsonValue;
 import jakarta.ws.rs.core.Response.Status;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -139,10 +140,36 @@ public class CurrentUser {
     if (user.sessionsInvalidBefore == null) {
       return;
     }
-    long issuedAt = jwt.getIssuedAtTime();
-    var issuedInstant = LocalDateTime.ofEpochSecond(issuedAt, 0, ZoneOffset.UTC);
-    if (issuedAt > 0 && issuedInstant.isBefore(user.sessionsInvalidBefore)) {
+    var issuedAt = issuedAt();
+    if (issuedAt != null && issuedAt.isBefore(user.sessionsInvalidBefore)) {
       throw new ApiException(Status.UNAUTHORIZED, "session_expired", "Session is no longer valid");
     }
+  }
+
+  private LocalDateTime issuedAt() {
+    var issuedAtMillis = issuedAtMillisClaim();
+    if (issuedAtMillis != null && issuedAtMillis > 0) {
+      return LocalDateTime.ofInstant(Instant.ofEpochMilli(issuedAtMillis), ZoneOffset.UTC);
+    }
+    long issuedAtSeconds = jwt.getIssuedAtTime();
+    if (issuedAtSeconds <= 0) {
+      return null;
+    }
+    return LocalDateTime.ofEpochSecond(issuedAtSeconds, 0, ZoneOffset.UTC);
+  }
+
+  private Long issuedAtMillisClaim() {
+    var claim = jwt.getClaim("st_iat_ms");
+    if (claim instanceof Number number) {
+      return number.longValue();
+    }
+    if (claim instanceof String value) {
+      try {
+        return Long.parseLong(value);
+      } catch (NumberFormatException ignored) {
+        return null;
+      }
+    }
+    return null;
   }
 }
