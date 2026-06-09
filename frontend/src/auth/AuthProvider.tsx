@@ -31,19 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = useAuthStore((s) => s.clearSession);
 
   // Revalidate a persisted token on load so a stale session can't grant access.
-  // In cognito mode, first complete any pending hosted-UI auth-code callback.
+  // Works in both modes: the bearer token is the dev RS256 JWT or the Cognito
+  // id_token, and /api/auth/me validates either. The hosted-UI auth-code
+  // exchange itself is handled by the dedicated /auth/callback route.
   useEffect(() => {
-    if (authMode === 'cognito') {
-      completeCognitoCallback(setSession).catch(() => clearSession());
-      return;
-    }
     const { token, status } = useAuthStore.getState();
     if (token && status === 'authenticated') {
       fetchMe()
         .then(setUser)
         .catch(() => clearSession());
     }
-  }, [setSession, setUser, clearSession]);
+  }, [setUser, clearSession]);
 
   async function login(email: string, password: string): Promise<LoginResult> {
     if (authMode === 'cognito') {
@@ -101,7 +99,7 @@ function redirectToHostedUi(provider?: SocialProvider): void {
  * On return from the Hosted UI (`?code=...`), exchanges the auth code for tokens at the Cognito
  * token endpoint, then bootstraps the local session via the JIT-provisioned `/api/auth/me`.
  */
-async function completeCognitoCallback(
+export async function completeCognitoCallback(
   setSession: (token: string, user: { id: number; email: string }) => void,
 ): Promise<void> {
   const url = new URL(window.location.href);
@@ -129,8 +127,6 @@ async function completeCognitoCallback(
   setAuthToken(tokens.id_token);
   const user = await fetchMe();
   setSession(tokens.id_token, user);
-  // Strip the code from the URL so a refresh doesn't re-trigger the exchange.
-  window.history.replaceState({}, '', redirectUri.replace(/\/auth\/callback$/, '/'));
 }
 
 export function useAuth(): AuthContextValue {

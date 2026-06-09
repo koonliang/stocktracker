@@ -6,6 +6,7 @@ import { SignupRoute } from '@/routes/SignupRoute';
 import { VerifyEmailRoute } from '@/routes/VerifyEmailRoute';
 import { ForgotPasswordRoute } from '@/routes/ForgotPasswordRoute';
 import { ResetPasswordRoute } from '@/routes/ResetPasswordRoute';
+import { AuthCallbackRoute } from '@/routes/AuthCallbackRoute';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { PlaceholderRoute } from '@/routes/PlaceholderRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
@@ -22,6 +23,8 @@ export function App() {
       <Route path="/verify-email" element={<VerifyEmailRoute />} />
       <Route path="/forgot-password" element={<ForgotPasswordRoute />} />
       <Route path="/reset-password" element={<ResetPasswordRoute />} />
+      {/* Cognito Hosted-UI return target — must stay public (see AuthCallbackRoute). */}
+      <Route path="/auth/callback" element={<AuthCallbackRoute />} />
 
       {/* Everything else requires an authenticated session. */}
       <Route
