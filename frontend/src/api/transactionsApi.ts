@@ -1,4 +1,4 @@
-import { apiRequest, apiUrl } from './client';
+import { apiRequest } from './client';
 import type {
   DashboardResponse,
   Transaction,
@@ -30,10 +30,8 @@ export function commitTransactionImport(rows: TransactionImportNormalizedRow[]) 
   });
 }
 
-export async function exportTransactionsCsv() {
-  const response = await fetch(apiUrl('/transactions/export'));
-  if (!response.ok) {
-    throw new Error('Export failed');
-  }
-  return response.text();
+export function exportTransactionsCsv() {
+  // Goes through apiRequest so the Authorization header is attached (the endpoint
+  // is now behind auth); the CSV body is returned as text since it isn't JSON.
+  return apiRequest<string>('/transactions/export');
 }

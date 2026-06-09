@@ -14,7 +14,7 @@ export function AppShell({ children }: Props) {
   }, [theme]);
 
   return (
-    <div className="min-h-screen bg-bg text-text">
+    <div className="min-h-screen bg-bg text-text" data-testid="app-shell-authenticated">
       <Sidebar className="hidden md:flex" />
       <div className="flex min-h-screen min-w-0 flex-col md:pl-60">
         <TopBar />

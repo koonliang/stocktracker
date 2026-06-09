@@ -29,12 +29,14 @@ flowchart LR
             LB["Lambda · backend"]:::app
             LM["Lambda · migrator"]:::app
             VPCE["VPC endpoints"]:::app
+            NAT["NAT instance · t4g.micro"]:::app
             RDS[("RDS MySQL")]:::data
         end
         APIGW --> LB
         LB -->|JDBC| RDS
         LM -->|JDBC| RDS
         LB -.-> VPCE
+        LB -.-> NAT
     end
 
     user -->|"static assets"| CF
@@ -48,10 +50,24 @@ calls the backend **cross-origin** at the API Gateway `/api/*` URL baked into
 the bundle as `VITE_API_BASE_URL`; API Gateway (`ANY /{proxy+}`) proxies every
 path to the backend Lambda, which reaches MySQL over JDBC inside the VPC. The
 one-shot migrator Lambda runs Flyway against the same database on deploy.
-There is **no NAT gateway** — the private subnets reach AWS services (Secrets
-Manager, CloudWatch Logs) through interface VPC endpoints. The ephemeral stack
-reads the persistent CloudFront domain via `terraform_remote_state` so API
-Gateway's CORS allow-origin always matches the live frontend.
+The private subnets reach Secrets Manager and CloudWatch Logs through interface
+VPC endpoints. Production also enables a single low-cost `t4g.micro` NAT
+instance because the backend must fetch Cognito JWKS from the public Cognito
+issuer endpoint while validating JWTs; Cognito PrivateLink doesn't support this
+hosted-UI user-pool shape. The ephemeral stack reads the persistent CloudFront
+domain via `terraform_remote_state` so API Gateway's CORS allow-origin always
+matches the live frontend.
+
+Authentication in production is owned by an **Amazon Cognito** user pool
+(`modules/cognito`) provisioned in the ephemeral `production` stack. It handles
+email sign-up/verification, password reset, and optional Google/Facebook
+federation (IdP credentials read from Secrets Manager, each created only when
+its secret name is supplied). The backend Lambda runs with
+`STOCKTRACKER_AUTH_MODE=cognito` and only validates pool-issued JWTs
+(`COGNITO_ISSUER` / `COGNITO_JWKS_URL` wired from the module outputs); the app
+client uses the authorization-code flow with callback/logout URLs derived from
+the CloudFront domain. Verified-email account linking is done backend-side, so
+no custom Cognito Lambda trigger is provisioned.
 
 Not shown: the one-time **bootstrap** stack (local state) provisions the
 Terraform state backend (S3 + DynamoDB lock) and GitHub OIDC + IAM roles — see
@@ -72,6 +88,7 @@ infra/
 └── modules/                        # Reusable building blocks
     ├── api_gateway/
     ├── cloudfront/
+    ├── cognito/                     # User pool, app client, optional IdPs
     ├── frontend_bucket/
     ├── lambda_backend/
     ├── lambda_migrator/
@@ -91,7 +108,7 @@ CloudFront wait **only once**, not on every cycle:
 | Stack | Lifecycle | What it owns | Idle cost |
 |---|---|---|---|
 | `production-persistent` | Apply once, leave up | CloudFront, OAC, frontend bucket | ~$0 |
-| `production` | Apply/destroy per session | VPC, RDS, Lambda, API Gateway, interface VPC endpoints | RDS + VPC endpoints dominate |
+| `production` | Apply/destroy per session | VPC, NAT instance, RDS, Lambda, API Gateway, interface VPC endpoints | RDS + VPC endpoints + NAT instance dominate |
 
 The ephemeral `production` stack reads the persistent stack's CloudFront
 domain via `terraform_remote_state` so API Gateway CORS always allows the

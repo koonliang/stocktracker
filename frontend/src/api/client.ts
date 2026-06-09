@@ -22,6 +22,19 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 const RETRYABLE_METHODS = new Set(['GET', 'HEAD']);
 const RETRYABLE_STATUSES = new Set([502, 503, 504]);
 
+// Decoupled session hooks (set by authStore) so the client never imports the
+// store — avoids an import cycle and keeps the fetch wrapper framework-agnostic.
+let authToken: string | null = null;
+let unauthorizedHandler: (() => void) | null = null;
+
+export function setAuthToken(token: string | null): void {
+  authToken = token;
+}
+
+export function setUnauthorizedHandler(handler: (() => void) | null): void {
+  unauthorizedHandler = handler;
+}
+
 function buildUrl(path: string): string {
   return `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 }
@@ -48,6 +61,7 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
         ...init,
         headers: {
           ...(init?.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
           ...(init?.headers ?? {}),
         },
       });
@@ -68,6 +82,12 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   }
 
   if (!response.ok) {
+    // A 401 on a non-auth endpoint means the session is gone — clear it and let
+    // ProtectedRoute redirect. Auth endpoints (e.g. wrong password) handle their
+    // own 401 inline, so they are exempt.
+    if (response.status === 401 && !path.startsWith('/auth') && unauthorizedHandler) {
+      unauthorizedHandler();
+    }
     const payload = await parseBody<ApiErrorPayload>(response).catch(() => ({
       code: 'request_failed',
       message: 'Request failed',

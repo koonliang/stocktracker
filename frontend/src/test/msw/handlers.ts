@@ -251,6 +251,94 @@ export async function handleMockApi(
     return json(watchlist);
   }
 
+  if (path === '/api/auth/login' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { email?: string; password?: string };
+    const email = body.email?.trim().toLowerCase() ?? '';
+    if (email === 'unverified@example.com') {
+      return json(
+        { code: 'EMAIL_UNVERIFIED', message: 'Please verify your email' },
+        { status: 403 },
+      );
+    }
+    if (email === 'investor@example.com' && body.password === 'Passw0rd!') {
+      return json({ token: 'mock-jwt', user: { id: 1, email } });
+    }
+    return json({ code: 'AUTH_FAILED', message: 'Invalid email or password' }, { status: 401 });
+  }
+
+  if (path === '/api/auth/signup' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { email?: string; password?: string };
+    const email = body.email?.trim() ?? '';
+    const password = body.password ?? '';
+    const policyOk =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[0-9]/.test(password);
+    if (!email.includes('@') || !policyOk) {
+      return json({ code: 'VALIDATION', message: 'Invalid email or password' }, { status: 400 });
+    }
+    return json({ status: 'verification_sent' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/verify-email' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { token?: string };
+    if (body.token === 'valid-token') {
+      return json({ status: 'verified' });
+    }
+    return json(
+      { code: 'TOKEN_INVALID', message: 'This link is invalid or has expired' },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  if (path === '/api/auth/resend-verification' && method === 'POST') {
+    return json({ status: 'verification_sent' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/forgot-password' && method === 'POST') {
+    // Non-enumerating: always the same accepted response (FR-016).
+    return json({ status: 'reset_sent' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/reset-password' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      token?: string;
+      newPassword?: string;
+    };
+    if (body.token !== 'valid-reset-token') {
+      return json(
+        { code: 'TOKEN_INVALID', message: 'This link is invalid or has expired' },
+        { status: 400 },
+      );
+    }
+    const password = body.newPassword ?? '';
+    const policyOk =
+      password.length >= 8 &&
+      /[A-Z]/.test(password) &&
+      /[a-z]/.test(password) &&
+      /[0-9]/.test(password);
+    if (!policyOk) {
+      return json(
+        { code: 'VALIDATION', message: 'Password does not meet the policy' },
+        {
+          status: 400,
+        },
+      );
+    }
+    return json({ status: 'reset' });
+  }
+
+  if (path === '/api/auth/me' && method === 'GET') {
+    return json({ id: 1, email: 'investor@example.com' });
+  }
+
+  if (path === '/api/auth/logout' && method === 'POST') {
+    return new Response(null, { status: 204 });
+  }
+
   if (path.startsWith('/api/instruments/') && method === 'GET') {
     const symbol = decodeURIComponent(path.split('/').pop() ?? '').toUpperCase();
     const analysis = buildInstrumentAnalysis(symbol);

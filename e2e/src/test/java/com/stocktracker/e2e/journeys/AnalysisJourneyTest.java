@@ -14,6 +14,7 @@ class AnalysisJourneyTest extends BaseTest {
 
   @Test
   void analysisShowsChartAndKeyStats() {
+    signInAsSeedUser();
     open("/analysis/" + TICKER);
     AnalysisPage analysis = new AnalysisPage(driver, waits).waitLoaded();
 

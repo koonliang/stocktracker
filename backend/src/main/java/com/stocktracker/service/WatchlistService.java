@@ -7,6 +7,7 @@ import com.stocktracker.domain.WatchlistItem;
 import com.stocktracker.dto.WatchlistResponse;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.WatchlistRepository;
+import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -22,10 +23,13 @@ public class WatchlistService {
   @Inject WatchlistRepository watchlistRepository;
   @Inject InstrumentRepository instrumentRepository;
   @Inject EntityManager entityManager;
+  @Inject CurrentUser currentUser;
 
   public WatchlistResponse listWatchlists() {
     return new WatchlistResponse(
-        watchlistRepository.listByUpdatedAt().stream().map(this::toView).toList());
+        watchlistRepository.listByUserUpdatedAt(currentUser.id()).stream()
+            .map(this::toView)
+            .toList());
   }
 
   @Transactional
@@ -33,6 +37,7 @@ public class WatchlistService {
     var name = normalizeName(rawName);
     validateName(name, null);
     var watchlist = new Watchlist();
+    watchlist.userId = currentUser.id();
     watchlist.name = name;
     watchlistRepository.persist(watchlist);
     return toView(watchlist);
@@ -118,7 +123,7 @@ public class WatchlistService {
 
   private Watchlist getWatchlist(Long id) {
     return watchlistRepository
-        .findByIdOptional(id)
+        .findByIdAndUser(id, currentUser.id())
         .orElseThrow(() -> new ApiException(Status.NOT_FOUND, "not_found", "Watchlist not found"));
   }
 
@@ -130,7 +135,7 @@ public class WatchlistService {
       throw new ApiException(Status.BAD_REQUEST, "validation_error", "Name is too long");
     }
     watchlistRepository
-        .findByNameIgnoreCase(name)
+        .findByUserAndNameIgnoreCase(currentUser.id(), name)
         .filter(existing -> excludeId == null || !existing.id.equals(excludeId))
         .ifPresent(
             existing -> {

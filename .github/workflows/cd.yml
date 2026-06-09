@@ -73,6 +73,8 @@ jobs:
       cloudfront_distribution_id: ${{ steps.outputs.outputs.cloudfront_distribution_id }}
       frontend_bucket_name: ${{ steps.outputs.outputs.frontend_bucket_name }}
       public_frontend_url: ${{ steps.outputs.outputs.public_frontend_url }}
+      cognito_hosted_ui_domain: ${{ steps.outputs.outputs.cognito_hosted_ui_domain }}
+      cognito_user_pool_client_id: ${{ steps.outputs.outputs.cognito_user_pool_client_id }}
     defaults:
       run:
         working-directory: infra/envs/production
@@ -106,7 +108,7 @@ jobs:
         id: outputs
         run: |
           set -euo pipefail
-          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name migrator_function_name; do
+          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name migrator_function_name cognito_hosted_ui_domain cognito_user_pool_client_id; do
             v=$(terraform output -raw "$k" 2>/dev/null || true)
             echo "$k=$v" >> "$GITHUB_OUTPUT"
           done
@@ -256,10 +258,17 @@ jobs:
       # Build with the live API Gateway URL baked in. Backend resources are
       # served under /api/* (e.g. @Path("/api/dashboard")) and the frontend
       # client appends resource paths to VITE_API_BASE_URL, so it must end /api.
+      # Production delegates identity to Cognito, so the SPA must build in cognito
+      # mode with the pool's Hosted-UI domain + app client id baked in. Without
+      # these the bundle silently falls back to dev mode (backend /api/auth/*),
+      # so sign-ups never reach Cognito and the social buttons stay hidden.
       - name: Build frontend bundle
         working-directory: frontend
         env:
           VITE_API_BASE_URL: ${{ needs.terraform-apply.outputs.api_invoke_url }}/api
+          VITE_AUTH_MODE: cognito
+          VITE_COGNITO_DOMAIN: ${{ needs.terraform-apply.outputs.cognito_hosted_ui_domain }}
+          VITE_COGNITO_CLIENT_ID: ${{ needs.terraform-apply.outputs.cognito_user_pool_client_id }}
         run: |
           npm ci
           npm run build

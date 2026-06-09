@@ -7,6 +7,7 @@ import com.stocktracker.dto.TransactionResponse;
 import com.stocktracker.service.PortfolioService;
 import com.stocktracker.service.TransactionExportService;
 import com.stocktracker.service.TransactionImportService;
+import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -24,6 +25,7 @@ import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
 @Path("/api/transactions")
+@Authenticated
 @Produces(MediaType.APPLICATION_JSON)
 public class TransactionsResource {
   @Inject PortfolioService portfolioService;

@@ -36,6 +36,16 @@ output "frontend_bucket_name" {
   value = local.frontend_bucket_name
 }
 
+output "cognito_hosted_ui_domain" {
+  description = "Cognito Hosted-UI domain baked into the frontend (VITE_COGNITO_DOMAIN)."
+  value       = module.cognito.hosted_ui_domain
+}
+
+output "cognito_user_pool_client_id" {
+  description = "Cognito app client id baked into the frontend (VITE_COGNITO_CLIENT_ID)."
+  value       = module.cognito.user_pool_client_id
+}
+
 output "rds_endpoint" {
   value = module.rds_mysql.endpoint
 }

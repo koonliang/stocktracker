@@ -11,6 +11,7 @@ class DashboardJourneyTest extends BaseTest {
 
   @Test
   void dashboardShowsHoldingsAndSummary() {
+    signInAsSeedUser();
     open("/");
     DashboardPage dashboard = new DashboardPage(driver, waits).waitLoaded();
 

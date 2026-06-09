@@ -20,6 +20,9 @@ Thumbs.db
 .idea/
 .vscode/
 
+# Claude Code runtime state (skills + settings.local.json are tracked; lock files are not)
+.claude/*.lock
+
 # Terraform
 **/.terraform/
 infra/**/tfplan

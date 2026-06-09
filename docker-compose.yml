@@ -35,6 +35,11 @@ services:
       QUARKUS_DATASOURCE_USERNAME: stocktracker
       QUARKUS_DATASOURCE_PASSWORD: stocktracker
       STOCKTRACKER_DEV_BOOTSTRAP_ENABLED: 'true'
+      # The e2e auth journey drives the backend-owned dev flows + dev token endpoint.
+      STOCKTRACKER_AUTH_MODE: 'dev'
+      # The regression suite makes many /api/auth/* calls from one IP within the rate-limit
+      # window (every protected journey signs in); lift the limit so it never trips 429.
+      STOCKTRACKER_AUTH_RATE_LIMIT_MAX: '1000'
     ports:
       - '8080:8080'
     healthcheck:

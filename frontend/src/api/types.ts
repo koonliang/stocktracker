@@ -121,3 +121,17 @@ export type WatchlistMutationRequest = {
   ticker?: string;
   tickers?: string[];
 };
+
+export type AuthUser = {
+  id: number;
+  email: string;
+};
+
+export type LoginResponse = {
+  token: string;
+  user: AuthUser;
+};
+
+export type StatusResponse = {
+  status: string;
+};

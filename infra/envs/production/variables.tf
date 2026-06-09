@@ -9,3 +9,15 @@ variable "provisioned_concurrency" {
   type        = number
   default     = 0
 }
+
+variable "cognito_google_secret_name" {
+  description = "Secrets Manager secret name holding the Google OAuth client credentials. Empty disables Google federation."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_facebook_secret_name" {
+  description = "Secrets Manager secret name holding the Facebook app credentials. Empty disables Facebook federation."
+  type        = string
+  default     = ""
+}

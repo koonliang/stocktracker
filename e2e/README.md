@@ -33,11 +33,12 @@ docker compose down -v
 
 ## Configuration (system properties)
 
-| Property         | Default                 | Purpose                                  |
-| ---------------- | ----------------------- | ---------------------------------------- |
-| `e2e.baseUrl`    | `http://localhost:5173` | Frontend base URL under test             |
-| `e2e.headless`   | `true`                  | Set `false` to watch the browser locally |
-| `e2e.slowMo`     | `0`                     | Debug-only ms pause between interactions |
+| Property             | Default                 | Purpose                                     |
+| -------------------- | ----------------------- | ------------------------------------------- |
+| `e2e.baseUrl`        | `http://localhost:5173` | Frontend base URL under test                |
+| `e2e.backendBaseUrl` | `http://localhost:8080` | Backend base URL for the dev token endpoint |
+| `e2e.headless`       | `true`                  | Set `false` to watch the browser locally    |
+| `e2e.slowMo`         | `0`                     | Debug-only ms pause between interactions    |
 
 Examples:
 
@@ -53,6 +54,23 @@ mvn -B -f e2e/pom.xml test -De2e.headless=false -De2e.slowMo=500 -Dtest=Watchlis
 
 # Point at a different frontend
 mvn -B -f e2e/pom.xml test -De2e.baseUrl=http://localhost:3000
+```
+
+## Authentication journey
+
+`AuthJourneyTest` exercises the dev-mode auth flows (the stack runs with
+`STOCKTRACKER_AUTH_MODE=dev`): sign-up → verify → sign-in → sign-out, invalid
+credentials, protected-route redirect, password reset, and per-user data
+isolation. It uses `DevTokenClient` to read verification/reset tokens from the
+dev-only endpoint `GET /api/dev/auth/latest-token` (configurable via
+`e2e.backendBaseUrl`), so flows run without a live inbox. The isolation scenario
+relies on two bootstrap-seeded verified accounts: `seed@stocktracker.local` (owns
+demo data) and `empty@stocktracker.local` (no data) — both with password
+`DevPass123!`.
+
+```bash
+# Run just the auth journey
+mvn -B -f e2e/pom.xml test -Dtest=AuthJourneyTest
 ```
 
 ## Output
