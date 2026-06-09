@@ -143,31 +143,37 @@ resource "aws_instance" "nat" {
   vpc_security_group_ids      = [aws_security_group.nat[0].id]
   associate_public_ip_address = true
   source_dest_check           = false
+  user_data_replace_on_change = true
 
-  user_data = <<-EOF
-    #!/bin/bash
-    set -euxo pipefail
-    sysctl -w net.ipv4.ip_forward=1
-    cat >/etc/sysctl.d/99-nat-instance.conf <<'SYSCTL'
-    net.ipv4.ip_forward = 1
-    SYSCTL
-    cat >/etc/systemd/system/nat-instance.service <<'SERVICE'
-    [Unit]
-    Description=Configure NAT instance packet forwarding
-    After=network-online.target
-    Wants=network-online.target
+  user_data = <<EOF
+#!/bin/bash
+set -euxo pipefail
 
-    [Service]
-    Type=oneshot
-    ExecStart=/bin/sh -c '/usr/sbin/iptables -t nat -C POSTROUTING -o ens5 -j MASQUERADE || /usr/sbin/iptables -t nat -A POSTROUTING -o ens5 -j MASQUERADE'
-    RemainAfterExit=yes
+dnf install -y iptables-services
+sysctl -w net.ipv4.ip_forward=1
 
-    [Install]
-    WantedBy=multi-user.target
-    SERVICE
-    systemctl daemon-reload
-    systemctl enable --now nat-instance.service
-  EOF
+cat >/etc/sysctl.d/99-nat-instance.conf <<'SYSCTL'
+net.ipv4.ip_forward = 1
+SYSCTL
+
+cat >/etc/systemd/system/nat-instance.service <<'SERVICE'
+[Unit]
+Description=Configure NAT instance packet forwarding
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'IFACE="$(ip route show default | awk "{print \\$5; exit}")"; /usr/sbin/iptables -t nat -C POSTROUTING -o "$IFACE" -j MASQUERADE || /usr/sbin/iptables -t nat -A POSTROUTING -o "$IFACE" -j MASQUERADE'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+SERVICE
+
+systemctl daemon-reload
+systemctl enable --now nat-instance.service
+EOF
 
   tags = {
     Name = "${var.name_prefix}-nat"
