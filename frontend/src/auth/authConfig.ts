@@ -16,6 +16,10 @@ export const cognitoConfig = {
   redirectUri:
     import.meta.env.VITE_COGNITO_REDIRECT_URI ??
     (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''),
+  // Cognito redirects here after clearing the hosted-UI/browser session.
+  logoutUri:
+    import.meta.env.VITE_COGNITO_LOGOUT_URI ??
+    (typeof window !== 'undefined' ? `${window.location.origin}/login` : ''),
   scopes: 'openid email profile',
 };
 
@@ -46,4 +50,19 @@ export function redirectToHostedUi(
   }
   const endpoint = opts.provider ? 'oauth2/authorize' : HOSTED_UI_ENDPOINT[opts.flow ?? 'login'];
   window.location.assign(`https://${domain}/${endpoint}?${params.toString()}`);
+}
+
+/** Clears Cognito's hosted-UI session, then returns the browser to the app login route. */
+export function hostedLogoutUrl(config: typeof cognitoConfig = cognitoConfig): string {
+  const { domain, clientId, logoutUri } = config;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    logout_uri: logoutUri,
+  });
+  return `https://${domain}/logout?${params.toString()}`;
+}
+
+/** Clears Cognito's hosted-UI session, then returns the browser to the app login route. */
+export function redirectToHostedLogout(): void {
+  window.location.assign(hostedLogoutUrl());
 }

@@ -2,7 +2,13 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { ApiError, setAuthToken } from '@/api/client';
 import { fetchMe, login as loginRequest, logout as logoutRequest } from '@/api/authApi';
 import { useAuthStore } from '@/stores/authStore';
-import { authMode, cognitoConfig, redirectToHostedUi, type AuthMode } from './authConfig';
+import {
+  authMode,
+  cognitoConfig,
+  redirectToHostedLogout,
+  redirectToHostedUi,
+  type AuthMode,
+} from './authConfig';
 
 export type LoginResult = { ok: true } | { ok: false; reason: 'invalid' | 'unverified' | 'server' };
 
@@ -71,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await logoutRequest().catch(() => undefined);
     }
     clearSession();
+    if (authMode === 'cognito') {
+      redirectToHostedLogout();
+    }
   }
 
   return (
