@@ -62,9 +62,11 @@ locals {
 # ---------- Modules ----------
 
 module "network" {
-  source             = "../../modules/network"
-  name_prefix        = local.name_prefix
-  availability_zones = local.azs
+  source              = "../../modules/network"
+  name_prefix         = local.name_prefix
+  availability_zones  = local.azs
+  enable_nat_instance = true
+  nat_instance_type   = "t4g.micro"
 }
 
 module "lambda_backend" {

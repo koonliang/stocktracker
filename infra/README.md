@@ -29,12 +29,14 @@ flowchart LR
             LB["Lambda · backend"]:::app
             LM["Lambda · migrator"]:::app
             VPCE["VPC endpoints"]:::app
+            NAT["NAT instance · t4g.micro"]:::app
             RDS[("RDS MySQL")]:::data
         end
         APIGW --> LB
         LB -->|JDBC| RDS
         LM -->|JDBC| RDS
         LB -.-> VPCE
+        LB -.-> NAT
     end
 
     user -->|"static assets"| CF
@@ -48,10 +50,13 @@ calls the backend **cross-origin** at the API Gateway `/api/*` URL baked into
 the bundle as `VITE_API_BASE_URL`; API Gateway (`ANY /{proxy+}`) proxies every
 path to the backend Lambda, which reaches MySQL over JDBC inside the VPC. The
 one-shot migrator Lambda runs Flyway against the same database on deploy.
-There is **no NAT gateway** — the private subnets reach AWS services (Secrets
-Manager, CloudWatch Logs) through interface VPC endpoints. The ephemeral stack
-reads the persistent CloudFront domain via `terraform_remote_state` so API
-Gateway's CORS allow-origin always matches the live frontend.
+The private subnets reach Secrets Manager and CloudWatch Logs through interface
+VPC endpoints. Production also enables a single low-cost `t4g.micro` NAT
+instance because the backend must fetch Cognito JWKS from the public Cognito
+issuer endpoint while validating JWTs; Cognito PrivateLink doesn't support this
+hosted-UI user-pool shape. The ephemeral stack reads the persistent CloudFront
+domain via `terraform_remote_state` so API Gateway's CORS allow-origin always
+matches the live frontend.
 
 Authentication in production is owned by an **Amazon Cognito** user pool
 (`modules/cognito`) provisioned in the ephemeral `production` stack. It handles
@@ -103,7 +108,7 @@ CloudFront wait **only once**, not on every cycle:
 | Stack | Lifecycle | What it owns | Idle cost |
 |---|---|---|---|
 | `production-persistent` | Apply once, leave up | CloudFront, OAC, frontend bucket | ~$0 |
-| `production` | Apply/destroy per session | VPC, RDS, Lambda, API Gateway, interface VPC endpoints | RDS + VPC endpoints dominate |
+| `production` | Apply/destroy per session | VPC, NAT instance, RDS, Lambda, API Gateway, interface VPC endpoints | RDS + VPC endpoints + NAT instance dominate |
 
 The ephemeral `production` stack reads the persistent stack's CloudFront
 domain via `terraform_remote_state` so API Gateway CORS always allows the
