@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { ApiError, setAuthToken } from '@/api/client';
 import { fetchMe, login as loginRequest, logout as logoutRequest } from '@/api/authApi';
 import { useAuthStore } from '@/stores/authStore';
-import { authMode, cognitoConfig, type AuthMode } from './authConfig';
+import { authMode, cognitoConfig, redirectToHostedUi, type AuthMode } from './authConfig';
 
 export type LoginResult = { ok: true } | { ok: false; reason: 'invalid' | 'unverified' | 'server' };
 
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function loginWithProvider(provider: SocialProvider): void {
     if (authMode === 'cognito') {
-      redirectToHostedUi(provider);
+      redirectToHostedUi({ provider });
       return;
     }
     // Social login is delegated to Cognito federation; it is not available in dev mode.
@@ -78,21 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-/** Sends the browser to the Cognito Hosted UI authorize endpoint (optionally a social IdP). */
-function redirectToHostedUi(provider?: SocialProvider): void {
-  const { domain, clientId, redirectUri, scopes } = cognitoConfig;
-  const params = new URLSearchParams({
-    client_id: clientId,
-    response_type: 'code',
-    scope: scopes,
-    redirect_uri: redirectUri,
-  });
-  if (provider) {
-    params.set('identity_provider', provider === 'google' ? 'Google' : 'Facebook');
-  }
-  window.location.assign(`https://${domain}/oauth2/authorize?${params.toString()}`);
 }
 
 /**

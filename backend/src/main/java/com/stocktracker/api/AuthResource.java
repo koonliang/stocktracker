@@ -8,6 +8,7 @@ import com.stocktracker.dto.ResetPasswordRequest;
 import com.stocktracker.dto.SignUpRequest;
 import com.stocktracker.dto.UserResponse;
 import com.stocktracker.dto.VerifyEmailRequest;
+import com.stocktracker.security.AuthMode;
 import com.stocktracker.security.CurrentUser;
 import com.stocktracker.service.AuthService;
 import io.quarkus.security.Authenticated;
@@ -19,6 +20,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 @Path("/api/auth")
 @Produces(MediaType.APPLICATION_JSON)
@@ -26,40 +28,47 @@ import jakarta.ws.rs.core.Response;
 public class AuthResource {
   @Inject AuthService authService;
   @Inject CurrentUser currentUser;
+  @Inject AuthMode authMode;
 
   @POST
   @Path("/signup")
   public Response signup(SignUpRequest request) {
+    assertDevMode();
     return Response.accepted(authService.signup(request)).build();
   }
 
   @POST
   @Path("/verify-email")
   public Response verifyEmail(VerifyEmailRequest request) {
+    assertDevMode();
     return Response.ok(authService.verifyEmail(request)).build();
   }
 
   @POST
   @Path("/resend-verification")
   public Response resendVerification(ResendVerificationRequest request) {
+    assertDevMode();
     return Response.accepted(authService.resendVerification(request)).build();
   }
 
   @POST
   @Path("/login")
   public LoginResponse login(LoginRequest request) {
+    assertDevMode();
     return authService.login(request);
   }
 
   @POST
   @Path("/forgot-password")
   public Response forgotPassword(ForgotPasswordRequest request) {
+    assertDevMode();
     return Response.accepted(authService.forgotPassword(request)).build();
   }
 
   @POST
   @Path("/reset-password")
   public Response resetPassword(ResetPasswordRequest request) {
+    assertDevMode();
     return Response.ok(authService.resetPassword(request)).build();
   }
 
@@ -76,5 +85,16 @@ public class AuthResource {
   public Response logout() {
     // Stateless JWT: sign-out is a client-side token discard. Acknowledge only.
     return Response.noContent().build();
+  }
+
+  /**
+   * The local email+password flows exist only in dev mode. In cognito mode Cognito owns sign-up,
+   * verification, login, and reset, so these endpoints return 404 — they must never create local
+   * password accounts that bypass the pool (FR-T02).
+   */
+  private void assertDevMode() {
+    if (!authMode.isDev()) {
+      throw new ApiException(Status.NOT_FOUND, "not_found", "Not found");
+    }
   }
 }

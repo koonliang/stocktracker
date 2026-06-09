@@ -6,6 +6,7 @@ import { forgotPassword as forgotPasswordRequest } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
+import { isCognitoMode, redirectToHostedUi } from '@/auth/authConfig';
 
 type FormValues = { email: string };
 
@@ -18,6 +19,11 @@ export function ForgotPasswordRoute() {
   } = useForm<FormValues>({ defaultValues: { email: '' } });
 
   async function onSubmit(values: FormValues) {
+    // In cognito mode Cognito owns password reset; hand off to the Hosted UI.
+    if (isCognitoMode) {
+      redirectToHostedUi({ flow: 'reset' });
+      return;
+    }
     // Non-enumerating: always show the same neutral confirmation, even on failure (FR-016, SC-005).
     await forgotPasswordRequest(values.email).catch(() => undefined);
     setSubmitted(true);
