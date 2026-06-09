@@ -23,21 +23,23 @@ Compose stack.
 
 All app routes are gated behind a session; public auth routes live under
 `src/routes/` (`/login`, `/signup`, `/verify-email`, `/forgot-password`,
-`/reset-password`) and the session lives in `src/stores/authStore.ts`. The
+`/reset-password`, `/signed-out`) and the session lives in `src/stores/authStore.ts`. The
 `AuthProvider` (`src/auth/`) selects a strategy from `VITE_AUTH_MODE`:
 
 - **dev** (default): calls the backend `/api/auth/*` flows; the bearer token is
   attached to every API request and a `401` clears the session. The dev-only
   endpoint `GET /api/dev/auth/latest-token` exposes the latest verification/reset
   token so flows can be driven without a live inbox.
-- **cognito** (production): redirects to the Cognito Hosted UI for
-  login/signup/social/reset and exchanges the auth code on return. Configure with:
+- **cognito** (production): redirects unauthenticated users straight to the
+  Cognito Hosted UI for login/signup/social/reset and exchanges the auth code on
+  return. Configure with:
 
   ```sh
   VITE_AUTH_MODE=cognito
   VITE_COGNITO_DOMAIN=<hosted-ui-domain>
   VITE_COGNITO_CLIENT_ID=<app-client-id>
   # VITE_COGNITO_REDIRECT_URI defaults to <origin>/auth/callback
+  # VITE_COGNITO_LOGOUT_URI defaults to <origin>/signed-out
   ```
 
 The seed dev account is `seed@stocktracker.local` / `DevPass123!` (owns demo

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore';
 import {
   authMode,
   cognitoConfig,
+  decodeAuthState,
   redirectToHostedLogout,
   redirectToHostedUi,
   type AuthMode,
@@ -95,15 +96,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
  */
 export async function completeCognitoCallback(
   setSession: (token: string, user: { id: number; email: string }) => void,
-): Promise<void> {
+): Promise<string> {
   const url = new URL(window.location.href);
   const code = url.searchParams.get('code');
+  const { from } = decodeAuthState(url.searchParams.get('state'));
   if (!code) {
-    return;
+    return from;
   }
   // Auth codes are single-use — strip it from the URL before exchanging so a remount
   // (e.g. StrictMode) or refresh can't replay the same code and fail.
   url.searchParams.delete('code');
+  url.searchParams.delete('state');
   window.history.replaceState({}, '', url.toString());
   const { domain, clientId, redirectUri } = cognitoConfig;
   const body = new URLSearchParams({
@@ -125,6 +128,7 @@ export async function completeCognitoCallback(
   setAuthToken(tokens.id_token);
   const user = await fetchMe();
   setSession(tokens.id_token, user);
+  return from;
 }
 
 export function useAuth(): AuthContextValue {

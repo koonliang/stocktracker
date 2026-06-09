@@ -56,7 +56,7 @@ locals {
 
   # Hosted-UI redirect targets; only meaningful once the CloudFront origin exists.
   cognito_callback_urls = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}/auth/callback"] : []
-  cognito_logout_urls   = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}/login"] : []
+  cognito_logout_urls   = local.cloudfront_domain_name != "" ? ["https://${local.cloudfront_domain_name}/signed-out"] : []
 }
 
 # ---------- Modules ----------

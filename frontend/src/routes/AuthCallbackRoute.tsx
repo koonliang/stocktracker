@@ -19,6 +19,7 @@ const TIMEOUT_MS = 20_000;
 export function AuthCallbackRoute() {
   const setSession = useAuthStore((s) => s.setSession);
   const [phase, setPhase] = useState<CallbackPhase>('working');
+  const [returnTo, setReturnTo] = useState('/');
   // The exchange must fire exactly once even under StrictMode double-invocation.
   const started = useRef(false);
 
@@ -29,7 +30,10 @@ export function AuthCallbackRoute() {
       setTimeout(() => reject(new Error('Sign-in timed out')), TIMEOUT_MS),
     );
     Promise.race([completeCognitoCallback(setSession), timeout])
-      .then(() => setPhase('done'))
+      .then((from) => {
+        setReturnTo(from);
+        setPhase('done');
+      })
       .catch((error) => {
         // Surface the real cause (CORS, token exchange, /me) in the browser console.
         console.error('Cognito sign-in failed:', error);
@@ -38,7 +42,7 @@ export function AuthCallbackRoute() {
   }, [setSession]);
 
   if (phase === 'done') {
-    return <Navigate to="/" replace />;
+    return <Navigate to={returnTo} replace />;
   }
 
   return (
