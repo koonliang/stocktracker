@@ -115,11 +115,15 @@ data "aws_iam_policy_document" "gha_plan_trust" {
       values   = ["sts.amazonaws.com"]
     }
 
-    # Only PR workflow runs on this repo can assume this role.
+    # PR workflow runs and `main`-branch pushes (CI plan also runs on push
+    # to main) on this repo can assume this role.
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["${local.repo_subject}:pull_request"]
+      values = [
+        "${local.repo_subject}:pull_request",
+        "${local.repo_subject}:ref:refs/heads/main",
+      ]
     }
   }
 }
