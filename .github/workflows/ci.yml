@@ -144,7 +144,9 @@ jobs:
           terraform plan -input=false -no-color -lock-timeout=5m | tee plan.txt
 
       - name: Post plan summary to PR
-        if: always()
+        # Only PR runs have an issue/PR to comment on; on push to main
+        # context.issue.number is undefined and the API call 404s.
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           STACK_NAME: ${{ matrix.stack.name }}
