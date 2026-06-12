@@ -23,6 +23,10 @@ public class Instrument extends PanacheEntityBase {
   @Column(nullable = false)
   public String exchange;
 
+  /** Native trading currency (FR-029); defaults to USD for seeded US instruments. */
+  @Column(nullable = false, length = 3)
+  public String currency = "USD";
+
   @Column(nullable = false)
   public boolean active;
 

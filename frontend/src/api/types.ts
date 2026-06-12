@@ -53,6 +53,13 @@ export type Holding = {
   dayChange: number;
   dayChangePct: number;
   weight: number;
+  // Live-data fields (US1) — optional so locally-computed dashboards remain valid.
+  currency?: string;
+  nativePrice?: number;
+  nativeMarketValue?: number;
+  asOf?: string | null;
+  fetchedAt?: string | null;
+  stale?: boolean;
 };
 
 export type PortfolioSummary = {
@@ -62,7 +69,42 @@ export type PortfolioSummary = {
   totalUnrealizedPnLPct: number;
   totalDayChange: number;
   totalDayChangePct: number;
+  baseCurrency?: string;
 };
+
+export type Quote = {
+  symbol: string;
+  price: number | null;
+  currency: string | null;
+  changeAmount: number | null;
+  changePct: number | null;
+  previousClose: number | null;
+  asOf: string | null;
+  fetchedAt: string | null;
+  source: string | null;
+  stale: boolean;
+};
+
+export type QuoteResponse = { quotes: Quote[] };
+
+export type SymbolSearchResult = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+};
+
+export type InstrumentSearchResponse = { results: SymbolSearchResult[] };
+
+export type AddInstrumentResponse = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+  quote: { price: number | null; asOf: string | null; stale: boolean };
+};
+
+export type BaseCurrencyResponse = { baseCurrency: string; supported: string[] };
 
 export type DashboardResponse = {
   summary: PortfolioSummary;
@@ -84,6 +126,14 @@ export type WatchlistResponse = {
 export type InstrumentAnalysisResponse = {
   ticker: Ticker;
   stats: KeyStats | null;
+  quote: {
+    price: number | null;
+    previousClose: number | null;
+    changeAmount: number | null;
+    changePct: number | null;
+    asOf: string | null;
+    stale: boolean;
+  } | null;
   priceHistory: PriceBar[];
   positionSummary: {
     shares: number;

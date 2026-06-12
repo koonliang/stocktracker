@@ -5,6 +5,7 @@ import java.util.List;
 public record InstrumentAnalysisResponse(
     TickerView ticker,
     StatsView stats,
+    QuoteResponse.QuoteView quote,
     List<PriceHistoryPoint> priceHistory,
     PositionSummary positionSummary) {
   public record TickerView(String symbol, String name, String sector, String exchange) {}

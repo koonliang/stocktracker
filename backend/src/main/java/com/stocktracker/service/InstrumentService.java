@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response.Status;
 public class InstrumentService {
   @Inject InstrumentRepository instrumentRepository;
   @Inject PortfolioService portfolioService;
+  @Inject QuoteCacheService quoteCacheService;
 
   public InstrumentAnalysisResponse getAnalysis(String rawTicker) {
     var ticker = rawTicker.trim().toUpperCase();
@@ -19,6 +20,11 @@ public class InstrumentService {
             .findBySymbol(ticker)
             .orElseThrow(() -> new ApiException(Status.NOT_FOUND, "not_found", "Ticker not found"));
     var stats = instrumentRepository.findStat(ticker).orElse(null);
+    // Live quote from the cache so the detail page matches the dashboard (not the stale last bar).
+    var quote =
+        quoteCacheService.readQuotes(java.util.List.of(ticker)).quotes().stream()
+            .findFirst()
+            .orElse(null);
     var priceHistory =
         instrumentRepository.listPriceBars(ticker).stream()
             .map(
@@ -47,6 +53,7 @@ public class InstrumentService {
                 stats.week52Low.doubleValue(),
                 stats.marketCap,
                 stats.peRatio == null ? null : stats.peRatio.doubleValue()),
+        quote,
         priceHistory,
         position == null
             ? null

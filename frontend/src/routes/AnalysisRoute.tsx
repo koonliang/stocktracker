@@ -75,10 +75,11 @@ export function AnalysisRoute() {
   const bars = data.priceHistory;
   const stats = data.stats;
 
+  // Prefer the live quote (matches the dashboard); fall back to the last price bar when absent.
   const last = bars[bars.length - 1];
   const prev = bars[bars.length - 2];
-  const currentPrice = last?.close ?? null;
-  const prevClose = prev?.close ?? null;
+  const currentPrice = data.quote?.price ?? last?.close ?? null;
+  const prevClose = data.quote?.previousClose ?? prev?.close ?? null;
   const dayChange = currentPrice != null && prevClose != null ? currentPrice - prevClose : null;
   const dayChangePct =
     currentPrice != null && prevClose != null && prevClose !== 0

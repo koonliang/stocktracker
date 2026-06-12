@@ -4,10 +4,10 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { Holding } from '@/lib/types';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import {
-  formatCurrency,
+  formatCurrencyCode,
   formatPercent,
   formatShares,
-  formatSignedCurrency,
+  formatSignedCurrencyCode,
   formatSignedPercent,
 } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -35,7 +35,8 @@ type Column = {
   render: (h: Holding) => React.ReactNode;
 };
 
-const columns: Column[] = [
+function buildColumns(baseCurrency?: string): Column[] {
+  return [
   {
     key: 'ticker',
     label: 'Ticker',
@@ -66,7 +67,7 @@ const columns: Column[] = [
     sortable: true,
     mono: true,
     hideClass: 'hidden lg:table-cell',
-    render: (h) => formatCurrency(h.averageCost),
+    render: (h) => formatCurrencyCode(h.averageCost, h.currency),
   },
   {
     key: 'currentPrice',
@@ -75,7 +76,7 @@ const columns: Column[] = [
     sortable: true,
     mono: true,
     hideClass: 'hidden md:table-cell',
-    render: (h) => formatCurrency(h.currentPrice),
+    render: (h) => formatCurrencyCode(h.currentPrice, baseCurrency),
   },
   {
     key: 'marketValue',
@@ -83,7 +84,18 @@ const columns: Column[] = [
     align: 'right',
     sortable: true,
     mono: true,
-    render: (h) => formatCurrency(h.marketValue, { cents: false }),
+    render: (h) => (
+      <div className="inline-flex flex-col items-end leading-tight">
+        <span data-testid="holding-base-value">
+          {formatCurrencyCode(h.marketValue, baseCurrency, { cents: false })}
+        </span>
+        {h.currency && h.currency !== baseCurrency && h.nativeMarketValue != null ? (
+          <span data-testid="holding-native-value" className="text-small text-text-muted">
+            {formatCurrencyCode(h.nativeMarketValue, h.currency, { cents: false })} {h.currency}
+          </span>
+        ) : null}
+      </div>
+    ),
   },
   {
     key: 'weight',
@@ -108,7 +120,7 @@ const columns: Column[] = [
           h.unrealizedPnL < 0 && 'delta-negative',
         )}
       >
-        <span>{formatSignedCurrency(h.unrealizedPnL)}</span>
+        <span>{formatSignedCurrencyCode(h.unrealizedPnL, baseCurrency)}</span>
         <span className="text-small opacity-80">{formatSignedPercent(h.unrealizedPnLPct)}</span>
       </div>
     ),
@@ -127,17 +139,25 @@ const columns: Column[] = [
           h.dayChange < 0 && 'delta-negative',
         )}
       >
-        <span>{formatSignedCurrency(h.dayChange)}</span>
+        <span>{formatSignedCurrencyCode(h.dayChange, baseCurrency)}</span>
         <span className="text-small opacity-80">{formatSignedPercent(h.dayChangePct)}</span>
       </div>
     ),
   },
-];
+  ];
+}
 
-export function HoldingsTable({ holdings }: { holdings: Holding[] }) {
+export function HoldingsTable({
+  holdings,
+  baseCurrency,
+}: {
+  holdings: Holding[];
+  baseCurrency?: string;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>('marketValue');
   const [direction, setDirection] = useState<Direction>('desc');
   const navigate = useNavigate();
+  const columns = useMemo(() => buildColumns(baseCurrency), [baseCurrency]);
 
   const sorted = useMemo(() => {
     const list = [...holdings];

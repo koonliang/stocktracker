@@ -41,7 +41,7 @@ describe('WatchlistDetailRoute', () => {
     if (!res.ok) throw new Error('create failed');
     setup(res.id);
     expect(await screen.findByRole('heading', { name: /Tech/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Add ticker/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Search symbols/i)).toBeInTheDocument();
   });
 
   it('removes a ticker when its remove button is clicked', async () => {

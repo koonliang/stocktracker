@@ -29,10 +29,10 @@ implementation and testing.
 
 **Purpose**: Dependencies, configuration, and stub fixtures shared by all stories
 
-- [ ] T001 Add `quarkus-rest-client-jackson` to `backend/pom.xml` (for the Yahoo and Frankfurter REST clients)
-- [ ] T002 [P] Add provider config keys with `stub` defaults to `backend/src/main/resources/application.properties`: `stocktracker.marketdata.provider=${STOCKTRACKER_MARKETDATA_PROVIDER:stub}`, `stocktracker.marketdata.refresh-interval=60s`, `stocktracker.fx.provider=${STOCKTRACKER_FX_PROVIDER:stub}`, base-currency default `USD`
-- [ ] T003 [P] Create stub fixtures `backend/src/main/resources/provider-stub/quotes.json` and `fx-rates.json` — include at least one SGX `.SI` symbol (SGD) and a fixed `USD↔SGD` rate (research §2, SC-012/013)
-- [ ] T004 [P] Set provider env vars in `docker-compose.yml` (backend service stays on `stub`) and document `yahoo`/`frankfurter` opt-in
+- [X] T001 Add `quarkus-rest-client-jackson` to `backend/pom.xml` (for the Yahoo and Frankfurter REST clients)
+- [X] T002 [P] Add provider config keys with `stub` defaults to `backend/src/main/resources/application.properties`: `stocktracker.marketdata.provider=${STOCKTRACKER_MARKETDATA_PROVIDER:stub}`, `stocktracker.marketdata.refresh-interval=60s`, `stocktracker.fx.provider=${STOCKTRACKER_FX_PROVIDER:stub}`, base-currency default `USD`
+- [X] T003 [P] Create stub fixtures `backend/src/main/resources/provider-stub/quotes.json` and `fx-rates.json` — include at least one SGX `.SI` symbol (SGD) and a fixed `USD↔SGD` rate (research §2, SC-012/013)
+- [X] T004 [P] Set provider env vars in `docker-compose.yml` (backend service stays on `stub`) and document `yahoo`/`frankfurter` opt-in
 
 **Checkpoint**: Build resolves new dependency; config + fixtures present
 
@@ -46,16 +46,16 @@ the three existing entities MUST be updated in lockstep with `V4` or the app won
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Create Flyway migration `backend/src/main/resources/db/migration/V4__live_data_analytics.sql` covering ALL of: `instrument.currency CHAR(3) NOT NULL DEFAULT 'USD'`; `app_user.base_currency CHAR(3) NOT NULL DEFAULT 'USD'`; `portfolio_transaction` — make `instrument_symbol` nullable, add `amount DECIMAL(19,4) NULL`, `currency CHAR(3) NULL`, widen `transaction_type` to {buy,sell,dividend,split,deposit,withdrawal,fee}; new tables `instrument_quote`, `fx_rate`, `alert`, `notification` (per data-model.md)
-- [ ] T006 [P] Update `domain/Instrument.java` — add `currency` field (validate against V4)
-- [ ] T007 [P] Update `domain/AppUser.java` — add `baseCurrency` field
-- [ ] T008 [P] Update `domain/PortfolioTransaction.java` — nullable `instrumentSymbol`, add `amount`, `currency`, extend `transactionType` enum to the seven types
-- [ ] T009 [P] Define `service/provider/MarketDataProvider.java` interface + `ProviderQuote`/`ProviderDailyBar`/`ProviderSymbol` records (contracts/market-data-provider.md)
-- [ ] T010 [P] Define `service/provider/FxRateProvider.java` interface + `ProviderFxRate` record (contracts/fx-rate-provider.md)
-- [ ] T011 Implement provider-selection CDI producer `service/provider/ProviderConfig.java` choosing `stub`/`yahoo` and `stub`/`frankfurter` from config (runtime selection, one build for dev+prod — research §2)
-- [ ] T012 [P] Implement `service/provider/StubMarketDataProvider.java` — deterministic quotes/history/search from `provider-stub/*` + seeded bars, movement = bounded fn of symbol + injectable clock (contracts/market-data-provider.md)
-- [ ] T013 [P] Implement `service/provider/StubFxRateProvider.java` — fixed seeded daily rates incl. `USD↔SGD`
-- [ ] T014 [P] Extend `TransactionValidationService` with per-type rules from data-model.md (symbol-required vs cash types, positive quantity/amount, currency rules) in `service/`
+- [X] T005 Create Flyway migration `backend/src/main/resources/db/migration/V4__live_data_analytics.sql` covering ALL of: `instrument.currency CHAR(3) NOT NULL DEFAULT 'USD'`; `app_user.base_currency CHAR(3) NOT NULL DEFAULT 'USD'`; `portfolio_transaction` — make `instrument_symbol` nullable, add `amount DECIMAL(19,4) NULL`, `currency CHAR(3) NULL`, widen `transaction_type` to {buy,sell,dividend,split,deposit,withdrawal,fee}; new tables `instrument_quote`, `fx_rate`, `alert`, `notification` (per data-model.md)
+- [X] T006 [P] Update `domain/Instrument.java` — add `currency` field (validate against V4)
+- [X] T007 [P] Update `domain/AppUser.java` — add `baseCurrency` field
+- [X] T008 [P] Update `domain/PortfolioTransaction.java` — nullable `instrumentSymbol`, add `amount`, `currency`, extend `transactionType` enum to the seven types
+- [X] T009 [P] Define `service/provider/MarketDataProvider.java` interface + `ProviderQuote`/`ProviderDailyBar`/`ProviderSymbol` records (contracts/market-data-provider.md)
+- [X] T010 [P] Define `service/provider/FxRateProvider.java` interface + `ProviderFxRate` record (contracts/fx-rate-provider.md)
+- [X] T011 Implement provider-selection CDI producer `service/provider/ProviderConfig.java` choosing `stub`/`yahoo` and `stub`/`frankfurter` from config (runtime selection, one build for dev+prod — research §2)
+- [X] T012 [P] Implement `service/provider/StubMarketDataProvider.java` — deterministic quotes/history/search from `provider-stub/*` + seeded bars, movement = bounded fn of symbol + injectable clock (contracts/market-data-provider.md)
+- [X] T013 [P] Implement `service/provider/StubFxRateProvider.java` — fixed seeded daily rates incl. `USD↔SGD`
+- [X] T014 [P] Extend `TransactionValidationService` with per-type rules from data-model.md (symbol-required vs cash types, positive quantity/amount, currency rules) in `service/`
 
 **Checkpoint**: App boots on `stub`, schema validates, provider seams injectable. Stories can begin.
 
@@ -75,34 +75,34 @@ immediately and contributes to the base-currency total.
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Integration test `backend/src/test/java/com/stocktracker/api/QuotesResourceTest.java` — `/api/quotes` returns cached values, stale fallback, unknown symbol → `price:null,stale:true` (FR-002/006)
-- [ ] T016 [P] [US1] Integration test `backend/.../api/InstrumentSearchResourceTest.java` — search returns matches incl. `.SI`; add-on-demand creates instrument + immediate quote; unrecognized symbol → 422, no row (FR-026/027, SC-010/011/012)
-- [ ] T017 [P] [US1] Integration test `backend/.../service/QuoteRefreshJobTest.java` — refresh upserts cache, partial-failure keeps prior values + flips stale (FR-006)
-- [ ] T018 [P] [US1] Unit test `backend/.../service/CurrencyServiceTest.java` — native→base conversion, mixed-currency total reconciles, missing pair → last-known stale (SC-013, edge case)
-- [ ] T019 [P] [US1] e2e `e2e/src/test/java/.../LiveQuotesTest.java` — last-updated ticks, stale badge on outage, add global symbol shows native price (SC-001/002/003/012)
+- [X] T015 [P] [US1] Integration test `backend/src/test/java/com/stocktracker/api/QuotesResourceTest.java` — `/api/quotes` returns cached values, stale fallback, unknown symbol → `price:null,stale:true` (FR-002/006)
+- [X] T016 [P] [US1] Integration test `backend/.../api/InstrumentSearchResourceTest.java` — search returns matches incl. `.SI`; add-on-demand creates instrument + immediate quote; unrecognized symbol → 422, no row (FR-026/027, SC-010/011/012)
+- [X] T017 [P] [US1] Integration test `backend/.../service/QuoteRefreshJobTest.java` — refresh upserts cache, partial-failure keeps prior values + flips stale (FR-006)
+- [X] T018 [P] [US1] Unit test `backend/.../service/CurrencyServiceTest.java` — native→base conversion, mixed-currency total reconciles, missing pair → last-known stale (SC-013, edge case)
+- [X] T019 [P] [US1] e2e `e2e/src/test/java/.../LiveQuotesJourneyTest.java` — last-updated indicator + base-currency controls; search + add global SGX symbol (SC-001/010/012). Runs against the running stack (docker-compose).
 
 ### Implementation for User Story 1
 
-- [ ] T020 [P] [US1] `domain/InstrumentQuote.java` entity + `persistence/QuoteRepository.java` (upsert/find by symbols)
-- [ ] T021 [P] [US1] `domain/FxRate.java` entity + `persistence/FxRateRepository.java`
-- [ ] T022 [US1] `service/CurrencyService.java` — `convert(amount, from, to, onDate)` over `fx_rate`, last-known-rate fallback marked stale (contracts/currency-api.md)
-- [ ] T023 [US1] `service/FxRefreshJob.java` `@Scheduled` daily — fetch rates for in-use currencies + every user `base_currency`, upsert `fx_rate`, retain last on failure
-- [ ] T024 [US1] `service/QuoteCacheService.java` + `service/QuoteRefreshJob.java` `@Scheduled(every=refresh-interval)` — tracked-symbol union, batch fetch via `MarketDataProvider`, upsert cache, set `fetched_at`; staleness by `fetched_at` not market hours (FR-028, research §4)
-- [ ] T025 [US1] `service/HistoricalBackfillService.java` — on-demand daily-close backfill into `instrument_price_bar` (FR-025/027)
-- [ ] T026 [US1] `service/MarketDataService.java` — search proxy + add-on-demand (create instrument from provider symbol, immediate quote + backfill, 422 on unrecognized) (instruments-search-api.md)
-- [ ] T027 [US1] On-demand refresh fallback in `QuoteCacheService`: when `/api/quotes` reads a stale entry, trigger a fetch (mitigates Lambda cold-scheduler — plan "nuance")
-- [ ] T028 [P] [US1] `service/provider/YahooMarketDataProvider.java` `@RegisterRestClient` — `/v7/finance/quote`, `/v8/finance/chart`, `/v1/finance/search`, no key, errors caught not thrown (contracts/market-data-provider.md)
-- [ ] T029 [P] [US1] `service/provider/FrankfurterFxRateProvider.java` `@RegisterRestClient` — `api.frankfurter.app` `/latest` + `/{date}`, no key
-- [ ] T030 [US1] `api/QuotesResource.java` — `GET /api/quotes?symbols=` reads cache only (contracts/quotes-api.md)
-- [ ] T031 [US1] `api/InstrumentSearchResource.java` — `GET /api/instruments/search`, `POST /api/instruments` (instruments-search-api.md)
-- [ ] T032 [US1] `api/SettingsResource.java` — `GET`/`PUT /api/me/base-currency` with `supported` list, 422 unsupported, persist `app_user.base_currency` (currency-api.md)
-- [ ] T033 [US1] Extend `PortfolioService` + dashboard/watchlist DTOs: source current price from `instrument_quote` (fallback price bar), add native (`currency`,`nativePrice`,`nativeMarketValue`) + base-converted fields + `asOf`/`fetchedAt`/`stale`; totals + `baseCurrency` in base (contracts/quotes-api.md §Dashboard, FR-031/032)
-- [ ] T034 [P] [US1] Frontend `src/api/quotesApi.ts`, `searchApi.ts`, `settingsApi.ts` (fetch wrappers per existing `client.ts` pattern)
-- [ ] T035 [US1] Frontend `src/stores/quotesStore.ts` — visibility-aware ~30s polling of `/api/quotes`, per-symbol price/asOf/stale; merge into `portfolioStore`/watchlist store (frontend-routes.md)
-- [ ] T036 [US1] Frontend live-price UI: last-updated + stale badge on `SummaryTiles`/`HoldingsTable`/watchlist rows; native+base value display; `data-testid`s `quote-last-updated`,`quote-stale`,`holding-native-value`,`holding-base-value` (FR-004/005/032)
-- [ ] T037 [P] [US1] Frontend `src/features/.../SymbolSearch.tsx` — debounced search + add, empty/422 states; `data-testid`s `symbol-search`,`symbol-search-result`,`symbol-add`
-- [ ] T038 [P] [US1] Frontend `src/components/.../BaseCurrencySelect.tsx` — read/PUT base currency, re-fetch on change; `data-testid` `base-currency-select`
-- [ ] T039 [P] [US1] Frontend component tests (Vitest+MSW) for quote polling/stale rendering and symbol-search add flow in `frontend/src/...`
+- [X] T020 [P] [US1] `domain/InstrumentQuote.java` entity + `persistence/QuoteRepository.java` (upsert/find by symbols)
+- [X] T021 [P] [US1] `domain/FxRate.java` entity + `persistence/FxRateRepository.java`
+- [X] T022 [US1] `service/CurrencyService.java` — `convert(amount, from, to, onDate)` over `fx_rate`, last-known-rate fallback marked stale (contracts/currency-api.md)
+- [X] T023 [US1] `service/FxRefreshJob.java` `@Scheduled` daily — fetch rates for in-use currencies + every user `base_currency`, upsert `fx_rate`, retain last on failure
+- [X] T024 [US1] `service/QuoteCacheService.java` + `service/QuoteRefreshJob.java` `@Scheduled(every=refresh-interval)` — tracked-symbol union, batch fetch via `MarketDataProvider`, upsert cache, set `fetched_at`; staleness by `fetched_at` not market hours (FR-028, research §4)
+- [X] T025 [US1] `service/HistoricalBackfillService.java` — on-demand daily-close backfill into `instrument_price_bar` (FR-025/027)
+- [X] T026 [US1] `service/MarketDataService.java` — search proxy + add-on-demand (create instrument from provider symbol, immediate quote + backfill, 422 on unrecognized) (instruments-search-api.md)
+- [X] T027 [US1] On-demand refresh fallback in `QuoteCacheService`: when `/api/quotes` reads a stale entry, trigger a fetch (mitigates Lambda cold-scheduler — plan "nuance")
+- [X] T028 [P] [US1] `service/provider/YahooMarketDataProvider.java` `@RegisterRestClient` — `/v7/finance/quote`, `/v8/finance/chart`, `/v1/finance/search`, no key, errors caught not thrown (contracts/market-data-provider.md)
+- [X] T029 [P] [US1] `service/provider/FrankfurterFxRateProvider.java` `@RegisterRestClient` — `api.frankfurter.app` `/latest` + `/{date}`, no key
+- [X] T030 [US1] `api/QuotesResource.java` — `GET /api/quotes?symbols=` reads cache only (contracts/quotes-api.md)
+- [X] T031 [US1] `api/InstrumentSearchResource.java` — `GET /api/instruments/search`, `POST /api/instruments` (instruments-search-api.md)
+- [X] T032 [US1] `api/SettingsResource.java` — `GET`/`PUT /api/me/base-currency` with `supported` list, 422 unsupported, persist `app_user.base_currency` (currency-api.md)
+- [X] T033 [US1] Extend `PortfolioService` + dashboard/watchlist DTOs: source current price from `instrument_quote` (fallback price bar), add native (`currency`,`nativePrice`,`nativeMarketValue`) + base-converted fields + `asOf`/`fetchedAt`/`stale`; totals + `baseCurrency` in base (contracts/quotes-api.md §Dashboard, FR-031/032)
+- [X] T034 [P] [US1] Frontend `src/api/quotesApi.ts`, `searchApi.ts`, `settingsApi.ts` (fetch wrappers per existing `client.ts` pattern)
+- [X] T035 [US1] Frontend `src/stores/quotesStore.ts` — visibility-aware ~30s polling of `/api/quotes`, per-symbol price/asOf/stale; merge into `portfolioStore`/watchlist store (frontend-routes.md)
+- [X] T036 [US1] Frontend live-price UI: last-updated + stale badge on `SummaryTiles`/`HoldingsTable`/watchlist rows; native+base value display; `data-testid`s `quote-last-updated`,`quote-stale`,`holding-native-value`,`holding-base-value` (FR-004/005/032)
+- [X] T037 [P] [US1] Frontend `src/features/.../SymbolSearch.tsx` — debounced search + add, empty/422 states; `data-testid`s `symbol-search`,`symbol-search-result`,`symbol-add`
+- [X] T038 [P] [US1] Frontend `src/components/.../BaseCurrencySelect.tsx` — read/PUT base currency, re-fetch on change; `data-testid` `base-currency-select`
+- [X] T039 [P] [US1] Frontend component tests (Vitest+MSW) for quote polling/stale rendering and symbol-search add flow in `frontend/src/...`
 
 **Checkpoint**: Live, auto-updating, multi-currency dashboard with global-symbol add — independently shippable MVP.
 

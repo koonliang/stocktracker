@@ -72,9 +72,9 @@ public class TransactionImportService {
                       raw.get("type").trim().toLowerCase(Locale.ROOT),
                       new BigDecimal(raw.get("quantity")),
                       new BigDecimal(raw.get("price")),
-                      raw.get("fees").isBlank()
-                          ? BigDecimal.ZERO
-                          : new BigDecimal(raw.get("fees"))));
+                      raw.get("fees").isBlank() ? BigDecimal.ZERO : new BigDecimal(raw.get("fees")),
+                      null,
+                      null));
           var issue = transactionValidationService.validate(request, balances);
           if (issue != null) {
             invalidRows.add(
