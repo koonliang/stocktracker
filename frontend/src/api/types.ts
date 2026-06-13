@@ -27,16 +27,25 @@ export type KeyStats = {
   peRatio: number | null;
 };
 
-export type TransactionType = 'buy' | 'sell';
+export type TransactionType =
+  | 'buy'
+  | 'sell'
+  | 'dividend'
+  | 'split'
+  | 'deposit'
+  | 'withdrawal'
+  | 'fee';
 
 export type Transaction = {
   id: string;
   date: string;
-  ticker: string;
+  ticker: string | null;
   type: TransactionType;
   quantity: number;
   price: number;
   fees: number;
+  amount?: number | null;
+  currency?: string | null;
   source?: 'MANUAL' | 'CSV_IMPORT';
 };
 
@@ -146,11 +155,13 @@ export type InstrumentAnalysisResponse = {
 
 export type TransactionImportNormalizedRow = {
   date: string;
-  ticker: string;
+  ticker: string | null;
   type: TransactionType;
   quantity: number;
   price: number;
   fees: number;
+  amount?: number | null;
+  currency?: string | null;
 };
 
 export type TransactionImportPreviewResponse = {
@@ -164,6 +175,7 @@ export type TransactionImportPreviewResponse = {
     raw: Record<string, string>;
   }>;
   headerErrors: string[];
+  detectedVersion: 'v1' | 'v2' | 'unknown';
 };
 
 export type WatchlistMutationRequest = {

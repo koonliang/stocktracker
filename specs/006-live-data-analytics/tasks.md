@@ -119,20 +119,20 @@ imports unchanged; a v2 CSV round-trips with version labelled.
 
 ### Tests for User Story 2
 
-- [ ] T040 [P] [US2] Unit test `backend/.../service/CostBasisEngineTest.java` — 2-for-1 and reverse(1-for-10)/non-integer(3-for-2) splits preserve total basis, apply retroactively, fractional shares (SC-005, edge cases)
-- [ ] T041 [P] [US2] Integration test `backend/.../service/CashBalanceTest.java` — deposit/withdrawal/fee/dividend/buy/sell update per-currency cash balance correctly
-- [ ] T042 [P] [US2] Integration test `backend/.../service/CsvImportV2Test.java` — v1 file imports 100% unchanged; v2 new types round-trip; mixed v1/v2 in one session no cross-contamination (SC-004, FR-011/012, edge case)
-- [ ] T043 [P] [US2] e2e `e2e/src/test/java/.../TransactionTypesTest.java` — record split via UI, verify adjusted holding; import v1 CSV succeeds
+- [X] T040 [P] [US2] Unit test `backend/.../service/CostBasisEngineTest.java` — 2-for-1 and reverse(1-for-10)/non-integer(3-for-2) splits preserve total basis, apply retroactively, fractional shares (SC-005, edge cases)
+- [X] T041 [P] [US2] Integration test `backend/.../service/CashBalanceTest.java` — deposit/withdrawal/fee/dividend/buy/sell update per-currency cash balance correctly
+- [X] T042 [P] [US2] Integration test `backend/.../service/CsvImportV2Test.java` — v1 file imports 100% unchanged; v2 new types round-trip; mixed v1/v2 in one session no cross-contamination (SC-004, FR-011/012, edge case)
+- [X] T043 [P] [US2] e2e `e2e/src/test/java/.../TransactionTypesTest.java` — record split via UI, verify adjusted holding; import v1 CSV succeeds
 
 ### Implementation for User Story 2
 
-- [ ] T044 [US2] `service/CostBasisEngine.java` — replay transactions in trade-date order into per-symbol lots; `split` rescales open-lot qty + per-share basis (total preserved, retroactive); dividend = income (no basis change); reject sell exceeding available lots (research §5, FR-008/009, edge case)
-- [ ] T045 [US2] `service/CashBalanceService.java` — per-currency running balance from cash-affecting transactions; expose base-converted total via `CurrencyService` (FR-010)
-- [ ] T046 [US2] Extend transaction create/update flow + DTOs in `api/TransactionsResource.java`/`service` for the new types (symbol/amount/ratio/currency per type) using `TransactionValidationService` (FR-007)
-- [ ] T047 [US2] Extend `service/TransactionImportService.java` — header/row-based v1-vs-v2 detection, parse new types, report detected version in preview (csv-schema-v2.md)
-- [ ] T048 [US2] Extend `service/TransactionExportService.java` — always write v2 header `date,ticker,type,quantity,price,fees,amount,currency`
-- [ ] T049 [US2] Frontend transaction form: `type` selector with new options, fields show/hide by type (incl. currency for cash); update `src/features/transactions/` + `portfolioStore` (frontend-routes.md)
-- [ ] T050 [US2] Frontend import preview labels detected CSV version + renders amount/currency columns; extend `src/lib/csv.ts` (papaparse) for v2 superset
+- [X] T044 [US2] `service/CostBasisEngine.java` — replay transactions in trade-date order into per-symbol lots; `split` rescales open-lot qty + per-share basis (total preserved, retroactive); dividend = income (no basis change); reject sell exceeding available lots (research §5, FR-008/009, edge case)
+- [X] T045 [US2] `service/CashBalanceService.java` — per-currency running balance from cash-affecting transactions; expose base-converted total via `CurrencyService` (FR-010)
+- [X] T046 [US2] Extend transaction create/update flow + DTOs in `api/TransactionsResource.java`/`service` for the new types (symbol/amount/ratio/currency per type) using `TransactionValidationService` (FR-007)
+- [X] T047 [US2] Extend `service/TransactionImportService.java` — header/row-based v1-vs-v2 detection, parse new types, report detected version in preview (csv-schema-v2.md)
+- [X] T048 [US2] Extend `service/TransactionExportService.java` — always write v2 header `date,ticker,type,quantity,price,fees,amount,currency`
+- [X] T049 [US2] Frontend transaction form: `type` selector with new options, fields show/hide by type (incl. currency for cash); update `src/features/transactions/` + `portfolioStore` (frontend-routes.md)
+- [X] T050 [US2] Frontend import preview labels detected CSV version + renders amount/currency columns; extend `src/lib/csv.ts` (papaparse) for v2 superset
 
 **Checkpoint**: Full transaction model + split-correct cost basis + CSV v1/v2; US1 still works.
 

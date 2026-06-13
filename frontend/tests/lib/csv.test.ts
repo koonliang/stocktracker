@@ -67,13 +67,13 @@ describe('parseTransactionsCSV', () => {
     expect(result.invalid[0]!.reason).toMatch(/future/);
   });
 
-  it('flags non-buy/sell type', () => {
+  it('flags unsupported transaction types', () => {
     const csv = [
       'date,ticker,type,quantity,price,fees',
       `2024-01-15,${KNOWN},swap,10,185.25,0`,
     ].join('\n');
     const result = parseTransactionsCSV(csv);
-    expect(result.invalid[0]!.reason).toMatch(/buy or sell/);
+    expect(result.invalid[0]!.reason).toMatch(/not supported/);
   });
 
   it('flags non-positive quantity', () => {
@@ -130,9 +130,9 @@ describe('serializeTransactionsCSV', () => {
     };
     const out = serializeTransactionsCSV([tx]);
     const lines = out.split('\n');
-    expect(lines[0]).toBe('date,ticker,type,quantity,price,fees');
+    expect(lines[0]).toBe('date,ticker,type,quantity,price,fees,amount,currency');
     expect(out).not.toContain('\r');
-    expect(lines[1]).toBe('2024-01-15,AAPL,buy,10,185.25,0');
+    expect(lines[1]).toBe('2024-01-15,AAPL,buy,10,185.25,0,,');
   });
 });
 

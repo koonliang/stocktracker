@@ -44,6 +44,13 @@ public class TransactionsResource {
   }
 
   @POST
+  @Consumes(MediaType.APPLICATION_JSON)
+  public Response createTransaction(@Valid TransactionImportCommitRequest request) {
+    portfolioService.createTransactions(request.rows(), "MANUAL");
+    return Response.status(Response.Status.CREATED).entity(portfolioService.getDashboard()).build();
+  }
+
+  @POST
   @Path("/import/preview")
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public TransactionImportPreviewResponse previewImport(@RestForm("file") FileUpload file)

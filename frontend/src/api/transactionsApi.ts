@@ -14,6 +14,13 @@ export function deleteTransaction(id: string) {
   return apiRequest<DashboardResponse>(`/transactions/${id}`, { method: 'DELETE' });
 }
 
+export function createTransaction(row: TransactionImportNormalizedRow) {
+  return apiRequest<DashboardResponse>('/transactions', {
+    method: 'POST',
+    body: JSON.stringify({ rows: [row] }),
+  });
+}
+
 export async function previewTransactionImport(file: File) {
   const form = new FormData();
   form.append('file', file);

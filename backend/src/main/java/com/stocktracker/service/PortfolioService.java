@@ -33,6 +33,7 @@ public class PortfolioService {
   @Inject CurrentUser currentUser;
   @Inject QuoteCacheService quoteCacheService;
   @Inject CurrencyService currencyService;
+  @Inject CostBasisEngine costBasisEngine;
 
   @org.eclipse.microprofile.config.inject.ConfigProperty(
       name = "stocktracker.base-currency.default",
@@ -121,56 +122,25 @@ public class PortfolioService {
     var instruments = instrumentRepository.findBySymbols(symbols);
     var barsBySymbol = groupBars(instrumentRepository.listPriceBars(symbols));
     var quotes = quoteCacheService.cachedBySymbol(symbols);
-    var positions = new LinkedHashMap<String, PositionAccumulator>();
-
-    for (var transaction : transactions) {
-      if (transaction.instrumentSymbol == null) {
-        continue;
-      }
-      var accumulator =
-          positions.computeIfAbsent(
-              transaction.instrumentSymbol, ignored -> new PositionAccumulator());
-      if ("buy".equals(transaction.transactionType)) {
-        var newShares = accumulator.shares.add(transaction.quantity);
-        var addedCost = transaction.quantity.multiply(transaction.price).add(transaction.fees);
-        accumulator.averageCost =
-            newShares.compareTo(BigDecimal.ZERO) > 0
-                ? accumulator.totalCost.add(addedCost).divide(newShares, 8, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-        accumulator.totalCost = accumulator.totalCost.add(addedCost);
-        accumulator.shares = newShares;
-      } else if ("sell".equals(transaction.transactionType)) {
-        var soldShares = transaction.quantity.min(accumulator.shares);
-        accumulator.totalCost =
-            accumulator.totalCost.subtract(
-                soldShares.multiply(accumulator.averageCost).setScale(8, RoundingMode.HALF_UP));
-        accumulator.shares = accumulator.shares.subtract(soldShares);
-        if (accumulator.shares.compareTo(BigDecimal.ZERO) <= 0) {
-          accumulator.shares = BigDecimal.ZERO;
-          accumulator.averageCost = BigDecimal.ZERO;
-          accumulator.totalCost = BigDecimal.ZERO;
-        }
-      }
-      // dividend / split / cash types are handled by US2's cost-basis engine, not the US1 dashboard
-    }
+    var costBasis = costBasisEngine.replay(transactions);
 
     List<DashboardResponse.Holding> holdings = new ArrayList<>();
     var totalMarketValue = BigDecimal.ZERO;
     var totalCostBasis = BigDecimal.ZERO;
     var totalDayChange = BigDecimal.ZERO;
 
-    for (var entry : positions.entrySet()) {
-      if (entry.getValue().shares.compareTo(BigDecimal.ZERO) <= 0) {
+    for (var symbol : symbols) {
+      var shares = costBasis.shares(symbol);
+      if (shares.compareTo(BigDecimal.ZERO) <= 0) {
         continue;
       }
-      var symbol = entry.getKey();
       var instrument = instruments.get(symbol);
       var nativeCurrency = instrument == null ? baseCurrency : instrument.currency;
       var bars = barsBySymbol.getOrDefault(symbol, List.of());
       var price = currentPrice(quotes.get(symbol), bars);
 
-      var shares = entry.getValue().shares;
-      var nativeCostBasis = shares.multiply(entry.getValue().averageCost);
+      var averageCost = costBasis.averageCost(symbol);
+      var nativeCostBasis = costBasis.costBasis(symbol);
       var nativeMarketValue = shares.multiply(price.price());
       var nativeDayChange = shares.multiply(price.price().subtract(price.previousClose()));
 
@@ -195,7 +165,7 @@ public class PortfolioService {
               instrument == null ? symbol : instrument.name,
               scale6(shares),
               nativeCurrency,
-              scale4(entry.getValue().averageCost),
+              scale4(averageCost),
               scale4(price.price()),
               scale4(nativeMarketValue),
               scale4(baseCostBasis.value()),
@@ -314,6 +284,8 @@ public class PortfolioService {
         scale6(transaction.quantity),
         scale4(transaction.price),
         scale4(transaction.fees),
+        transaction.amount == null ? null : scale4(transaction.amount),
+        transaction.currency,
         transaction.source);
   }
 
@@ -352,12 +324,6 @@ public class PortfolioService {
 
   private static double scale6(BigDecimal value) {
     return value.setScale(6, RoundingMode.HALF_UP).doubleValue();
-  }
-
-  private static final class PositionAccumulator {
-    private BigDecimal shares = BigDecimal.ZERO;
-    private BigDecimal averageCost = BigDecimal.ZERO;
-    private BigDecimal totalCost = BigDecimal.ZERO;
   }
 
   public record PositionSnapshot(

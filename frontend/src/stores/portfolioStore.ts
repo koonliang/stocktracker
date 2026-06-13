@@ -3,6 +3,7 @@ import { ApiError } from '@/api/client';
 import { getDashboard } from '@/api/dashboardApi';
 import {
   commitTransactionImport,
+  createTransaction,
   deleteTransaction as deleteTransactionRequest,
   getTransactions,
   previewTransactionImport,
@@ -13,6 +14,7 @@ import type {
   PortfolioSummary,
   Transaction,
   TransactionImportPreviewResponse,
+  TransactionImportNormalizedRow,
 } from '@/lib/types';
 import { computeHoldings, computePortfolio, buildPriceLookup } from '@/lib/portfolio';
 import { loadPrices, loadSeedPortfolio, loadTickers } from '@/lib/seed';
@@ -40,6 +42,7 @@ type Actions = {
   previewImport: (file: File) => Promise<void>;
   clearPreview: () => void;
   commitPreview: () => Promise<void>;
+  createManualTransaction: (row: TransactionImportNormalizedRow) => Promise<void>;
   clearError: () => void;
   hydrateForTests: (
     data: Partial<Pick<State, 'transactions' | 'holdings' | 'summary' | 'preview'>>,
@@ -172,6 +175,22 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
         transactionsStatus: 'success',
         preview: null,
         previewStatus: 'idle',
+        commitStatus: 'success',
+      });
+    } catch (error) {
+      set({ commitStatus: 'error', error: messageFromError(error) });
+    }
+  },
+
+  async createManualTransaction(row) {
+    set({ commitStatus: 'loading', error: null });
+    try {
+      const dashboard = await createTransaction(row);
+      const transactions = await getTransactions();
+      set({
+        ...applyDashboard(dashboard),
+        transactions,
+        transactionsStatus: 'success',
         commitStatus: 'success',
       });
     } catch (error) {

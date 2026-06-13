@@ -44,8 +44,7 @@ function buildQuote(symbol: string): Quote {
     price,
     currency: price == null ? null : currency,
     changeAmount,
-    changePct:
-      changeAmount != null && previousClose ? (changeAmount / previousClose) * 100 : null,
+    changePct: changeAmount != null && previousClose ? (changeAmount / previousClose) * 100 : null,
     previousClose,
     asOf: price == null ? null : new Date().toISOString(),
     fetchedAt: price == null ? null : new Date().toISOString(),
@@ -169,6 +168,17 @@ export async function handleMockApi(
     return json([...state.transactions].sort((a, b) => b.date.localeCompare(a.date)));
   }
 
+  if (path === '/api/transactions' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      rows: Array<Omit<Transaction, 'id'>>;
+    };
+    state.transactions = [
+      ...state.transactions,
+      ...body.rows.map((row) => ({ ...row, id: newId('tx') })),
+    ];
+    return json(buildDashboard(state.transactions), { status: 201 });
+  }
+
   if (path.startsWith('/api/transactions/') && method === 'DELETE') {
     const id = path.split('/').pop() ?? '';
     state.transactions = state.transactions.filter((transaction) => transaction.id !== id);
@@ -190,10 +200,17 @@ export async function handleMockApi(
           quantity: transaction.quantity,
           price: transaction.price,
           fees: transaction.fees,
+          amount: transaction.amount,
+          currency: transaction.currency,
         },
       })),
       invalidRows: parsed.invalid,
       headerErrors: parsed.headerErrors,
+      detectedVersion: parsed.valid.some((transaction) =>
+        ['dividend', 'split', 'deposit', 'withdrawal', 'fee'].includes(transaction.type),
+      )
+        ? 'v2'
+        : 'v1',
     };
     return json(preview);
   }
@@ -399,8 +416,7 @@ export async function handleMockApi(
     const fromSeed: SymbolSearchResult[] = loadTickers()
       .filter(
         (ticker) =>
-          ticker.symbol.toLowerCase().includes(query) ||
-          ticker.name.toLowerCase().includes(query),
+          ticker.symbol.toLowerCase().includes(query) || ticker.name.toLowerCase().includes(query),
       )
       .map((ticker) => ({
         symbol: ticker.symbol,
