@@ -1,5 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, ArrowLeftRight } from 'lucide-react';
+import {
+  Bell,
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  ListChecks,
+  ArrowLeftRight,
+} from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 type NavItem = { to: string; label: string; icon: React.ReactNode };
@@ -8,6 +14,8 @@ const items: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: <LayoutDashboard size={16} aria-hidden /> },
   { to: '/watchlists', label: 'Watchlists', icon: <ListChecks size={16} aria-hidden /> },
   { to: '/transactions', label: 'Transactions', icon: <ArrowLeftRight size={16} aria-hidden /> },
+  { to: '/performance', label: 'Performance', icon: <ChartNoAxesCombined size={16} aria-hidden /> },
+  { to: '/alerts', label: 'Alerts', icon: <Bell size={16} aria-hidden /> },
 ];
 
 export function Sidebar({ className }: { className?: string }) {

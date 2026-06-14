@@ -232,11 +232,17 @@ export function HoldingsTable({
         {sorted.map((h) => (
           <TR
             key={h.ticker}
-            onClick={() => navigate(`/analysis/${h.ticker}`)}
+            onClick={() =>
+              navigate(`/analysis/${h.ticker}`, {
+                state: { backTo: '/', backLabel: 'Back to dashboard' },
+              })
+            }
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                navigate(`/analysis/${h.ticker}`);
+                navigate(`/analysis/${h.ticker}`, {
+                  state: { backTo: '/', backLabel: 'Back to dashboard' },
+                });
               }
             }}
             tabIndex={0}

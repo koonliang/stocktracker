@@ -37,6 +37,16 @@ return, and per-holding contributions for a window.
       "realizedPnLBase": 370.40
     }
   ],
+  "incomeEvents": [
+    {
+      "symbol": "GOOGL",
+      "currency": "USD",
+      "date": "2026-06-03",
+      "type": "dividend",
+      "amountNative": 200.00,
+      "amountBase": 200.00
+    }
+  ],
   "returnSeries": [
     { "date": "2025-06-12", "cumulativeReturnPct": 0.0 },
     { "date": "2026-06-12", "cumulativeReturnPct": 12.34 }
@@ -52,6 +62,9 @@ return, and per-holding contributions for a window.
 - Realized P&L per closed lot via `LotMatchingService` under `method`, splits
   applied retroactively (FR-014/015, SC-005/006). Lots compute in native currency
   (`*Native`) and are converted to base (`realizedPnLBase`).
+- Dividend transactions are reported as `incomeEvents` and included in
+  `realizedPnL` net of fees. They are not `closedLots`, because no lot is
+  consumed.
 - `returnSeries` + `timeWeightedReturnPct` derive from the daily portfolio
   valuation (split-adjusted holdings × daily closes, each day converted to base
   via that day's FX rate) over `window`, chaining daily sub-period returns

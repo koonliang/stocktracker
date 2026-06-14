@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar';
 import { BottomTabBar } from './BottomTabBar';
 import { TopBar } from './TopBar';
+import { NotificationToaster } from './NotificationToaster';
 import { useUiStore } from '@/stores/uiStore';
 
 type Props = { children: ReactNode };
@@ -25,6 +26,7 @@ export function AppShell({ children }: Props) {
           <div className="mx-auto w-full max-w-[1280px]">{children}</div>
         </main>
       </div>
+      <NotificationToaster />
       <BottomTabBar className="md:hidden" />
     </div>
   );

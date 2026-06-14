@@ -24,6 +24,7 @@ import org.jboss.logging.Logger;
 @Identifier("yahoo")
 public class YahooMarketDataProvider implements MarketDataProvider {
   private static final Logger LOG = Logger.getLogger(YahooMarketDataProvider.class);
+  private static final List<String> SUPPORTED_SEARCH_QUOTE_TYPES = List.of("EQUITY", "ETF");
 
   @Inject @RestClient YahooApi api;
 
@@ -109,7 +110,8 @@ public class YahooMarketDataProvider implements MarketDataProvider {
       var results = new ArrayList<ProviderSymbol>();
       for (JsonNode node : matches) {
         var symbol = node.path("symbol").asText(null);
-        if (symbol == null || !"EQUITY".equals(node.path("quoteType").asText(""))) {
+        if (symbol == null
+            || !SUPPORTED_SEARCH_QUOTE_TYPES.contains(node.path("quoteType").asText(""))) {
           continue;
         }
         results.add(

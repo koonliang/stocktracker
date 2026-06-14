@@ -15,6 +15,10 @@ public class CostBasisEngine {
   private static final int SCALE = 10;
 
   public Result replay(List<PortfolioTransaction> transactions) {
+    return replay(transactions, MatchingMethod.FIFO);
+  }
+
+  public Result replay(List<PortfolioTransaction> transactions, MatchingMethod method) {
     var lots = new ArrayList<Lot>();
     var closed = new ArrayList<ClosedLot>();
     var ordered =
@@ -28,7 +32,7 @@ public class CostBasisEngine {
     for (var transaction : ordered) {
       switch (transaction.transactionType) {
         case "buy" -> lots.add(openLot(transaction));
-        case "sell" -> closeLots(transaction, lots, closed);
+        case "sell" -> closeLots(transaction, lots, closed, method);
         case "split" -> applySplit(transaction, lots);
         default -> {
           // dividend and cash movements do not affect cost basis.
@@ -51,7 +55,10 @@ public class CostBasisEngine {
   }
 
   private void closeLots(
-      PortfolioTransaction sell, List<Lot> openLots, List<ClosedLot> closedLots) {
+      PortfolioTransaction sell,
+      List<Lot> openLots,
+      List<ClosedLot> closedLots,
+      MatchingMethod method) {
     var remaining = sell.quantity;
     var proceeds = sell.quantity.multiply(sell.price);
     var feePerShare =
@@ -59,14 +66,16 @@ public class CostBasisEngine {
             ? BigDecimal.ZERO
             : sell.fees.divide(sell.quantity, SCALE, RoundingMode.HALF_UP);
 
-    for (int index = 0; index < openLots.size() && remaining.compareTo(BigDecimal.ZERO) > 0; ) {
+    for (int index = firstIndex(openLots, method);
+        index >= 0 && index < openLots.size() && remaining.compareTo(BigDecimal.ZERO) > 0; ) {
       var lot = openLots.get(index);
       if (!lot.symbol().equalsIgnoreCase(sell.instrumentSymbol)) {
-        index++;
+        index = nextIndex(index, method);
         continue;
       }
       var closingQuantity = remaining.min(lot.quantity());
-      var costBasis = lot.unitCost().multiply(closingQuantity).setScale(SCALE, RoundingMode.HALF_UP);
+      var costBasis =
+          lot.unitCost().multiply(closingQuantity).setScale(SCALE, RoundingMode.HALF_UP);
       var lotProceeds =
           sell.price
               .subtract(feePerShare)
@@ -86,6 +95,9 @@ public class CostBasisEngine {
       remaining = remaining.subtract(closingQuantity);
       if (updatedQuantity.compareTo(BigDecimal.ZERO) == 0) {
         openLots.remove(index);
+        if (method == MatchingMethod.LIFO) {
+          index--;
+        }
       } else {
         openLots.set(
             index,
@@ -95,7 +107,7 @@ public class CostBasisEngine {
                 updatedQuantity,
                 lot.unitCost().multiply(updatedQuantity).setScale(SCALE, RoundingMode.HALF_UP),
                 lot.unitCost()));
-        index++;
+        index = nextIndex(index, method);
       }
     }
 
@@ -104,6 +116,36 @@ public class CostBasisEngine {
           ApiStatuses.UNPROCESSABLE_ENTITY,
           "validation_error",
           "sell quantity exceeds held shares");
+    }
+  }
+
+  private int firstIndex(List<Lot> lots, MatchingMethod method) {
+    return method == MatchingMethod.LIFO ? lots.size() - 1 : 0;
+  }
+
+  private int nextIndex(int current, MatchingMethod method) {
+    return method == MatchingMethod.LIFO ? current - 1 : current + 1;
+  }
+
+  public enum MatchingMethod {
+    FIFO,
+    LIFO,
+    SPECIFIC;
+
+    public static MatchingMethod parse(String value) {
+      if (value == null || value.isBlank()) {
+        return FIFO;
+      }
+      return switch (value.toLowerCase(java.util.Locale.ROOT)) {
+        case "fifo" -> FIFO;
+        case "lifo" -> LIFO;
+        case "specific" -> SPECIFIC;
+        default ->
+            throw new ApiException(
+                ApiStatuses.UNPROCESSABLE_ENTITY,
+                "validation_error",
+                "method must be fifo, lifo, or specific");
+      };
     }
   }
 
@@ -116,7 +158,8 @@ public class CostBasisEngine {
       }
       var newQuantity = lot.quantity().multiply(ratio).setScale(SCALE, RoundingMode.HALF_UP);
       var newUnitCost = lot.totalCost().divide(newQuantity, SCALE, RoundingMode.HALF_UP);
-      openLots.set(i, new Lot(lot.symbol(), lot.openedOn(), newQuantity, lot.totalCost(), newUnitCost));
+      openLots.set(
+          i, new Lot(lot.symbol(), lot.openedOn(), newQuantity, lot.totalCost(), newUnitCost));
     }
   }
 

@@ -6,7 +6,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { useQuotesStore } from '@/stores/quotesStore';
-import { findTicker } from '@/lib/seed';
 import { WatchlistHeader } from '@/features/watchlist/WatchlistHeader';
 import { SymbolSearch } from '@/features/search/SymbolSearch';
 import { WatchlistRow } from '@/features/watchlist/WatchlistRow';
@@ -103,7 +102,9 @@ export function WatchlistDetailRoute() {
           <Card padded={false}>
             <ul className="flex flex-col" aria-label={`${watchlist.name} tickers`}>
               {watchlist.tickers.map((symbol, idx) => {
-                const ticker = findTicker(symbol);
+                const instrument = watchlist.instruments?.find(
+                  (entry) => entry.symbol.toUpperCase() === symbol.toUpperCase(),
+                );
                 const quote = quotes[symbol.toUpperCase()] ?? null;
                 const current = quote?.price ?? null;
                 const prev = quote?.previousClose ?? null;
@@ -120,10 +121,12 @@ export function WatchlistDetailRoute() {
                   <WatchlistRow
                     key={symbol}
                     symbol={symbol}
-                    name={ticker?.name ?? symbol}
+                    name={instrument?.name ?? symbol}
                     currentPrice={current}
                     dayChange={dayChange}
                     dayChangePct={dayChangePct}
+                    backTo={`/watchlists/${watchlist.id}`}
+                    backLabel={`Back to ${watchlist.name}`}
                     onRemove={() => {
                       void removeTicker(watchlist.id, symbol);
                     }}

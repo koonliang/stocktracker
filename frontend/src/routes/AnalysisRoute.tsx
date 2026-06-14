@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -13,8 +13,10 @@ import { PositionSummary } from '@/features/analysis/PositionSummary';
 
 export function AnalysisRoute() {
   const { ticker } = useParams<{ ticker: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const symbol = (ticker ?? '').toUpperCase();
+  const backLink = getBackLink(location.state);
   const [range, setRange] = useState<TimeRange>('1Y');
   const [state, setState] = useState<{
     status: 'loading' | 'success' | 'error';
@@ -54,17 +56,17 @@ export function AnalysisRoute() {
     return (
       <>
         <Link
-          to="/"
+          to={backLink.to}
           className="mb-4 inline-flex items-center gap-1 text-small text-text-muted hover:text-text"
         >
           <ArrowLeft size={14} aria-hidden />
-          Back to dashboard
+          {backLink.label}
         </Link>
         <EmptyState
           eyebrow="Analysis unavailable"
           title={`We could not load "${symbol}".`}
           description={state.error ?? 'Try again from the dashboard or watchlists.'}
-          actions={<Button onClick={() => navigate('/')}>Back to dashboard</Button>}
+          actions={<Button onClick={() => navigate(backLink.to)}>{backLink.label}</Button>}
         />
       </>
     );
@@ -89,11 +91,11 @@ export function AnalysisRoute() {
   return (
     <>
       <Link
-        to="/"
+        to={backLink.to}
         className="mb-4 inline-flex items-center gap-1 text-small text-text-muted hover:text-text"
       >
         <ArrowLeft size={14} aria-hidden />
-        Back to dashboard
+        {backLink.label}
       </Link>
 
       <AnalysisHeader
@@ -121,4 +123,19 @@ export function AnalysisRoute() {
       </div>
     </>
   );
+}
+
+function getBackLink(state: unknown): { to: string; label: string } {
+  if (
+    state &&
+    typeof state === 'object' &&
+    'backTo' in state &&
+    'backLabel' in state &&
+    typeof state.backTo === 'string' &&
+    typeof state.backLabel === 'string'
+  ) {
+    return { to: state.backTo, label: state.backLabel };
+  }
+
+  return { to: '/', label: 'Back to dashboard' };
 }

@@ -4,6 +4,7 @@ import type { PriceBar, TimeRange } from '@/lib/types';
 import { TIME_RANGES } from '@/lib/types';
 import { formatCurrency, formatDateISO } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import { rgbVar } from '@/lib/colors';
 
 const RANGE_BARS: Record<TimeRange, number | null> = {
   '1D': 1,
@@ -47,7 +48,7 @@ export function PriceChart({ bars, range, onRangeChange }: Props) {
   const data = useMemo(() => filterBarsByRange(bars, range), [bars, range]);
 
   const positive = data.length > 1 && data[data.length - 1]!.close >= data[0]!.close;
-  const stroke = positive ? 'var(--color-positive)' : 'var(--color-negative)';
+  const stroke = positive ? rgbVar('--color-positive') : rgbVar('--color-negative');
 
   const yDomain = useMemo<[number, number]>(() => {
     if (data.length === 0) return [0, 1];

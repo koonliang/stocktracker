@@ -152,18 +152,18 @@ selected window, and contributions that sum to the total.
 
 ### Tests for User Story 3
 
-- [ ] T051 [P] [US3] Unit test `backend/.../service/LotMatchingTest.java` — realized P&L per closed lot matches independent FIFO calc; LIFO/specific differ correctly; with a split in history (SC-006)
-- [ ] T052 [P] [US3] Unit test `backend/.../service/PerformanceServiceTest.java` — TWR neutralizes cash flows; contributions reconcile to total within tolerance; multi-currency converted per-day (SC-007, FR-016/017)
-- [ ] T053 [P] [US3] Integration test `backend/.../api/PerformanceResourceTest.java` — `/api/performance` windows/methods; no-closed-positions → realizedPnL 0, empty lots, flat series, not error (edge case); backfill triggered on missing history (FR-025)
-- [ ] T054 [P] [US3] e2e `e2e/src/test/java/.../PerformanceTest.java` — window + FIFO/LIFO toggle change figures; chart + contribution render
+- [X] T051 [P] [US3] Unit test `backend/.../service/LotMatchingTest.java` — realized P&L per closed lot matches independent FIFO calc; LIFO/specific differ correctly; with a split in history (SC-006)
+- [X] T052 [P] [US3] Unit test `backend/.../service/PerformanceServiceTest.java` — TWR neutralizes cash flows; contributions reconcile to total within tolerance; multi-currency converted per-day (SC-007, FR-016/017)
+- [X] T053 [P] [US3] Integration test `backend/.../api/PerformanceResourceTest.java` — `/api/performance` windows/methods; no-closed-positions → realizedPnL 0, empty lots, flat series, not error (edge case); backfill triggered on missing history (FR-025)
+- [X] T054 [P] [US3] e2e `e2e/src/test/java/.../PerformanceTest.java` — window + FIFO/LIFO toggle change figures; chart + contribution render
 
 ### Implementation for User Story 3
 
-- [ ] T055 [US3] `service/LotMatchingService.java` — realized P&L per closed lot under fifo/lifo/specific via `CostBasisEngine`, native + base (research §7)
-- [ ] T056 [US3] `service/PerformanceService.java` — daily portfolio-value series (split-adjusted holdings × daily closes, each day base-converted), TWR by chaining sub-period returns, per-holding contribution; trigger `HistoricalBackfillService` on gaps (research §8, performance-api.md)
-- [ ] T057 [US3] `api/PerformanceResource.java` — `GET /api/performance?window=&method=` returning realized/unrealized/TWR/series/contributions in base currency (performance-api.md)
-- [ ] T058 [P] [US3] Frontend `src/api/performanceApi.ts` + `src/routes/PerformanceRoute.tsx` route wired in `App.tsx`/nav
-- [ ] T059 [US3] Frontend Performance UI: `ReturnChart` (recharts), realized-lot table, unrealized summary, `ContributionTable`, window selector + FIFO/LIFO toggle; `data-testid`s `performance-page`,`return-chart`,`realized-table`,`contribution-table`,`lot-method-toggle`,`perf-window-select`
+- [X] T055 [US3] `service/LotMatchingService.java` — realized P&L per closed lot under fifo/lifo/specific via `CostBasisEngine`, native + base (research §7)
+- [X] T056 [US3] `service/PerformanceService.java` — daily portfolio-value series (split-adjusted holdings × daily closes, each day base-converted), TWR by chaining sub-period returns, per-holding contribution; trigger `HistoricalBackfillService` on gaps (research §8, performance-api.md)
+- [X] T057 [US3] `api/PerformanceResource.java` — `GET /api/performance?window=&method=` returning realized/unrealized/TWR/series/contributions in base currency (performance-api.md)
+- [X] T058 [P] [US3] Frontend `src/api/performanceApi.ts` + `src/routes/PerformanceRoute.tsx` route wired in `App.tsx`/nav
+- [X] T059 [US3] Frontend Performance UI: `ReturnChart` (recharts), realized-lot table, unrealized summary, `ContributionTable`, window selector + FIFO/LIFO toggle; `data-testid`s `performance-page`,`return-chart`,`realized-table`,`contribution-table`,`lot-method-toggle`,`perf-window-select`
 
 **Checkpoint**: Performance analytics complete; US1+US2 still work.
 
@@ -181,18 +181,18 @@ in-app toast; further refreshes above threshold don't re-fire; edit/delete works
 
 ### Tests for User Story 4
 
-- [ ] T060 [P] [US4] Integration test `backend/.../service/AlertEvaluationTest.java` — armed→fire→disarm→re-arm; exactly one notification per crossing; two thresholds on one symbol each fire once; `pct_change` vs previous close (SC-008, FR-021, edge case)
-- [ ] T061 [P] [US4] Integration test `backend/.../api/AlertsResourceTest.java` — CRUD scoped per user; edit re-arms; delete stops firing; cross-user 404 (FR-022/024)
-- [ ] T062 [P] [US4] e2e `e2e/src/test/java/.../AlertsTest.java` — create alert, drive crossing, exactly one toast appears
+- [X] T060 [P] [US4] Integration test `backend/.../service/AlertEvaluationTest.java` — armed→fire→disarm→re-arm; exactly one notification per crossing; two thresholds on one symbol each fire once; `pct_change` vs previous close (SC-008, FR-021, edge case)
+- [X] T061 [P] [US4] Integration test `backend/.../api/AlertsResourceTest.java` — CRUD scoped per user; edit re-arms; delete stops firing; cross-user 404 (FR-022/024)
+- [X] T062 [P] [US4] e2e `e2e/src/test/java/.../AlertsTest.java` — create alert, drive crossing, exactly one toast appears
 
 ### Implementation for User Story 4
 
-- [ ] T063 [P] [US4] `domain/Alert.java` + `domain/Notification.java` entities + `persistence/AlertRepository.java` + `persistence/NotificationRepository.java` (user-scoped)
-- [ ] T064 [US4] `service/AlertEvaluationService.java` — `evaluate(quote)` hooked into `QuoteRefreshJob` after upsert; armed-flag fire-once + re-arm; write notification (alerts-api.md, research §9)
-- [ ] T065 [US4] `api/AlertsResource.java` — `GET/POST/PATCH/DELETE /api/alerts`, edit re-arms (alerts-api.md)
-- [ ] T066 [US4] `api/NotificationsResource.java` — `GET /api/notifications?unread=`, `POST /api/notifications/{id}/read`
-- [ ] T067 [P] [US4] Frontend `src/api/alertsApi.ts`, `notificationsApi.ts` + `src/routes/AlertsRoute.tsx` (AlertList + AlertForm with react-hook-form/zod), wired in `App.tsx`/nav; `data-testid`s per frontend-routes.md
-- [ ] T068 [US4] Frontend `NotificationToaster` mounted once in `App.tsx` — polls unread notifications, shows toasts, marks read; `data-testid` `notification-toast`
+- [X] T063 [P] [US4] `domain/Alert.java` + `domain/Notification.java` entities + `persistence/AlertRepository.java` + `persistence/NotificationRepository.java` (user-scoped)
+- [X] T064 [US4] `service/AlertEvaluationService.java` — `evaluate(quote)` hooked into `QuoteRefreshJob` after upsert; armed-flag fire-once + re-arm; write notification (alerts-api.md, research §9)
+- [X] T065 [US4] `api/AlertsResource.java` — `GET/POST/PATCH/DELETE /api/alerts`, edit re-arms (alerts-api.md)
+- [X] T066 [US4] `api/NotificationsResource.java` — `GET /api/notifications?unread=`, `POST /api/notifications/{id}/read`
+- [X] T067 [P] [US4] Frontend `src/api/alertsApi.ts`, `notificationsApi.ts` + `src/routes/AlertsRoute.tsx` (AlertList + AlertForm with react-hook-form/zod), wired in `App.tsx`/nav; `data-testid`s per frontend-routes.md
+- [X] T068 [US4] Frontend `NotificationToaster` mounted once in `App.tsx` — polls unread notifications, shows toasts, marks read; `data-testid` `notification-toast`
 
 **Checkpoint**: All four user stories independently functional.
 
@@ -200,10 +200,10 @@ in-app toast; further refreshes above threshold don't re-fire; edit/delete works
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T069 [P] Update `quickstart.md` if any endpoint/config drifted during implementation
-- [ ] T070 [P] Add `data-testid`s audit + Page Objects in `e2e/src/test/java/.../pages/` for the new routes
+- [X] T069 [P] Update `quickstart.md` if any endpoint/config drifted during implementation
+- [X] T070 [P] Add `data-testid`s audit + Page Objects in `e2e/src/test/java/.../pages/` for the new routes
 - [ ] T071 Verify Constitution gates: backend `./mvnw -B verify`, frontend `npm run verify`, e2e `./mvnw -B test` all green (quickstart.md)
-- [ ] T072 [P] Run lint/format clean on all changed backend + frontend files (Principle II)
+- [X] T072 [P] Run lint/format clean on all changed backend + frontend files (Principle II)
 - [ ] T073 Run full `quickstart.md` acceptance-mapping smoke pass (SC-001..SC-013)
 
 ---

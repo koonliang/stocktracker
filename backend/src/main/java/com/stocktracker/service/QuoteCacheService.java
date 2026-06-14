@@ -33,6 +33,7 @@ public class QuoteCacheService {
   @Inject QuoteRepository quoteRepository;
   @Inject InstrumentRepository instrumentRepository;
   @Inject Clock clock;
+  @Inject AlertEvaluationService alertEvaluationService;
 
   @ConfigProperty(name = "stocktracker.marketdata.refresh-interval", defaultValue = "60s")
   Duration refreshInterval;
@@ -76,6 +77,7 @@ public class QuoteCacheService {
       row.source = providerId == null || providerId.isBlank() ? "stub" : providerId;
       row.stale = false;
       quoteRepository.persist(row); // fully populated before insert is scheduled
+      alertEvaluationService.evaluate(row);
     }
   }
 

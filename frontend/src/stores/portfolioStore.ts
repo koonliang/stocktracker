@@ -18,6 +18,7 @@ import type {
 } from '@/lib/types';
 import { computeHoldings, computePortfolio, buildPriceLookup } from '@/lib/portfolio';
 import { loadPrices, loadSeedPortfolio, loadTickers } from '@/lib/seed';
+import { useToastStore } from '@/stores/toastStore';
 
 type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -68,6 +69,14 @@ function messageFromError(error: unknown): string {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
   return 'Request failed';
+}
+
+function notifyError(error: unknown, title = 'Request failed') {
+  useToastStore.getState().pushToast({
+    tone: 'error',
+    title,
+    message: messageFromError(error),
+  });
 }
 
 function applyDashboard(response: DashboardResponse) {
@@ -142,6 +151,7 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
       });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
+      notifyError(error, 'Delete failed');
     }
   },
 
@@ -152,6 +162,7 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
       set({ preview, previewStatus: 'success' });
     } catch (error) {
       set({ previewStatus: 'error', error: messageFromError(error) });
+      notifyError(error, 'Import preview failed');
     }
   },
 
@@ -179,6 +190,7 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
       });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
+      notifyError(error, 'Import failed');
     }
   },
 
@@ -195,6 +207,7 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
       });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
+      notifyError(error, 'Transaction not saved');
     }
   },
 

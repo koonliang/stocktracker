@@ -17,6 +17,7 @@ export type {
   TransactionImportPreviewResponse,
   TransactionType,
   Watchlist,
+  WatchlistInstrument,
   WatchlistResponse,
 } from '@/api/types';
 

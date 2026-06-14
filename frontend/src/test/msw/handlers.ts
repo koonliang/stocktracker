@@ -10,6 +10,7 @@ import type {
   Transaction,
   TransactionImportPreviewResponse,
   Watchlist,
+  WatchlistInstrument,
 } from '@/lib/types';
 
 type MockState = {
@@ -29,7 +30,32 @@ const SUPPORTED_CURRENCIES = ['USD', 'SGD', 'EUR'];
 // A non-US example so the search/add + multi-currency paths are exercised offline.
 const GLOBAL_CATALOG: SymbolSearchResult[] = [
   { symbol: 'D05.SI', name: 'DBS Group Holdings Ltd', exchange: 'SGX', currency: 'SGD' },
+  { symbol: 'ES3.SI', name: 'SPDR Straits Times Index ETF', exchange: 'SGX', currency: 'SGD' },
 ];
+
+function findInstrument(symbol: string): WatchlistInstrument | null {
+  const upper = symbol.toUpperCase();
+  const global = GLOBAL_CATALOG.find((entry) => entry.symbol === upper);
+  if (global) {
+    return global;
+  }
+  const ticker = findTicker(upper);
+  return ticker
+    ? { symbol: ticker.symbol, name: ticker.name, exchange: ticker.exchange, currency: 'USD' }
+    : null;
+}
+
+function withInstruments(watchlist: Watchlist): Watchlist {
+  if (watchlist.instruments && watchlist.instruments.length > 0) {
+    return watchlist;
+  }
+  return {
+    ...watchlist,
+    instruments: watchlist.tickers
+      .map((symbol) => findInstrument(symbol))
+      .filter((instrument): instrument is WatchlistInstrument => instrument != null),
+  };
+}
 
 function buildQuote(symbol: string): Quote {
   const upper = symbol.toUpperCase();
@@ -233,7 +259,7 @@ export async function handleMockApi(
   }
 
   if (path === '/api/watchlists' && method === 'GET') {
-    return json({ watchlists: state.watchlists });
+    return json({ watchlists: state.watchlists.map(withInstruments) });
   }
 
   if (path === '/api/watchlists' && method === 'POST') {
@@ -253,7 +279,7 @@ export async function handleMockApi(
       updatedAt: now,
     };
     state.watchlists = [watchlist, ...state.watchlists];
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.startsWith('/api/watchlists/') && !path.includes('/tickers') && method === 'PATCH') {
@@ -264,7 +290,7 @@ export async function handleMockApi(
       return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     watchlist.name = body.name?.trim() ?? watchlist.name;
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.startsWith('/api/watchlists/') && !path.includes('/tickers') && method === 'DELETE') {
@@ -280,14 +306,14 @@ export async function handleMockApi(
     if (!watchlist)
       return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     const ticker = body.ticker?.trim().toUpperCase() ?? '';
-    if (!findTicker(ticker))
+    if (!findInstrument(ticker))
       return json({ code: 'validation_error', message: 'Ticker is unknown' }, { status: 422 });
     if (watchlist.tickers.includes(ticker)) {
       return json({ code: 'duplicate_ticker', message: 'Ticker already exists' }, { status: 409 });
     }
     watchlist.tickers = [...watchlist.tickers, ticker];
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.includes('/tickers/') && method === 'DELETE') {
@@ -299,7 +325,7 @@ export async function handleMockApi(
       (entry) => entry !== decodeURIComponent(ticker ?? ''),
     );
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.endsWith('/ticker-order') && method === 'PUT') {
@@ -310,7 +336,7 @@ export async function handleMockApi(
     const body = JSON.parse(String(init?.body ?? '{}')) as { tickers?: string[] };
     watchlist.tickers = body.tickers ?? watchlist.tickers;
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path === '/api/auth/login' && method === 'POST') {
@@ -428,7 +454,9 @@ export async function handleMockApi(
       (entry) =>
         entry.symbol.toLowerCase().includes(query) || entry.name.toLowerCase().includes(query),
     );
-    return json({ results: [...fromSeed, ...fromGlobal] });
+    const bySymbol = new Map<string, SymbolSearchResult>();
+    [...fromSeed, ...fromGlobal].forEach((entry) => bySymbol.set(entry.symbol, entry));
+    return json({ results: Array.from(bySymbol.values()) });
   }
 
   if (path === '/api/instruments' && method === 'POST') {
