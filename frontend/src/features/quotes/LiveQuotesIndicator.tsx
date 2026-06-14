@@ -12,9 +12,7 @@ export function LiveQuotesIndicator() {
 
   return (
     <div className="flex items-center gap-2 text-small text-text-muted">
-      <span data-testid="quote-last-updated">
-        Last updated {formatRelativeTime(lastUpdated)}
-      </span>
+      <span data-testid="quote-last-updated">Last updated {formatRelativeTime(lastUpdated)}</span>
       {stale ? (
         <span
           data-testid="quote-stale"

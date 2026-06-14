@@ -8,10 +8,7 @@ type Props = HTMLAttributes<HTMLDivElement> & {
 };
 
 export const Card = forwardRef<HTMLDivElement, Props>(
-  (
-    { as: Tag = 'div', padded = true, overflow = 'hidden', className, children, ...props },
-    ref,
-  ) => {
+  ({ as: Tag = 'div', padded = true, overflow = 'hidden', className, children, ...props }, ref) => {
     return (
       <Tag
         ref={ref as React.Ref<HTMLDivElement>}
