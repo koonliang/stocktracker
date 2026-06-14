@@ -1,6 +1,7 @@
 package com.stocktracker.e2e.pages;
 
 import com.stocktracker.e2e.support.Waits;
+import java.util.Locale;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -15,8 +16,7 @@ public class WatchlistsPage {
       By.xpath("//button[contains(normalize-space(.), 'New watchlist')]");
   private static final By NAME_INPUT = By.id("new-watchlist-name");
   private static final By CREATE_BUTTON = By.xpath("//button[normalize-space(.)='Create']");
-  private static final By ADD_TICKER_INPUT = By.cssSelector("input[aria-label='Add ticker']");
-  private static final By ADD_BUTTON = By.cssSelector("[data-testid='watchlist-add']");
+  private static final By SYMBOL_SEARCH_INPUT = By.cssSelector("[data-testid='symbol-search']");
 
   private final WebDriver driver;
   private final Waits waits;
@@ -31,14 +31,17 @@ public class WatchlistsPage {
     waits.untilClickable(NEW_WATCHLIST_BUTTON).click();
     waits.untilVisible(NAME_INPUT).sendKeys(name);
     waits.untilClickable(CREATE_BUTTON).click();
-    // Detail view shows the add-ticker control once navigation completes.
-    waits.untilVisible(ADD_TICKER_INPUT);
+    // Detail view shows the symbol search control once navigation completes.
+    waits.untilVisible(SYMBOL_SEARCH_INPUT);
     return this;
   }
 
   public WatchlistsPage addTicker(String symbol) {
-    waits.untilVisible(ADD_TICKER_INPUT).sendKeys(symbol);
-    waits.untilClickable(ADD_BUTTON).click();
+    String normalizedSymbol = symbol.trim().toUpperCase(Locale.ROOT);
+    WebElement input = waits.untilVisible(SYMBOL_SEARCH_INPUT);
+    input.clear();
+    input.sendKeys(normalizedSymbol);
+    waits.untilClickable(addButtonLocator(normalizedSymbol)).click();
     return this;
   }
 
@@ -58,5 +61,9 @@ public class WatchlistsPage {
 
   private static By itemLocator(String symbol) {
     return By.cssSelector("[data-testid='watchlist-item-" + symbol + "']");
+  }
+
+  private static By addButtonLocator(String symbol) {
+    return By.cssSelector("button[aria-label='Add " + symbol + "']");
   }
 }

@@ -38,6 +38,7 @@ export function computeHoldings(
   const sorted = [...transactions].sort((a, b) => a.date.localeCompare(b.date));
 
   for (const tx of sorted) {
+    if (!tx.ticker) continue;
     const cur = accum.get(tx.ticker) ?? { shares: 0, avgCost: 0 };
     if (tx.type === 'buy') {
       const newShares = cur.shares + tx.quantity;

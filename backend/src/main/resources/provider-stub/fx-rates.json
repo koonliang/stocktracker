@@ -1,0 +1,8 @@
+{
+  "rates": [
+    { "base": "USD", "quote": "USD", "rate": 1.0 },
+    { "base": "USD", "quote": "SGD", "rate": 1.35 },
+    { "base": "SGD", "quote": "USD", "rate": 0.740741 },
+    { "base": "SGD", "quote": "SGD", "rate": 1.0 }
+  ]
+}

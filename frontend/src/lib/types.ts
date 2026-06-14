@@ -1,16 +1,23 @@
 export type {
+  AddInstrumentResponse,
+  BaseCurrencyResponse,
   DashboardResponse,
   Holding,
   InstrumentAnalysisResponse,
+  InstrumentSearchResponse,
   KeyStats,
   PortfolioSummary,
   PriceBar,
+  Quote,
+  QuoteResponse,
+  SymbolSearchResult,
   Ticker,
   Transaction,
   TransactionImportNormalizedRow,
   TransactionImportPreviewResponse,
   TransactionType,
   Watchlist,
+  WatchlistInstrument,
   WatchlistResponse,
 } from '@/api/types';
 

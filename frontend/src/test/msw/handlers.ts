@@ -1,24 +1,83 @@
-import { getBars, findTicker, loadSeedPortfolio, loadStats } from '@/lib/seed';
+import { getBars, findTicker, loadSeedPortfolio, loadStats, loadTickers } from '@/lib/seed';
 import { parseTransactionsCSV, serializeTransactionsCSV } from '@/lib/csv';
 import { buildPriceLookup, computeHoldings, computePortfolio } from '@/lib/portfolio';
 import type {
   InstrumentAnalysisResponse,
   PortfolioSummary,
   PriceBar,
+  Quote,
+  SymbolSearchResult,
   Transaction,
   TransactionImportPreviewResponse,
   Watchlist,
+  WatchlistInstrument,
 } from '@/lib/types';
 
 type MockState = {
   transactions: Transaction[];
   watchlists: Watchlist[];
+  baseCurrency: string;
 };
 
 const defaultState = (): MockState => ({
   transactions: [],
   watchlists: [],
+  baseCurrency: 'USD',
 });
+
+const SUPPORTED_CURRENCIES = ['USD', 'SGD', 'EUR'];
+
+// A non-US example so the search/add + multi-currency paths are exercised offline.
+const GLOBAL_CATALOG: SymbolSearchResult[] = [
+  { symbol: 'D05.SI', name: 'DBS Group Holdings Ltd', exchange: 'SGX', currency: 'SGD' },
+  { symbol: 'ES3.SI', name: 'SPDR Straits Times Index ETF', exchange: 'SGX', currency: 'SGD' },
+];
+
+function findInstrument(symbol: string): WatchlistInstrument | null {
+  const upper = symbol.toUpperCase();
+  const global = GLOBAL_CATALOG.find((entry) => entry.symbol === upper);
+  if (global) {
+    return global;
+  }
+  const ticker = findTicker(upper);
+  return ticker
+    ? { symbol: ticker.symbol, name: ticker.name, exchange: ticker.exchange, currency: 'USD' }
+    : null;
+}
+
+function withInstruments(watchlist: Watchlist): Watchlist {
+  if (watchlist.instruments && watchlist.instruments.length > 0) {
+    return watchlist;
+  }
+  return {
+    ...watchlist,
+    instruments: watchlist.tickers
+      .map((symbol) => findInstrument(symbol))
+      .filter((instrument): instrument is WatchlistInstrument => instrument != null),
+  };
+}
+
+function buildQuote(symbol: string): Quote {
+  const upper = symbol.toUpperCase();
+  const bars = getBars(upper);
+  const stats = loadStats()[upper];
+  const price = bars.length > 0 ? bars[bars.length - 1]!.close : upper === 'D05.SI' ? 45.1 : null;
+  const previousClose = stats?.previousClose ?? (upper === 'D05.SI' ? 44.9 : null);
+  const currency = upper.endsWith('.SI') ? 'SGD' : 'USD';
+  const changeAmount = price != null && previousClose != null ? price - previousClose : null;
+  return {
+    symbol: upper,
+    price,
+    currency: price == null ? null : currency,
+    changeAmount,
+    changePct: changeAmount != null && previousClose ? (changeAmount / previousClose) * 100 : null,
+    previousClose,
+    asOf: price == null ? null : new Date().toISOString(),
+    fetchedAt: price == null ? null : new Date().toISOString(),
+    source: price == null ? null : 'stub',
+    stale: price == null,
+  };
+}
 
 let state: MockState = defaultState();
 
@@ -67,6 +126,17 @@ function buildInstrumentAnalysis(symbol: string): InstrumentAnalysisResponse | n
           peRatio: stats.peRatio,
         }
       : null,
+    quote: (() => {
+      const q = buildQuote(symbol);
+      return {
+        price: q.price,
+        previousClose: q.previousClose,
+        changeAmount: q.changeAmount,
+        changePct: q.changePct,
+        asOf: q.asOf,
+        stale: q.stale,
+      };
+    })(),
     priceHistory: bars,
     positionSummary: holding
       ? {
@@ -124,6 +194,17 @@ export async function handleMockApi(
     return json([...state.transactions].sort((a, b) => b.date.localeCompare(a.date)));
   }
 
+  if (path === '/api/transactions' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as {
+      rows: Array<Omit<Transaction, 'id'>>;
+    };
+    state.transactions = [
+      ...state.transactions,
+      ...body.rows.map((row) => ({ ...row, id: newId('tx') })),
+    ];
+    return json(buildDashboard(state.transactions), { status: 201 });
+  }
+
   if (path.startsWith('/api/transactions/') && method === 'DELETE') {
     const id = path.split('/').pop() ?? '';
     state.transactions = state.transactions.filter((transaction) => transaction.id !== id);
@@ -145,10 +226,17 @@ export async function handleMockApi(
           quantity: transaction.quantity,
           price: transaction.price,
           fees: transaction.fees,
+          amount: transaction.amount,
+          currency: transaction.currency,
         },
       })),
       invalidRows: parsed.invalid,
       headerErrors: parsed.headerErrors,
+      detectedVersion: parsed.valid.some((transaction) =>
+        ['dividend', 'split', 'deposit', 'withdrawal', 'fee'].includes(transaction.type),
+      )
+        ? 'v2'
+        : 'v1',
     };
     return json(preview);
   }
@@ -171,7 +259,7 @@ export async function handleMockApi(
   }
 
   if (path === '/api/watchlists' && method === 'GET') {
-    return json({ watchlists: state.watchlists });
+    return json({ watchlists: state.watchlists.map(withInstruments) });
   }
 
   if (path === '/api/watchlists' && method === 'POST') {
@@ -191,7 +279,7 @@ export async function handleMockApi(
       updatedAt: now,
     };
     state.watchlists = [watchlist, ...state.watchlists];
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.startsWith('/api/watchlists/') && !path.includes('/tickers') && method === 'PATCH') {
@@ -202,7 +290,7 @@ export async function handleMockApi(
       return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     watchlist.name = body.name?.trim() ?? watchlist.name;
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.startsWith('/api/watchlists/') && !path.includes('/tickers') && method === 'DELETE') {
@@ -218,14 +306,14 @@ export async function handleMockApi(
     if (!watchlist)
       return json({ code: 'not_found', message: 'Watchlist not found' }, { status: 404 });
     const ticker = body.ticker?.trim().toUpperCase() ?? '';
-    if (!findTicker(ticker))
+    if (!findInstrument(ticker))
       return json({ code: 'validation_error', message: 'Ticker is unknown' }, { status: 422 });
     if (watchlist.tickers.includes(ticker)) {
       return json({ code: 'duplicate_ticker', message: 'Ticker already exists' }, { status: 409 });
     }
     watchlist.tickers = [...watchlist.tickers, ticker];
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.includes('/tickers/') && method === 'DELETE') {
@@ -237,7 +325,7 @@ export async function handleMockApi(
       (entry) => entry !== decodeURIComponent(ticker ?? ''),
     );
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path.endsWith('/ticker-order') && method === 'PUT') {
@@ -248,7 +336,7 @@ export async function handleMockApi(
     const body = JSON.parse(String(init?.body ?? '{}')) as { tickers?: string[] };
     watchlist.tickers = body.tickers ?? watchlist.tickers;
     watchlist.updatedAt = new Date().toISOString();
-    return json(watchlist);
+    return json(withInstruments(watchlist));
   }
 
   if (path === '/api/auth/login' && method === 'POST') {
@@ -337,6 +425,80 @@ export async function handleMockApi(
 
   if (path === '/api/auth/logout' && method === 'POST') {
     return new Response(null, { status: 204 });
+  }
+
+  if (path === '/api/quotes' && method === 'GET') {
+    const raw = url.searchParams.get('symbols') ?? '';
+    const symbols = raw
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return json({ quotes: symbols.map(buildQuote) });
+  }
+
+  if (path === '/api/instruments/search' && method === 'GET') {
+    const query = (url.searchParams.get('q') ?? '').trim().toLowerCase();
+    if (!query) return json({ results: [] });
+    const fromSeed: SymbolSearchResult[] = loadTickers()
+      .filter(
+        (ticker) =>
+          ticker.symbol.toLowerCase().includes(query) || ticker.name.toLowerCase().includes(query),
+      )
+      .map((ticker) => ({
+        symbol: ticker.symbol,
+        name: ticker.name,
+        exchange: ticker.exchange,
+        currency: 'USD',
+      }));
+    const fromGlobal = GLOBAL_CATALOG.filter(
+      (entry) =>
+        entry.symbol.toLowerCase().includes(query) || entry.name.toLowerCase().includes(query),
+    );
+    const bySymbol = new Map<string, SymbolSearchResult>();
+    [...fromSeed, ...fromGlobal].forEach((entry) => bySymbol.set(entry.symbol, entry));
+    return json({ results: Array.from(bySymbol.values()) });
+  }
+
+  if (path === '/api/instruments' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { symbol?: string };
+    const symbol = (body.symbol ?? '').trim().toUpperCase();
+    const known =
+      findTicker(symbol) != null || GLOBAL_CATALOG.some((entry) => entry.symbol === symbol);
+    if (!known) {
+      return json(
+        { code: 'unknown_symbol', message: `Symbol not recognized: ${symbol}` },
+        { status: 422 },
+      );
+    }
+    const match = GLOBAL_CATALOG.find((entry) => entry.symbol === symbol);
+    const quote = buildQuote(symbol);
+    return json(
+      {
+        symbol,
+        name: match?.name ?? findTicker(symbol)?.name ?? symbol,
+        exchange: match?.exchange ?? findTicker(symbol)?.exchange ?? '',
+        currency: match?.currency ?? 'USD',
+        quote: { price: quote.price, asOf: quote.asOf, stale: quote.stale },
+      },
+      { status: 201 },
+    );
+  }
+
+  if (path === '/api/me/base-currency' && method === 'GET') {
+    return json({ baseCurrency: state.baseCurrency, supported: SUPPORTED_CURRENCIES });
+  }
+
+  if (path === '/api/me/base-currency' && method === 'PUT') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { baseCurrency?: string };
+    const next = (body.baseCurrency ?? '').trim().toUpperCase();
+    if (!SUPPORTED_CURRENCIES.includes(next)) {
+      return json(
+        { code: 'unsupported_currency', message: `Unsupported base currency: ${next}` },
+        { status: 422 },
+      );
+    }
+    state.baseCurrency = next;
+    return json({ baseCurrency: next, supported: SUPPORTED_CURRENCIES });
   }
 
   if (path.startsWith('/api/instruments/') && method === 'GET') {

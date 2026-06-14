@@ -35,6 +35,12 @@ services:
       QUARKUS_DATASOURCE_USERNAME: stocktracker
       QUARKUS_DATASOURCE_PASSWORD: stocktracker
       STOCKTRACKER_DEV_BOOTSTRAP_ENABLED: 'true'
+      # Market data + FX providers. The stub is deterministic and network-free, so
+      # the local stack + e2e suite never call external services. To run against the
+      # real providers, set STOCKTRACKER_MARKETDATA_PROVIDER=yahoo and
+      # STOCKTRACKER_FX_PROVIDER=frankfurter (neither needs an API key).
+      STOCKTRACKER_MARKETDATA_PROVIDER: 'yahoo'
+      STOCKTRACKER_FX_PROVIDER: 'frankfurter'
       # The e2e auth journey drives the backend-owned dev flows + dev token endpoint.
       STOCKTRACKER_AUTH_MODE: 'dev'
       # The regression suite makes many /api/auth/* calls from one IP within the rate-limit

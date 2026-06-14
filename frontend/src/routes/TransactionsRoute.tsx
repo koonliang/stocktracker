@@ -6,6 +6,7 @@ import { ImportDropzone } from '@/features/transactions/ImportDropzone';
 import { ImportPreview } from '@/features/transactions/ImportPreview';
 import { ExportButton } from '@/features/transactions/ExportButton';
 import { TransactionsTable } from '@/features/transactions/TransactionsTable';
+import { TransactionForm } from '@/features/transactions/TransactionForm';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 
 export function TransactionsRoute() {
@@ -21,6 +22,7 @@ export function TransactionsRoute() {
     previewImport,
     clearPreview,
     commitPreview,
+    createManualTransaction,
   } = usePortfolioStore();
 
   useEffect(() => {
@@ -37,6 +39,14 @@ export function TransactionsRoute() {
       />
 
       <div className="flex flex-col gap-6">
+        <Card overflow="visible">
+          <CardHeader eyebrow="Manual entry" title="Record a transaction" />
+          <TransactionForm
+            pending={commitStatus === 'loading'}
+            onSubmit={(row) => void createManualTransaction(row)}
+          />
+        </Card>
+
         {preview ? (
           <Card>
             <CardHeader eyebrow="Preview" title="Review before commit" />

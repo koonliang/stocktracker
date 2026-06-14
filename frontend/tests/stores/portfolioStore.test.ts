@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePortfolioStore } from '@/stores/portfolioStore';
+import { useToastStore } from '@/stores/toastStore';
 import { getDashboard } from '@/api/dashboardApi';
 
 vi.mock('@/api/dashboardApi', () => ({
@@ -11,6 +12,7 @@ const getDashboardMock = vi.mocked(getDashboard);
 function reset() {
   localStorage.clear();
   usePortfolioStore.setState({ transactions: [], initialized: true });
+  useToastStore.getState().clearToasts();
 }
 
 describe('portfolioStore', () => {
@@ -121,6 +123,44 @@ describe('portfolioStore', () => {
   it('seedFromFixture populates from bundled demo data', () => {
     usePortfolioStore.getState().seedFromFixture();
     expect(usePortfolioStore.getState().transactions.length).toBeGreaterThan(0);
+  });
+
+  it('pushes a toast when manual transaction creation fails', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            code: 'validation_error',
+            message: 'sell quantity exceeds held shares',
+            details: null,
+          }),
+          { status: 422, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    await usePortfolioStore.getState().createManualTransaction({
+      date: '2026-06-14',
+      ticker: 'V',
+      type: 'sell',
+      quantity: 30,
+      price: 348,
+      fees: 2,
+      amount: null,
+      currency: 'USD',
+    });
+
+    expect(usePortfolioStore.getState().commitStatus).toBe('error');
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Transaction not saved',
+          message: 'sell quantity exceeds held shares',
+          tone: 'error',
+        }),
+      ]),
+    );
   });
 
   it('keeps added transactions in memory for local test helpers', () => {

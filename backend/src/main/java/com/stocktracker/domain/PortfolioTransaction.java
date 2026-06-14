@@ -26,9 +26,11 @@ public class PortfolioTransaction extends PanacheEntityBase {
   @Column(name = "trade_date", nullable = false)
   public LocalDate tradeDate;
 
-  @Column(name = "instrument_symbol", nullable = false)
+  /** Null for cash events (deposit/withdrawal/fee); required for security/dividend/split. */
+  @Column(name = "instrument_symbol")
   public String instrumentSymbol;
 
+  /** One of: buy, sell, dividend, split, deposit, withdrawal, fee. */
   @Column(name = "transaction_type", nullable = false)
   public String transactionType;
 
@@ -40,6 +42,14 @@ public class PortfolioTransaction extends PanacheEntityBase {
 
   @Column(nullable = false, precision = 19, scale = 4)
   public BigDecimal fees;
+
+  /** Cash value for dividend/deposit/withdrawal/fee (FR-007). */
+  @Column(precision = 19, scale = 4)
+  public BigDecimal amount;
+
+  /** Defaults to the instrument currency for security txns; required for cash txns. */
+  @Column(length = 3)
+  public String currency;
 
   @Column(nullable = false)
   public String source;

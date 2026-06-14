@@ -5,19 +5,20 @@ import java.util.List;
 public record InstrumentAnalysisResponse(
     TickerView ticker,
     StatsView stats,
+    QuoteResponse.QuoteView quote,
     List<PriceHistoryPoint> priceHistory,
     PositionSummary positionSummary) {
   public record TickerView(String symbol, String name, String sector, String exchange) {}
 
   public record StatsView(
-      double open,
-      double high,
-      double low,
-      double previousClose,
-      long volume,
-      double week52High,
-      double week52Low,
-      long marketCap,
+      Double open,
+      Double high,
+      Double low,
+      Double previousClose,
+      Long volume,
+      Double week52High,
+      Double week52Low,
+      Long marketCap,
       Double peRatio) {}
 
   public record PriceHistoryPoint(

@@ -14,6 +14,8 @@ type Props = {
   onMoveDown?: () => void;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  backTo?: string;
+  backLabel?: string;
   /** Props injected by the parent for HTML5 drag-and-drop reorder. */
   dragHandleProps?: {
     draggable?: boolean;
@@ -35,6 +37,8 @@ export function WatchlistRow({
   onMoveDown,
   canMoveUp,
   canMoveDown,
+  backTo,
+  backLabel,
   dragHandleProps,
 }: Props) {
   const navigate = useNavigate();
@@ -42,7 +46,12 @@ export function WatchlistRow({
   const negative = (dayChange ?? 0) < 0;
 
   function open() {
-    navigate(`/analysis/${symbol}`);
+    navigate(`/analysis/${symbol}`, {
+      state: {
+        backTo: backTo ?? '/watchlists',
+        backLabel: backLabel ?? 'Back to watchlists',
+      },
+    });
   }
 
   return (

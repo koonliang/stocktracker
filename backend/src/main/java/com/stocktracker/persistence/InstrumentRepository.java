@@ -22,6 +22,14 @@ public class InstrumentRepository implements PanacheRepository<Instrument> {
     return count("upper(symbol) = ?1", symbol.toUpperCase()) > 0;
   }
 
+  /** Active instruments whose symbol or name contains the query, capped for search results. */
+  public List<Instrument> search(String query, int limit) {
+    var like = "%" + query.trim().toLowerCase() + "%";
+    return find("active = true and (lower(symbol) like ?1 or lower(name) like ?1)", like)
+        .page(0, limit)
+        .list();
+  }
+
   public Map<String, Instrument> findBySymbols(Collection<String> symbols) {
     if (symbols.isEmpty()) {
       return Map.of();

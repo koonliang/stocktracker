@@ -14,6 +14,8 @@ import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
 import { WatchlistDetailRoute } from '@/routes/WatchlistDetailRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
+import { PerformanceRoute } from '@/routes/PerformanceRoute';
+import { AlertsRoute } from '@/routes/AlertsRoute';
 
 export function App() {
   return (
@@ -42,6 +44,8 @@ export function App() {
         <Route path="/watchlists" element={<WatchlistsRoute />} />
         <Route path="/watchlists/:id" element={<WatchlistDetailRoute />} />
         <Route path="/transactions" element={<TransactionsRoute />} />
+        <Route path="/performance" element={<PerformanceRoute />} />
+        <Route path="/alerts" element={<AlertsRoute />} />
         <Route path="/analysis/:ticker" element={<AnalysisRoute />} />
         <Route
           path="*"

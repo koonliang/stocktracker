@@ -1,0 +1,20 @@
+{
+  "symbols": [
+    {
+      "symbol": "D05.SI",
+      "name": "DBS Group Holdings Ltd",
+      "exchange": "SGX",
+      "currency": "SGD",
+      "previousClose": 44.90,
+      "price": 45.10
+    },
+    {
+      "symbol": "O39.SI",
+      "name": "Oversea-Chinese Banking Corporation Limited",
+      "exchange": "SGX",
+      "currency": "SGD",
+      "previousClose": 14.20,
+      "price": 14.35
+    }
+  ]
+}

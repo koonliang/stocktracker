@@ -57,8 +57,8 @@ public class AccountLinkingService {
   }
 
   /**
-   * Provisions a non-federated (email+password) Cognito account on its first validated token.
-   * Runs in its own transaction so the {@code persist} has an active context — it must be invoked
+   * Provisions a non-federated (email+password) Cognito account on its first validated token. Runs
+   * in its own transaction so the {@code persist} has an active context — it must be invoked
    * through the injected proxy, never by self-invocation.
    */
   @Transactional

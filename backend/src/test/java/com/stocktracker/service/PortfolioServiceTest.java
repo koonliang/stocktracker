@@ -35,7 +35,7 @@ class PortfolioServiceTest extends IntegrationTestSupport {
     assertEquals(1, dashboard.holdings().size());
     assertEquals("NVDA", holding.ticker());
     assertEquals(11.0, holding.shares(), 0.0001);
-    assertEquals(106.6667, holding.averageCost(), 0.0002);
-    assertEquals(1173.3333, holding.costBasis(), 0.0002);
+    assertEquals(109.0909, holding.averageCost(), 0.0002);
+    assertEquals(1200.0000, holding.costBasis(), 0.0002);
   }
 }

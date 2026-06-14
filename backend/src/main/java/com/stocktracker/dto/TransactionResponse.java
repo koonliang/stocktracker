@@ -8,4 +8,6 @@ public record TransactionResponse(
     double quantity,
     double price,
     double fees,
+    Double amount,
+    String currency,
     String source) {}

@@ -255,7 +255,3 @@ Summary of what this feature provisions:
 - [frontend/README.md](./frontend/README.md)
 - [e2e/README.md](./e2e/README.md)
 - [infra/README.md](./infra/README.md)
-- [specs/003-ci-cd-aws/plan.md](./specs/003-ci-cd-aws/plan.md)
-- [specs/002-connect-frontend-backend/plan.md](./specs/002-connect-frontend-backend/plan.md)
-- [specs/002-connect-frontend-backend/quickstart.md](./specs/002-connect-frontend-backend/quickstart.md)
-- [specs/002-connect-frontend-backend/contracts/rest-api.md](./specs/002-connect-frontend-backend/contracts/rest-api.md)
