@@ -1,9 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { addInstrument, searchInstruments } from '@/api/searchApi';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import type { TransactionImportNormalizedRow, TransactionType } from '@/lib/types';
+import type {
+  SymbolSearchResult,
+  TransactionImportNormalizedRow,
+  TransactionType,
+} from '@/lib/types';
 import { todayISO } from '@/lib/format';
 
 type Props = {
@@ -30,14 +35,80 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
   const [fees, setFees] = useState('0');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [tickerResults, setTickerResults] = useState<SymbolSearchResult[]>([]);
+  const [tickerSearching, setTickerSearching] = useState(false);
+  const [tickerError, setTickerError] = useState<string | null>(null);
+  const [selectingTicker, setSelectingTicker] = useState<string | null>(null);
+  const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+  const tickerRequestId = useRef(0);
 
   const securityType = ['buy', 'sell', 'dividend', 'split'].includes(type);
   const tradeType = type === 'buy' || type === 'sell';
   const amountType = ['dividend', 'deposit', 'withdrawal', 'fee'].includes(type);
   const cashType = ['deposit', 'withdrawal', 'fee'].includes(type);
 
-  function numberOrZero(value: string) {
-    return value.trim() === '' ? 0 : Number(value);
+  function numberOrNull(value: string) {
+    return value.trim() === '' ? null : Number(value);
+  }
+
+  function feeValue() {
+    return fees.trim() === '' ? 0 : Number(fees);
+  }
+
+  useEffect(() => {
+    if (!securityType) {
+      setTickerResults([]);
+      setTickerError(null);
+      return;
+    }
+    const query = ticker.trim();
+    if (query.length === 0) {
+      setTickerResults([]);
+      setTickerError(null);
+      return;
+    }
+    if (selectedTicker != null && query.toUpperCase() === selectedTicker) {
+      setTickerResults([]);
+      setTickerError(null);
+      setTickerSearching(false);
+      return;
+    }
+
+    const id = ++tickerRequestId.current;
+    setTickerSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const matches = await searchInstruments(query);
+        if (id === tickerRequestId.current) {
+          setTickerResults(matches);
+          setTickerError(null);
+        }
+      } catch {
+        if (id === tickerRequestId.current) setTickerError('Search failed.');
+      } finally {
+        if (id === tickerRequestId.current) setTickerSearching(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(handle);
+  }, [securityType, ticker, selectedTicker]);
+
+  async function selectTicker(result: SymbolSearchResult) {
+    tickerRequestId.current++;
+    setSelectingTicker(result.symbol);
+    setTickerError(null);
+    try {
+      await addInstrument(result.symbol);
+      setSelectedTicker(result.symbol);
+      setTicker(result.symbol);
+      setCurrency(result.currency);
+      setTickerResults([]);
+      setTickerSearching(false);
+    } catch {
+      setTickerError(`Could not select ${result.symbol}.`);
+    } finally {
+      setSelectingTicker(null);
+    }
   }
 
   return (
@@ -50,10 +121,10 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
           date,
           ticker: securityType ? ticker.trim().toUpperCase() : null,
           type,
-          quantity: numberOrZero(quantity),
-          price: numberOrZero(price),
-          fees: numberOrZero(fees),
-          amount: amountType ? numberOrZero(amount) : null,
+          quantity: tradeType || type === 'split' ? numberOrNull(quantity) : null,
+          price: tradeType ? numberOrNull(price) : null,
+          fees: tradeType || type === 'dividend' ? feeValue() : null,
+          amount: amountType ? numberOrNull(amount) : null,
           currency: cashType || currency.trim() ? currency.trim().toUpperCase() : null,
         });
       }}
@@ -84,14 +155,50 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
         </select>
       </div>
       {securityType ? (
-        <div>
+        <div className="relative">
           <Label htmlFor="transaction-ticker">Ticker</Label>
           <Input
             id="transaction-ticker"
+            type="search"
             value={ticker}
-            onChange={(e) => setTicker(e.target.value)}
+            onChange={(e) => {
+              setSelectedTicker(null);
+              setTicker(e.target.value);
+            }}
+            placeholder="Search ticker or company"
+            autoComplete="off"
+            data-testid="transaction-ticker-search"
             required
           />
+          {tickerError ? <p className="mt-1 text-small text-negative">{tickerError}</p> : null}
+          {ticker.trim() &&
+          selectedTicker == null &&
+          !tickerSearching &&
+          tickerResults.length === 0 &&
+          !tickerError ? (
+            <p className="mt-1 text-small text-text-muted">No matches.</p>
+          ) : null}
+          {tickerResults.length > 0 ? (
+            <div className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-md border border-border bg-surface shadow-card">
+              {tickerResults.map((result) => (
+                <button
+                  key={result.symbol}
+                  type="button"
+                  onClick={() => void selectTicker(result)}
+                  disabled={selectingTicker === result.symbol}
+                  data-testid="transaction-ticker-result"
+                  className="flex w-full flex-col px-3 py-2 text-left hover:bg-surface-alt disabled:opacity-60"
+                >
+                  <span className="font-mono text-body font-semibold text-text">
+                    {result.symbol}
+                  </span>
+                  <span className="truncate text-small text-text-muted">
+                    {result.name} · {result.exchange} · {result.currency}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
       ) : null}
       {(tradeType || type === 'split') && (
@@ -101,7 +208,7 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
             id="transaction-quantity"
             type="number"
             step="any"
-            min="0"
+            min="0.000001"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
             required
@@ -115,7 +222,7 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
             id="transaction-price"
             type="number"
             step="any"
-            min="0"
+            min="0.0001"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             required
@@ -142,7 +249,7 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
             id="transaction-amount"
             type="number"
             step="any"
-            min="0"
+            min="0.0001"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required

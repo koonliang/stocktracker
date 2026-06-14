@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, formatDateISO, formatShares } from '@/lib/format';
+import { formatCurrency, formatCurrencyCode, formatDateISO, formatShares } from '@/lib/format';
 import type { Transaction } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
@@ -13,6 +13,19 @@ type Props = {
 };
 
 type Direction = 'asc' | 'desc';
+
+function displayAmount(tx: Transaction) {
+  if (tx.amount != null) {
+    return tx.amount;
+  }
+  if (tx.type === 'buy') {
+    return tx.quantity * tx.price + tx.fees;
+  }
+  if (tx.type === 'sell') {
+    return tx.quantity * tx.price - tx.fees;
+  }
+  return null;
+}
 
 export function TransactionsTable({ transactions, onDelete }: Props) {
   const [direction, setDirection] = useState<Direction>('desc');
@@ -80,7 +93,7 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
                 {formatCurrency(tx.fees)}
               </TD>
               <TD align="right" mono>
-                {tx.amount == null ? '—' : formatCurrency(tx.amount)}
+                {formatCurrencyCode(displayAmount(tx), tx.currency)}
               </TD>
               <TD mono>{tx.currency ?? '—'}</TD>
               <TD align="right">

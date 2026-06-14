@@ -39,7 +39,7 @@ export function TransactionsRoute() {
       />
 
       <div className="flex flex-col gap-6">
-        <Card>
+        <Card overflow="visible">
           <CardHeader eyebrow="Manual entry" title="Record a transaction" />
           <TransactionForm
             pending={commitStatus === 'loading'}

@@ -157,9 +157,9 @@ export type TransactionImportNormalizedRow = {
   date: string;
   ticker: string | null;
   type: TransactionType;
-  quantity: number;
-  price: number;
-  fees: number;
+  quantity: number | null;
+  price: number | null;
+  fees: number | null;
   amount?: number | null;
   currency?: string | null;
 };
