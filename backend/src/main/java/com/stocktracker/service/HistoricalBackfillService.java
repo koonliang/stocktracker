@@ -21,12 +21,24 @@ public class HistoricalBackfillService {
 
   @Transactional
   public int backfill(String symbol, LocalDate from) {
+    return insertBars(symbol, marketDataProvider.dailyHistory(symbol, from));
+  }
+
+  @Transactional
+  public int backfillMax(String symbol) {
+    return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
+  }
+
+  private int insertBars(
+      String symbol,
+      java.util.List<com.stocktracker.service.provider.MarketDataProvider.ProviderDailyBar>
+          providerBars) {
     var existingDates =
         instrumentRepository.listPriceBars(symbol).stream()
             .map(bar -> bar.tradeDate)
             .collect(Collectors.toSet());
     var inserted = 0;
-    for (var providerBar : marketDataProvider.dailyHistory(symbol, from)) {
+    for (var providerBar : providerBars) {
       if (providerBar.close() == null || existingDates.contains(providerBar.date())) {
         continue;
       }

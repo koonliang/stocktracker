@@ -88,6 +88,76 @@ class InstrumentResourceTest extends IntegrationTestSupport {
     assertEquals(1500L, response.stats().volume());
   }
 
+  @Test
+  void fiveYearRangeBackfillsHistoryForDynamicInstrument() throws Exception {
+    inTransaction(
+        () -> {
+          InstrumentPriceBar.delete("instrumentSymbol", "DYN5");
+          Instrument.delete("symbol", "DYN5");
+
+          var instrument = new Instrument();
+          instrument.symbol = "DYN5";
+          instrument.name = "Dynamic Five Year";
+          instrument.sector = "Unknown";
+          instrument.exchange = "TEST";
+          instrument.currency = "USD";
+          instrument.active = true;
+          instrument.persist();
+        });
+
+    var response =
+        given()
+            .queryParam("range", "5Y")
+            .when()
+            .get("/api/instruments/DYN5")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(InstrumentAnalysisResponse.class);
+
+    assertEquals("DYN5", response.ticker().symbol());
+    assertEquals(true, response.priceHistory().size() > 1000);
+    assertEquals(
+        true,
+        LocalDate.parse(response.priceHistory().get(0).date())
+            .isBefore(LocalDate.now().minusYears(4).minusMonths(11)));
+  }
+
+  @Test
+  void allRangeBackfillsMaxHistoryForShortDynamicInstrument() throws Exception {
+    inTransaction(
+        () -> {
+          InstrumentPriceBar.delete("instrumentSymbol", "MAXT");
+          Instrument.delete("symbol", "MAXT");
+
+          var instrument = new Instrument();
+          instrument.symbol = "MAXT";
+          instrument.name = "Max History Test";
+          instrument.sector = "Unknown";
+          instrument.exchange = "TEST";
+          instrument.currency = "USD";
+          instrument.active = true;
+          instrument.persist();
+        });
+
+    var response =
+        given()
+            .queryParam("range", "ALL")
+            .when()
+            .get("/api/instruments/MAXT")
+            .then()
+            .statusCode(200)
+            .extract()
+            .as(InstrumentAnalysisResponse.class);
+
+    assertEquals("MAXT", response.ticker().symbol());
+    assertEquals(true, response.priceHistory().size() > 2000);
+    assertEquals(
+        true,
+        LocalDate.parse(response.priceHistory().get(0).date())
+            .isBefore(LocalDate.now().minusYears(9).minusMonths(11)));
+  }
+
   private void persistBar(
       String symbol,
       String date,

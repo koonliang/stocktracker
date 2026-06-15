@@ -19,6 +19,9 @@ public interface MarketDataProvider {
   /** Daily closing prices for a symbol from {@code from} (inclusive) to today. */
   List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from);
 
+  /** Maximum available daily closing prices for a symbol. */
+  List<ProviderDailyBar> dailyHistoryMax(String symbol);
+
   /** Search symbols by company name or partial/exact ticker (FR-026). */
   List<ProviderSymbol> searchSymbols(String query);
 

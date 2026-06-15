@@ -76,7 +76,7 @@ public class MarketDataService {
 
     // Immediate quote + history so price/value appear at once; tolerate provider failure (stale).
     quoteCacheService.refreshSymbols(List.of(symbol));
-    historicalBackfillService.backfill(symbol, LocalDate.now(clock).minusYears(1));
+    historicalBackfillService.backfill(symbol, LocalDate.now(clock).minusYears(5));
     fxRefreshJob.refresh(); // pick up a newly-introduced currency
 
     return buildResponse(instrument);

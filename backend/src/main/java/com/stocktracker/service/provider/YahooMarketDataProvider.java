@@ -68,9 +68,18 @@ public class YahooMarketDataProvider implements MarketDataProvider {
 
   @Override
   public List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from) {
+    var days = Math.max(1, ChronoUnit.DAYS.between(from, LocalDate.now()));
+    var range = days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 365 ? "1y" : "5y";
+    return chartHistory(symbol, range, from);
+  }
+
+  @Override
+  public List<ProviderDailyBar> dailyHistoryMax(String symbol) {
+    return chartHistory(symbol, "max", null);
+  }
+
+  private List<ProviderDailyBar> chartHistory(String symbol, String range, LocalDate from) {
     try {
-      var days = Math.max(1, ChronoUnit.DAYS.between(from, LocalDate.now()));
-      var range = days <= 30 ? "1mo" : days <= 90 ? "3mo" : days <= 365 ? "1y" : "5y";
       var response = api.chart(symbol, "1d", range);
       var result = response.path("chart").path("result");
       if (!result.isArray() || result.isEmpty()) {
@@ -88,14 +97,15 @@ public class YahooMarketDataProvider implements MarketDataProvider {
             Instant.ofEpochSecond(timestamps.get(i).asLong())
                 .atZone(java.time.ZoneOffset.UTC)
                 .toLocalDate();
-        if (date.isBefore(from)) {
+        if (from != null && date.isBefore(from)) {
           continue;
         }
         bars.add(new ProviderDailyBar(symbol, date, new BigDecimal(closes.get(i).asText())));
       }
       return bars;
     } catch (RuntimeException exception) {
-      LOG.warnf("Yahoo dailyHistory failed for %s: %s", symbol, exception.getMessage());
+      LOG.warnf(
+          "Yahoo dailyHistory failed for %s range %s: %s", symbol, range, exception.getMessage());
       return List.of();
     }
   }

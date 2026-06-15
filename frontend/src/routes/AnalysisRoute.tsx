@@ -26,8 +26,12 @@ export function AnalysisRoute() {
 
   useEffect(() => {
     let cancelled = false;
-    setState({ status: 'loading', error: null, data: null });
-    void getInstrumentAnalysis(symbol)
+    setState((prev) =>
+      prev.data?.ticker.symbol === symbol
+        ? { ...prev, error: null }
+        : { status: 'loading', error: null, data: null },
+    );
+    void getInstrumentAnalysis(symbol, range)
       .then((data) => {
         if (!cancelled) {
           setState({ status: 'success', error: null, data });
@@ -35,13 +39,17 @@ export function AnalysisRoute() {
       })
       .catch((error: Error) => {
         if (!cancelled) {
-          setState({ status: 'error', error: error.message, data: null });
+          setState((prev) =>
+            prev.data?.ticker.symbol === symbol
+              ? { ...prev, error: error.message }
+              : { status: 'error', error: error.message, data: null },
+          );
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [symbol]);
+  }, [symbol, range]);
 
   if (state.status === 'loading') {
     return (

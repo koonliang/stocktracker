@@ -60,23 +60,54 @@ public class StubMarketDataProvider implements MarketDataProvider {
 
   @Override
   public List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from) {
+    return dailyHistory(symbol, from, LocalDate.now(clock));
+  }
+
+  @Override
+  public List<ProviderDailyBar> dailyHistoryMax(String symbol) {
+    return dailyHistory(symbol, LocalDate.now(clock).minusYears(10), LocalDate.now(clock));
+  }
+
+  private List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from, LocalDate today) {
     var fixture = fixtures().get(symbol.toUpperCase());
     if (fixture != null) {
-      // Synthesize a short flat series from the fixture close so backfill has data offline.
+      // Synthesize deterministic history so range-dependent analysis works offline.
       var bars = new ArrayList<ProviderDailyBar>();
-      var start =
-          from.isBefore(LocalDate.now(clock).minusDays(30))
-              ? LocalDate.now(clock).minusDays(30)
-              : from;
-      for (var date = start; !date.isAfter(LocalDate.now(clock)); date = date.plusDays(1)) {
-        bars.add(new ProviderDailyBar(symbol, date, fixture.price()));
+      for (var date = from; !date.isAfter(today); date = date.plusDays(1)) {
+        if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+            || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+          continue;
+        }
+        bars.add(new ProviderDailyBar(symbol, date, syntheticClose(symbol, fixture.price(), date)));
       }
       return bars;
     }
-    return instruments.listPriceBars(symbol).stream()
+    var existingBars = instruments.listPriceBars(symbol);
+    if (existingBars.isEmpty() && instruments.existsSymbol(symbol)) {
+      var base =
+          BigDecimal.valueOf(80 + Math.abs(symbol.toUpperCase().hashCode() % 160))
+              .setScale(4, RoundingMode.HALF_UP);
+      var bars = new ArrayList<ProviderDailyBar>();
+      for (var date = from; !date.isAfter(today); date = date.plusDays(1)) {
+        if (date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+            || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+          continue;
+        }
+        bars.add(new ProviderDailyBar(symbol, date, syntheticClose(symbol, base, date)));
+      }
+      return bars;
+    }
+    return existingBars.stream()
         .filter(bar -> !bar.tradeDate.isBefore(from))
         .map(bar -> new ProviderDailyBar(symbol, bar.tradeDate, bar.closePrice))
         .toList();
+  }
+
+  private BigDecimal syntheticClose(String symbol, BigDecimal base, LocalDate date) {
+    var days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.of(2020, 1, 1), date);
+    var trend = BigDecimal.valueOf(days).multiply(new BigDecimal("0.00018"));
+    var wave = BigDecimal.valueOf(Math.sin((days + Math.abs(symbol.hashCode() % 31)) / 17.0) * 0.05);
+    return base.add(trend).add(wave).max(new BigDecimal("0.01")).setScale(4, RoundingMode.HALF_UP);
   }
 
   @Override
