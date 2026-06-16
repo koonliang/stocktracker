@@ -1,5 +1,6 @@
-package com.stocktracker.service;
+package com.stocktracker.scheduler;
 
+import com.stocktracker.service.QuoteCacheService;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,7 +23,7 @@ public class QuoteRefreshJob {
   @Inject EntityManager entityManager;
 
   @Scheduled(every = "{stocktracker.marketdata.refresh-interval}")
-  void refresh() {
+  public void refresh() {
     var symbols = trackedSymbols();
     if (symbols.isEmpty()) {
       return;

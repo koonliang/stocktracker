@@ -1,4 +1,4 @@
-package com.stocktracker.service;
+package com.stocktracker.scheduler;
 
 import com.stocktracker.persistence.FxRateRepository;
 import com.stocktracker.service.provider.FxRateProvider;

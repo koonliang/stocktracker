@@ -3,6 +3,7 @@ package com.stocktracker.service;
 import com.stocktracker.api.ApiException;
 import com.stocktracker.api.ApiStatuses;
 import com.stocktracker.dto.BaseCurrencyResponse;
+import com.stocktracker.scheduler.FxRefreshJob;
 import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

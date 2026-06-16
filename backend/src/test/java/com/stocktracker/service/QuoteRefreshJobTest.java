@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.persistence.QuoteRepository;
+import com.stocktracker.scheduler.QuoteRefreshJob;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;

@@ -7,6 +7,7 @@ import com.stocktracker.dto.AddInstrumentResponse;
 import com.stocktracker.dto.InstrumentSearchResponse;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.QuoteRepository;
+import com.stocktracker.scheduler.FxRefreshJob;
 import com.stocktracker.service.provider.MarketDataProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;

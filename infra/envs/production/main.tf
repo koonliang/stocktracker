@@ -69,6 +69,11 @@ module "network" {
   nat_instance_type   = "t4g.micro"
 }
 
+resource "random_password" "scheduler_token" {
+  length  = 32
+  special = false
+}
+
 module "lambda_backend" {
   source             = "../../modules/lambda_backend"
   name_prefix        = "${local.name_prefix}-app"
@@ -89,8 +94,12 @@ module "lambda_backend" {
     QUARKUS_DATASOURCE_USERNAME     = "stocktracker"
     DATASOURCE_PASSWORD_SECRET_ARN  = module.rds_mysql.master_user_secret_arn
     QUARKUS_FLYWAY_MIGRATE_AT_START = "false"
+    QUARKUS_SCHEDULER_ENABLED       = "false"
     # Reference data is seeded by the migrator, not the request-serving backend.
     STOCKTRACKER_DEV_BOOTSTRAP_ENABLED = "false"
+    STOCKTRACKER_MARKETDATA_PROVIDER   = "yahoo"
+    STOCKTRACKER_FX_PROVIDER           = "frankfurter"
+    STOCKTRACKER_SCHEDULER_TOKEN       = random_password.scheduler_token.result
     # Production delegates identity to Cognito; the backend only validates pool-issued
     # JWTs (contracts/cognito.md). The dev /api/auth/* + dev token endpoints go dark.
     STOCKTRACKER_AUTH_MODE = "cognito"
@@ -111,6 +120,85 @@ module "cognito" {
   # enable each provider (empty by default so a base apply/validate stays clean).
   google_secret_name   = var.cognito_google_secret_name
   facebook_secret_name = var.cognito_facebook_secret_name
+}
+
+# ---------- EventBridge batch jobs ----------
+# The HTTP Lambda runs with Quarkus' in-process scheduler disabled because Lambda
+# freezes execution between requests. EventBridge invokes the same Lambda alias
+# with API Gateway v2-shaped payloads so the Quarkus HTTP handler can route to
+# internal job endpoints.
+
+locals {
+  scheduler_headers = {
+    "content-type"                   = "application/json"
+    "x-stocktracker-scheduler-token" = random_password.scheduler_token.result
+  }
+
+  scheduler_jobs = {
+    quote-refresh = {
+      schedule = "rate(1 minute)"
+      path     = "/api/internal/jobs/quote-refresh"
+    }
+    token-cleanup = {
+      schedule = "rate(1 hour)"
+      path     = "/api/internal/jobs/token-cleanup"
+    }
+    fx-refresh = {
+      schedule = "cron(0 1 * * ? *)"
+      path     = "/api/internal/jobs/fx-refresh"
+    }
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "scheduler_job" {
+  for_each            = local.scheduler_jobs
+  name                = "${local.name_prefix}-${each.key}"
+  description         = "Runs StockTracker ${each.key} batch job"
+  schedule_expression = each.value.schedule
+}
+
+resource "aws_cloudwatch_event_target" "scheduler_job" {
+  for_each = local.scheduler_jobs
+  rule     = aws_cloudwatch_event_rule.scheduler_job[each.key].name
+  arn      = module.lambda_backend.alias_arn
+
+  input = jsonencode({
+    version        = "2.0"
+    routeKey       = "POST ${each.value.path}"
+    rawPath        = each.value.path
+    rawQueryString = ""
+    headers        = local.scheduler_headers
+    requestContext = {
+      accountId    = "eventbridge"
+      apiId        = "eventbridge"
+      domainName   = "eventbridge"
+      domainPrefix = "eventbridge"
+      http = {
+        method    = "POST"
+        path      = each.value.path
+        protocol  = "HTTP/1.1"
+        sourceIp  = "events.amazonaws.com"
+        userAgent = "Amazon EventBridge"
+      }
+      requestId = each.key
+      routeKey  = "POST ${each.value.path}"
+      stage     = "$default"
+      time      = ""
+      timeEpoch = 0
+    }
+    body            = ""
+    isBase64Encoded = false
+  })
+}
+
+resource "aws_lambda_permission" "eventbridge_scheduler" {
+  for_each      = local.scheduler_jobs
+  statement_id  = "AllowEventBridge${replace(title(replace(each.key, "-", " ")), " ", "")}"
+  action        = "lambda:InvokeFunction"
+  function_name = module.lambda_backend.function_name
+  qualifier     = module.lambda_backend.alias_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.scheduler_job[each.key].arn
 }
 
 module "rds_mysql" {
