@@ -36,6 +36,10 @@ locals {
 
 resource "aws_s3_bucket" "tfstate" {
   bucket = local.state_bucket
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_s3_bucket_versioning" "tfstate" {
@@ -73,6 +77,10 @@ resource "aws_dynamodb_table" "tflock" {
   attribute {
     name = "LockID"
     type = "S"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
@@ -131,6 +139,10 @@ data "aws_iam_policy_document" "gha_plan_trust" {
 resource "aws_iam_role" "gha_plan" {
   name               = "gha-plan-production"
   assume_role_policy = data.aws_iam_policy_document.gha_plan_trust.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Read-only across all AWS services is provided by AWS's managed policy.
@@ -202,6 +214,10 @@ data "aws_iam_policy_document" "gha_deploy_trust" {
 resource "aws_iam_role" "gha_deploy" {
   name               = "gha-deploy-production"
   assume_role_policy = data.aws_iam_policy_document.gha_deploy_trust.json
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 # Broad management of the resources Terraform owns. Scoped by tag/ARN where
@@ -223,6 +239,15 @@ data "aws_iam_policy_document" "gha_deploy_permissions" {
       "secretsmanager:*",
       "dynamodb:*",
       "cognito-idp:*",
+      "events:DeleteRule",
+      "events:DescribeRule",
+      "events:ListTagsForResource",
+      "events:ListTargetsByRule",
+      "events:PutRule",
+      "events:PutTargets",
+      "events:RemoveTargets",
+      "events:TagResource",
+      "events:UntagResource",
       # RDS `manage_master_user_password` stores the master credential in
       # Secrets Manager encrypted by the default `aws/secretsmanager` KMS key.
       # The calling principal must resolve and grant use of that key, else

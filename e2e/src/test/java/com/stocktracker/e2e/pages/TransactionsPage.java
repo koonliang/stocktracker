@@ -6,6 +6,8 @@ import java.io.File;
 import java.nio.file.Path;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.Select;
 
 /** Transactions ledger at route {@code /transactions}: CSV import (preview + commit) and export. */
 public class TransactionsPage {
@@ -13,6 +15,7 @@ public class TransactionsPage {
   private static final By IMPORT_INPUT = By.cssSelector("[data-testid='csv-import-input']");
   private static final By EXPORT_BUTTON = By.cssSelector("[data-testid='csv-export']");
   private static final By TRANSACTIONS_TABLE = By.cssSelector("[data-testid='transactions-table']");
+  private static final By TRANSACTION_FORM = By.cssSelector("[data-testid='transaction-form']");
   private static final By CONFIRM_IMPORT =
       By.xpath("//button[contains(normalize-space(.), 'Confirm import')]");
 
@@ -41,6 +44,35 @@ public class TransactionsPage {
                 + "']"));
   }
 
+  public TransactionsPage recordBuy(String ticker, String quantity, String price) {
+    waitForForm();
+    new Select(driver.findElement(By.id("transaction-type"))).selectByValue("buy");
+    set(By.id("transaction-ticker"), ticker);
+    set(By.id("transaction-quantity"), quantity);
+    set(By.id("transaction-price"), price);
+    driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
+    waitForTicker(ticker);
+    return this;
+  }
+
+  public TransactionsPage recordSplit(String ticker, String ratio) {
+    waitForForm();
+    new Select(driver.findElement(By.id("transaction-type"))).selectByValue("split");
+    set(By.id("transaction-ticker"), ticker);
+    set(By.id("transaction-quantity"), ratio);
+    driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
+    waitForType("split");
+    return this;
+  }
+
+  public void waitForType(String type) {
+    waits.untilVisible(
+        By.xpath(
+            "//*[@data-testid='transactions-table']//tbody//td//*[normalize-space(.)='"
+                + type
+                + "']"));
+  }
+
   public TransactionsPage export() {
     waits.untilClickable(EXPORT_BUTTON).click();
     return this;
@@ -65,5 +97,15 @@ public class TransactionsPage {
 
   public boolean isTableVisible() {
     return !driver.findElements(TRANSACTIONS_TABLE).isEmpty();
+  }
+
+  private void waitForForm() {
+    waits.untilVisible(TRANSACTION_FORM);
+  }
+
+  private void set(By locator, String value) {
+    WebElement element = waits.untilVisible(locator);
+    element.clear();
+    element.sendKeys(value);
   }
 }

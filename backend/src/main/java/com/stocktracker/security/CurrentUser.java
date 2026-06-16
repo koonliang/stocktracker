@@ -8,6 +8,7 @@ import com.stocktracker.service.AccountLinkingService;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.json.JsonArray;
+import jakarta.json.JsonNumber;
 import jakarta.json.JsonValue;
 import jakarta.ws.rs.core.Response.Status;
 import java.time.Instant;
@@ -184,6 +185,9 @@ public class CurrentUser {
     var claim = jwt.getClaim("st_iat_ms");
     if (claim instanceof Number number) {
       return number.longValue();
+    }
+    if (claim instanceof JsonNumber jsonNumber) {
+      return jsonNumber.longValue();
     }
     if (claim instanceof String value) {
       try {

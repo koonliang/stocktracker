@@ -87,6 +87,36 @@ Password policy: minimum 8 characters with an uppercase, lowercase, and digit
 ./mvnw -DskipTests compile
 ```
 
+## Scheduling Jobs
+
+Batch jobs live in `com.stocktracker.scheduler`:
+
+- `QuoteRefreshJob` refreshes cached market quotes for symbols currently held
+  or watched.
+- `FxRefreshJob` refreshes daily FX rates for currencies in use.
+- `TokenCleanupJob` purges expired or consumed verification/reset tokens.
+
+Local development uses Quarkus' in-process scheduler, so `docker compose up`
+and `./mvnw quarkus:dev` run those jobs inside the backend process.
+
+Production disables the in-process scheduler on the request-serving Lambda with
+`QUARKUS_SCHEDULER_ENABLED=false`. Lambda can freeze execution between requests,
+which makes background transactions unsafe for long-running schedulers. Instead,
+Terraform creates EventBridge rules that invoke the backend Lambda alias with
+API Gateway v2-shaped payloads:
+
+```text
+POST /api/internal/jobs/quote-refresh   every 1 minute
+POST /api/internal/jobs/token-cleanup   every 1 hour
+POST /api/internal/jobs/fx-refresh      daily at 01:00 UTC
+```
+
+Those internal endpoints require `x-stocktracker-scheduler-token`; production
+sets the token from Terraform and includes it in each EventBridge payload. The
+request-serving Lambda also sets `STOCKTRACKER_MARKETDATA_PROVIDER=yahoo` and
+`STOCKTRACKER_FX_PROVIDER=frankfurter`, so scheduled refreshes use the real
+providers in production.
+
 ## Database migrations
 
 Migrations use [Flyway](https://flywaydb.org/) and live in

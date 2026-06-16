@@ -155,14 +155,28 @@ public class WatchlistService {
   }
 
   private WatchlistResponse.WatchlistItemView toView(Watchlist watchlist) {
-    var items =
+    var tickers =
         watchlistRepository.listItems(watchlist.id).stream()
             .map(item -> item.instrumentSymbol)
+            .toList();
+    var instrumentsBySymbol = instrumentRepository.findBySymbols(tickers);
+    var instruments =
+        tickers.stream()
+            .map(instrumentsBySymbol::get)
+            .filter(java.util.Objects::nonNull)
+            .map(
+                instrument ->
+                    new WatchlistResponse.WatchlistInstrumentView(
+                        instrument.symbol,
+                        instrument.name,
+                        instrument.exchange,
+                        instrument.currency))
             .toList();
     return new WatchlistResponse.WatchlistItemView(
         watchlist.id.toString(),
         watchlist.name,
-        items,
+        tickers,
+        instruments,
         watchlist.createdAt.toString(),
         watchlist.updatedAt.toString());
   }

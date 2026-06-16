@@ -3,6 +3,7 @@ import { useUiStore } from '@/stores/uiStore';
 import { useAuth } from '@/auth/AuthProvider';
 import { useAuthStore } from '@/stores/authStore';
 import { TickerSearch } from './TickerSearch';
+import { BaseCurrencySelect } from './BaseCurrencySelect';
 
 export function TopBar() {
   const theme = useUiStore((s) => s.theme);
@@ -21,11 +22,14 @@ export function TopBar() {
           <span className="text-small text-text-muted">{user.email}</span>
         </div>
       ) : null}
+      <div className="ml-auto">
+        <BaseCurrencySelect />
+      </div>
       <button
         type="button"
         onClick={toggle}
         aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-surface text-text-muted transition-colors hover:border-border-strong hover:text-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
       >
         {theme === 'dark' ? <Sun size={16} aria-hidden /> : <Moon size={16} aria-hidden />}
       </button>

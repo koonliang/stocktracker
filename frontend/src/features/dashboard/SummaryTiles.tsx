@@ -1,5 +1,5 @@
 import type { PortfolioSummary } from '@/lib/types';
-import { formatCurrency, formatSignedCurrency, formatSignedPercent } from '@/lib/format';
+import { formatCurrencyCode, formatSignedCurrencyCode, formatSignedPercent } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 type Props = { summary: PortfolioSummary };
@@ -52,22 +52,26 @@ function tone(n: number): 'positive' | 'negative' | 'neutral' {
 }
 
 export function SummaryTiles({ summary }: Props) {
+  const base = summary.baseCurrency;
   return (
     <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-testid="summary-tiles">
       <Tile
         eyebrow="Market Value"
-        value={formatCurrency(summary.totalMarketValue, { cents: false })}
+        value={formatCurrencyCode(summary.totalMarketValue, base, { cents: false })}
       />
-      <Tile eyebrow="Cost Basis" value={formatCurrency(summary.totalCostBasis, { cents: false })} />
+      <Tile
+        eyebrow="Cost Basis"
+        value={formatCurrencyCode(summary.totalCostBasis, base, { cents: false })}
+      />
       <Tile
         eyebrow="Unrealised P&L"
-        value={formatSignedCurrency(summary.totalUnrealizedPnL, { cents: false })}
+        value={formatSignedCurrencyCode(summary.totalUnrealizedPnL, base, { cents: false })}
         deltaPct={formatSignedPercent(summary.totalUnrealizedPnLPct)}
         tone={tone(summary.totalUnrealizedPnL)}
       />
       <Tile
         eyebrow="Today"
-        value={formatSignedCurrency(summary.totalDayChange, { cents: false })}
+        value={formatSignedCurrencyCode(summary.totalDayChange, base, { cents: false })}
         deltaPct={formatSignedPercent(summary.totalDayChangePct)}
         tone={tone(summary.totalDayChange)}
       />

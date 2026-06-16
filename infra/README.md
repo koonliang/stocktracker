@@ -116,19 +116,35 @@ live origin.
 
 ## One-time bootstrap
 
-The bootstrap stack uses local state. Run it once per AWS account to provision
-the things Terraform itself needs: the remote-state bucket, the lock table,
-the GitHub OIDC provider, and the two IAM roles (`gha-plan-production` and
-`gha-deploy-production`).
+The bootstrap stack provisions the things Terraform itself needs: the
+remote-state bucket, the lock table, the GitHub OIDC provider, and the two IAM
+roles (`gha-plan-production` and `gha-deploy-production`).
+
+For a brand-new AWS account, the first bootstrap apply must start from local
+state because the S3 backend does not exist yet. Initialize with
+`-backend=false` for that first run only. After that first apply, migrate the
+bootstrap state into the S3 backend and use remote state for all future
+bootstrap updates. Do not commit `terraform.tfstate`.
 
 ```bash
 cd infra/bootstrap
-terraform init
+terraform init -backend=false
 terraform apply \
   -var "github_org=koonliang" \
   -var "github_repo=stocktracker" \
   -var "aws_region=ap-southeast-1"
 ```
+
+After the state bucket and lock table exist, run:
+
+```bash
+terraform init -migrate-state
+```
+
+If you already have bootstrap resources and recovered the previous local
+`terraform.tfstate`, run `terraform init -migrate-state` before planning. A
+bootstrap plan that wants to create the state bucket, lock table, or GitHub
+roles usually means Terraform is not reading the existing bootstrap state.
 
 Record the outputs (`state_bucket_name`, `lock_table_name`, the two role ARNs)
 into:

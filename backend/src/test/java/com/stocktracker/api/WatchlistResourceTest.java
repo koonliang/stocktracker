@@ -50,6 +50,7 @@ class WatchlistResourceTest extends IntegrationTestSupport {
             .extract()
             .as(WatchlistResponse.WatchlistItemView.class);
     assertEquals(List.of("NVDA"), withNvda.tickers());
+    assertEquals("NVIDIA Corporation", withNvda.instruments().getFirst().name());
 
     given()
         .contentType(ContentType.JSON)
@@ -71,6 +72,11 @@ class WatchlistResourceTest extends IntegrationTestSupport {
             .as(WatchlistResponse.WatchlistItemView.class);
 
     assertIterableEquals(List.of("AAPL", "NVDA"), reordered.tickers());
+    assertIterableEquals(
+        List.of("Apple Inc.", "NVIDIA Corporation"),
+        reordered.instruments().stream()
+            .map(WatchlistResponse.WatchlistInstrumentView::name)
+            .toList());
   }
 
   @Test

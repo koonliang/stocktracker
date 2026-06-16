@@ -7,6 +7,7 @@ import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
 @Path("/api/instruments")
@@ -16,7 +17,8 @@ public class InstrumentResource {
 
   @GET
   @Path("/{ticker}")
-  public InstrumentAnalysisResponse getInstrument(@PathParam("ticker") String ticker) {
-    return instrumentService.getAnalysis(ticker);
+  public InstrumentAnalysisResponse getInstrument(
+      @PathParam("ticker") String ticker, @QueryParam("range") String range) {
+    return instrumentService.getAnalysis(ticker, range);
   }
 }

@@ -11,7 +11,7 @@ describe('ExportButton', () => {
     await user.click(screen.getByRole('button', { name: /Export CSV/i }));
     expect(onExport).toHaveBeenCalledOnce();
     const [csv, filename] = onExport.mock.calls[0]!;
-    expect(csv.split('\n')[0]).toBe('date,ticker,type,quantity,price,fees');
+    expect(csv.split('\n')[0]).toBe('date,ticker,type,quantity,price,fees,amount,currency');
     expect(csv).not.toContain('\r');
     expect(filename).toMatch(/^stocktracker-transactions-\d{8}\.csv$/);
   });

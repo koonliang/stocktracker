@@ -33,6 +33,7 @@ const result: TransactionImportPreviewResponse = {
     },
   ],
   headerErrors: [],
+  detectedVersion: 'v2',
 };
 
 describe('ImportPreview', () => {
@@ -54,7 +55,12 @@ describe('ImportPreview', () => {
   it('disables confirm when there are no valid rows', () => {
     render(
       <ImportPreview
-        result={{ validRows: [], invalidRows: result.invalidRows, headerErrors: [] }}
+        result={{
+          validRows: [],
+          invalidRows: result.invalidRows,
+          headerErrors: [],
+          detectedVersion: 'v2',
+        }}
         onConfirm={() => {}}
         onCancel={() => {}}
       />,
@@ -65,7 +71,12 @@ describe('ImportPreview', () => {
   it('renders header errors instead of the table when malformed', () => {
     render(
       <ImportPreview
-        result={{ validRows: [], invalidRows: [], headerErrors: ['missing required column: date'] }}
+        result={{
+          validRows: [],
+          invalidRows: [],
+          headerErrors: ['missing required column: date'],
+          detectedVersion: 'unknown',
+        }}
         onConfirm={() => {}}
         onCancel={() => {}}
       />,

@@ -1,4 +1,4 @@
-package com.stocktracker.service;
+package com.stocktracker.scheduler;
 
 import com.stocktracker.persistence.VerificationTokenRepository;
 import io.quarkus.scheduler.Scheduled;
@@ -17,7 +17,7 @@ public class TokenCleanupJob {
 
   @Scheduled(every = "1h")
   @Transactional
-  void purge() {
+  public void purge() {
     long removed = tokens.deleteExpiredOrConsumed(LocalDateTime.now());
     if (removed > 0) {
       LOG.infof("event=token_cleanup removed=%d", removed);

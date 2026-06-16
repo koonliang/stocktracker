@@ -1,5 +1,7 @@
 package com.stocktracker.support;
 
+import com.stocktracker.domain.Alert;
+import com.stocktracker.domain.Notification;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.domain.Watchlist;
 import com.stocktracker.domain.WatchlistItem;
@@ -25,12 +27,27 @@ public abstract class IntegrationTestSupport {
         () -> {
           WatchlistItem.deleteAll();
           Watchlist.deleteAll();
+          Notification.deleteAll();
+          Alert.deleteAll();
           PortfolioTransaction.deleteAll();
         });
   }
 
   protected Long persistTransaction(
       String date, String ticker, String type, String quantity, String price, String fees)
+      throws Exception {
+    return persistTransaction(date, ticker, type, quantity, price, fees, null, null);
+  }
+
+  protected Long persistTransaction(
+      String date,
+      String ticker,
+      String type,
+      String quantity,
+      String price,
+      String fees,
+      String amount,
+      String currency)
       throws Exception {
     var holder = new Long[1];
     inTransaction(
@@ -43,6 +60,8 @@ public abstract class IntegrationTestSupport {
           transaction.quantity = new BigDecimal(quantity);
           transaction.price = new BigDecimal(price);
           transaction.fees = new BigDecimal(fees);
+          transaction.amount = amount == null ? null : new BigDecimal(amount);
+          transaction.currency = currency;
           transaction.source = "MANUAL";
           transactionRepository.persist(transaction);
           holder[0] = transaction.id;

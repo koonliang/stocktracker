@@ -4,10 +4,10 @@ import { ArrowDown, ArrowUp, ArrowUpDown } from 'lucide-react';
 import type { Holding } from '@/lib/types';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import {
-  formatCurrency,
+  formatCurrencyCode,
   formatPercent,
   formatShares,
-  formatSignedCurrency,
+  formatSignedCurrencyCode,
   formatSignedPercent,
 } from '@/lib/format';
 import { cn } from '@/lib/cn';
@@ -35,109 +35,129 @@ type Column = {
   render: (h: Holding) => React.ReactNode;
 };
 
-const columns: Column[] = [
-  {
-    key: 'ticker',
-    label: 'Ticker',
-    align: 'left',
-    sortable: true,
-    render: (h) => (
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="font-mono text-title font-semibold leading-none text-text">
-          {h.ticker}
-        </span>
-        <span className="truncate text-small text-text-muted">{h.name}</span>
-      </div>
-    ),
-  },
-  {
-    key: 'shares',
-    label: 'Shares',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    hideClass: 'hidden sm:table-cell',
-    render: (h) => formatShares(h.shares),
-  },
-  {
-    key: 'averageCost',
-    label: 'Avg Cost',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    hideClass: 'hidden lg:table-cell',
-    render: (h) => formatCurrency(h.averageCost),
-  },
-  {
-    key: 'currentPrice',
-    label: 'Price',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    hideClass: 'hidden md:table-cell',
-    render: (h) => formatCurrency(h.currentPrice),
-  },
-  {
-    key: 'marketValue',
-    label: 'Market Value',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    render: (h) => formatCurrency(h.marketValue, { cents: false }),
-  },
-  {
-    key: 'weight',
-    label: 'Weight',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    hideClass: 'hidden xl:table-cell',
-    render: (h) => formatPercent(h.weight),
-  },
-  {
-    key: 'unrealizedPnL',
-    label: 'P&L',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    render: (h) => (
-      <div
-        className={cn(
-          'inline-flex flex-col items-end leading-tight',
-          h.unrealizedPnL > 0 && 'delta-positive',
-          h.unrealizedPnL < 0 && 'delta-negative',
-        )}
-      >
-        <span>{formatSignedCurrency(h.unrealizedPnL)}</span>
-        <span className="text-small opacity-80">{formatSignedPercent(h.unrealizedPnLPct)}</span>
-      </div>
-    ),
-  },
-  {
-    key: 'dayChange',
-    label: 'Today',
-    align: 'right',
-    sortable: true,
-    mono: true,
-    render: (h) => (
-      <div
-        className={cn(
-          'inline-flex flex-col items-end leading-tight',
-          h.dayChange > 0 && 'delta-positive',
-          h.dayChange < 0 && 'delta-negative',
-        )}
-      >
-        <span>{formatSignedCurrency(h.dayChange)}</span>
-        <span className="text-small opacity-80">{formatSignedPercent(h.dayChangePct)}</span>
-      </div>
-    ),
-  },
-];
+function buildColumns(baseCurrency?: string): Column[] {
+  return [
+    {
+      key: 'ticker',
+      label: 'Ticker',
+      align: 'left',
+      sortable: true,
+      render: (h) => (
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-mono text-title font-semibold leading-none text-text">
+            {h.ticker}
+          </span>
+          <span className="truncate text-small text-text-muted">{h.name}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'shares',
+      label: 'Shares',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      hideClass: 'hidden sm:table-cell',
+      render: (h) => formatShares(h.shares),
+    },
+    {
+      key: 'averageCost',
+      label: 'Avg Cost',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      hideClass: 'hidden lg:table-cell',
+      render: (h) => formatCurrencyCode(h.averageCost, h.currency),
+    },
+    {
+      key: 'currentPrice',
+      label: 'Price',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      hideClass: 'hidden md:table-cell',
+      render: (h) => formatCurrencyCode(h.currentPrice, baseCurrency),
+    },
+    {
+      key: 'marketValue',
+      label: 'Market Value',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      render: (h) => (
+        <div className="inline-flex flex-col items-end leading-tight">
+          <span data-testid="holding-base-value">
+            {formatCurrencyCode(h.marketValue, baseCurrency, { cents: false })}
+          </span>
+          {h.currency && h.currency !== baseCurrency && h.nativeMarketValue != null ? (
+            <span data-testid="holding-native-value" className="text-small text-text-muted">
+              {formatCurrencyCode(h.nativeMarketValue, h.currency, { cents: false })} {h.currency}
+            </span>
+          ) : null}
+        </div>
+      ),
+    },
+    {
+      key: 'weight',
+      label: 'Weight',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      hideClass: 'hidden xl:table-cell',
+      render: (h) => formatPercent(h.weight),
+    },
+    {
+      key: 'unrealizedPnL',
+      label: 'P&L',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      render: (h) => (
+        <div
+          className={cn(
+            'inline-flex flex-col items-end leading-tight',
+            h.unrealizedPnL > 0 && 'delta-positive',
+            h.unrealizedPnL < 0 && 'delta-negative',
+          )}
+        >
+          <span>{formatSignedCurrencyCode(h.unrealizedPnL, baseCurrency)}</span>
+          <span className="text-small opacity-80">{formatSignedPercent(h.unrealizedPnLPct)}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'dayChange',
+      label: 'Today',
+      align: 'right',
+      sortable: true,
+      mono: true,
+      render: (h) => (
+        <div
+          className={cn(
+            'inline-flex flex-col items-end leading-tight',
+            h.dayChange > 0 && 'delta-positive',
+            h.dayChange < 0 && 'delta-negative',
+          )}
+        >
+          <span>{formatSignedCurrencyCode(h.dayChange, baseCurrency)}</span>
+          <span className="text-small opacity-80">{formatSignedPercent(h.dayChangePct)}</span>
+        </div>
+      ),
+    },
+  ];
+}
 
-export function HoldingsTable({ holdings }: { holdings: Holding[] }) {
+export function HoldingsTable({
+  holdings,
+  baseCurrency,
+}: {
+  holdings: Holding[];
+  baseCurrency?: string;
+}) {
   const [sortKey, setSortKey] = useState<SortKey>('marketValue');
   const [direction, setDirection] = useState<Direction>('desc');
   const navigate = useNavigate();
+  const columns = useMemo(() => buildColumns(baseCurrency), [baseCurrency]);
 
   const sorted = useMemo(() => {
     const list = [...holdings];
@@ -212,11 +232,17 @@ export function HoldingsTable({ holdings }: { holdings: Holding[] }) {
         {sorted.map((h) => (
           <TR
             key={h.ticker}
-            onClick={() => navigate(`/analysis/${h.ticker}`)}
+            onClick={() =>
+              navigate(`/analysis/${h.ticker}`, {
+                state: { backTo: '/', backLabel: 'Back to dashboard' },
+              })
+            }
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                navigate(`/analysis/${h.ticker}`);
+                navigate(`/analysis/${h.ticker}`, {
+                  state: { backTo: '/', backLabel: 'Back to dashboard' },
+                });
               }
             }}
             tabIndex={0}

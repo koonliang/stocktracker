@@ -3,7 +3,16 @@ import { z } from 'zod';
 import type { Transaction } from './types';
 import { isKnownTicker } from './seed';
 
-const CANONICAL_HEADER = ['date', 'ticker', 'type', 'quantity', 'price', 'fees'] as const;
+const CANONICAL_HEADER = [
+  'date',
+  'ticker',
+  'type',
+  'quantity',
+  'price',
+  'fees',
+  'amount',
+  'currency',
+] as const;
 
 export type ParsedRow = {
   row: number; // 1-based, header is row 1; first data row is 2
@@ -33,30 +42,31 @@ export const transactionRowSchema = z
       .string()
       .trim()
       .transform((v) => v.toUpperCase())
-      .refine((v) => /^[A-Z]{1,5}$/.test(v), 'ticker must be 1–5 uppercase letters')
+      .refine((v) => v === '' || /^[A-Z0-9.]{1,16}$/.test(v), 'ticker format is invalid')
       .refine(
-        (v) => isKnownTicker(v),
+        (v) => v === '' || isKnownTicker(v),
         (v) => ({ message: `unknown ticker: ${v}` }),
       ),
     type: z
       .string()
       .trim()
       .transform((v) => v.toLowerCase())
-      .refine((v) => v === 'buy' || v === 'sell', 'type must be buy or sell'),
+      .refine(
+        (v) => ['buy', 'sell', 'dividend', 'split', 'deposit', 'withdrawal', 'fee'].includes(v),
+        'type is not supported',
+      ),
     quantity: z
       .string()
       .trim()
-      .refine((v) => v.length > 0, 'quantity is required')
-      .refine((v) => !Number.isNaN(Number(v)), 'malformed number in quantity')
+      .refine((v) => v === '' || !Number.isNaN(Number(v)), 'malformed number in quantity')
       .transform((v) => Number(v))
-      .refine((n) => n > 0, 'quantity must be > 0'),
+      .optional(),
     price: z
       .string()
       .trim()
-      .refine((v) => v.length > 0, 'price is required')
-      .refine((v) => !Number.isNaN(Number(v)), 'malformed number in price')
+      .refine((v) => v === '' || !Number.isNaN(Number(v)), 'malformed number in price')
       .transform((v) => Number(v))
-      .refine((n) => n > 0, 'price must be > 0'),
+      .optional(),
     fees: z
       .string()
       .trim()
@@ -64,14 +74,59 @@ export const transactionRowSchema = z
       .transform((v) => (v == null || v === '' ? 0 : Number(v)))
       .refine((n) => !Number.isNaN(n), 'malformed number in fees')
       .refine((n) => n >= 0, 'fees must be >= 0'),
+    amount: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v == null || v === '' ? undefined : Number(v)))
+      .refine((n) => n == null || !Number.isNaN(n), 'malformed number in amount'),
+    currency: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v == null || v === '' ? undefined : v.toUpperCase()))
+      .refine((v) => v == null || /^[A-Z]{3}$/.test(v), 'currency must be a 3-letter code'),
+  })
+  .superRefine((row, ctx) => {
+    const needsTicker = ['buy', 'sell', 'dividend', 'split'].includes(row.type);
+    const needsAmount = ['dividend', 'deposit', 'withdrawal', 'fee'].includes(row.type);
+    const needsCurrency = ['deposit', 'withdrawal', 'fee'].includes(row.type);
+    if (needsTicker && row.ticker === '') {
+      ctx.addIssue({ code: 'custom', path: ['ticker'], message: `${row.type} requires a ticker` });
+    }
+    if (!needsTicker && row.ticker !== '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['ticker'],
+        message: `${row.type} must not reference a ticker`,
+      });
+    }
+    if (['buy', 'sell', 'split'].includes(row.type) && (!row.quantity || row.quantity <= 0)) {
+      ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'quantity must be > 0' });
+    }
+    if (['buy', 'sell'].includes(row.type) && (!row.price || row.price <= 0)) {
+      ctx.addIssue({ code: 'custom', path: ['price'], message: 'price must be > 0' });
+    }
+    if (needsAmount && (!row.amount || row.amount <= 0)) {
+      ctx.addIssue({ code: 'custom', path: ['amount'], message: 'amount must be > 0' });
+    }
+    if (needsCurrency && !row.currency) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['currency'],
+        message: `${row.type} requires a currency`,
+      });
+    }
   })
   .transform((row) => ({
     date: row.date,
-    ticker: row.ticker as string,
-    type: row.type as 'buy' | 'sell',
-    quantity: row.quantity,
-    price: row.price,
+    ticker: row.ticker === '' ? null : row.ticker,
+    type: row.type as Transaction['type'],
+    quantity: row.quantity ?? 0,
+    price: row.price ?? 0,
     fees: row.fees,
+    amount: row.amount,
+    currency: row.currency,
   }));
 
 function newId(): string {
@@ -112,6 +167,8 @@ export function parseTransactionsCSV(text: string): ParseResult {
       quantity: raw.quantity ?? '',
       price: raw.price ?? '',
       fees: raw.fees,
+      amount: raw.amount,
+      currency: raw.currency,
     });
     if (parsed.success) {
       valid.push({ id: newId(), ...parsed.data });
@@ -143,11 +200,13 @@ export function serializeTransactionsCSV(transactions: Transaction[]): string {
     lines.push(
       [
         csvEscape(t.date),
-        csvEscape(t.ticker.toUpperCase()),
+        csvEscape((t.ticker ?? '').toUpperCase()),
         csvEscape(t.type.toLowerCase()),
         formatNumberCell(t.quantity, 6),
         formatNumberCell(t.price, 4),
         formatNumberCell(t.fees, 4),
+        t.amount == null ? '' : formatNumberCell(t.amount, 4),
+        csvEscape(t.currency ?? ''),
       ].join(','),
     );
   }

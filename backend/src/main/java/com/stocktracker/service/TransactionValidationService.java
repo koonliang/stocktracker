@@ -11,19 +11,32 @@ import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @ApplicationScoped
 public class TransactionValidationService {
+  /** Types that reference an instrument and contribute to a position. */
+  private static final Set<String> SECURITY_TYPES = Set.of("buy", "sell", "dividend", "split");
+
+  /** Cash-movement types: no symbol, carry amount + currency. */
+  private static final Set<String> CASH_TYPES = Set.of("deposit", "withdrawal", "fee");
+
   @Inject InstrumentRepository instrumentRepository;
 
   public TransactionRequest normalize(TransactionRequest request) {
     return new TransactionRequest(
         request.date(),
-        request.ticker().trim().toUpperCase(),
-        request.type().trim().toLowerCase(),
-        request.quantity().stripTrailingZeros(),
-        request.price().stripTrailingZeros(),
-        request.fees().stripTrailingZeros());
+        request.ticker() == null || request.ticker().isBlank()
+            ? null
+            : request.ticker().trim().toUpperCase(),
+        request.type() == null ? null : request.type().trim().toLowerCase(),
+        request.quantity() == null ? null : request.quantity().stripTrailingZeros(),
+        request.price() == null ? null : request.price().stripTrailingZeros(),
+        request.fees() == null ? BigDecimal.ZERO : request.fees().stripTrailingZeros(),
+        request.amount() == null ? null : request.amount().stripTrailingZeros(),
+        request.currency() == null || request.currency().isBlank()
+            ? null
+            : request.currency().trim().toUpperCase());
   }
 
   public void validateBatch(
@@ -42,20 +55,48 @@ public class TransactionValidationService {
     if (request.date() == null || request.date().isAfter(LocalDate.now())) {
       return "date is in the future";
     }
-    if (!instrumentRepository.existsSymbol(request.ticker())) {
-      return "unknown ticker: " + request.ticker();
+    var type = request.type();
+    if (!SECURITY_TYPES.contains(type) && !CASH_TYPES.contains(type)) {
+      return "unknown transaction type: " + type;
     }
+
+    if (SECURITY_TYPES.contains(type)) {
+      if (request.ticker() == null) {
+        return type + " requires a ticker";
+      }
+      if (!instrumentRepository.existsSymbol(request.ticker())) {
+        return "unknown ticker: " + request.ticker();
+      }
+      var currencyIssue = validateSecurityCurrency(request);
+      if (currencyIssue != null) {
+        return currencyIssue;
+      }
+    } else {
+      if (request.ticker() != null) {
+        return type + " must not reference a ticker";
+      }
+      if (request.currency() == null) {
+        return type + " requires a currency";
+      }
+    }
+
+    return switch (type) {
+      case "buy", "sell" -> validateTrade(request, shareBalances);
+      case "split" -> positiveQuantity(request, "split ratio");
+      case "dividend", "deposit", "withdrawal", "fee" -> positiveAmount(request);
+      default -> null;
+    };
+  }
+
+  private String validateTrade(TransactionRequest request, Map<String, BigDecimal> shareBalances) {
     if (request.quantity() == null || request.quantity().compareTo(BigDecimal.ZERO) <= 0) {
       return "quantity must be > 0";
     }
     if (request.price() == null || request.price().compareTo(BigDecimal.ZERO) <= 0) {
       return "price must be > 0";
     }
-    if (request.fees() == null || request.fees().compareTo(BigDecimal.ZERO) < 0) {
+    if (request.fees() != null && request.fees().compareTo(BigDecimal.ZERO) < 0) {
       return "fees must be >= 0";
-    }
-    if (!"buy".equals(request.type()) && !"sell".equals(request.type())) {
-      return "type must be buy or sell";
     }
     if ("sell".equals(request.type())) {
       var available = shareBalances.getOrDefault(request.ticker(), BigDecimal.ZERO);
@@ -66,12 +107,45 @@ public class TransactionValidationService {
     return null;
   }
 
+  private String positiveQuantity(TransactionRequest request, String label) {
+    if (request.quantity() == null || request.quantity().compareTo(BigDecimal.ZERO) <= 0) {
+      return label + " must be > 0";
+    }
+    return null;
+  }
+
+  private String positiveAmount(TransactionRequest request) {
+    if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
+      return "amount must be > 0";
+    }
+    return null;
+  }
+
+  /** A security txn's currency, if provided, must match the instrument's native currency. */
+  private String validateSecurityCurrency(TransactionRequest request) {
+    if (request.currency() == null) {
+      return null;
+    }
+    var instrument = instrumentRepository.findBySymbol(request.ticker()).orElse(null);
+    if (instrument != null && !instrument.currency.equalsIgnoreCase(request.currency())) {
+      return "currency must match the instrument currency (" + instrument.currency + ")";
+    }
+    return null;
+  }
+
   public void applyToBalances(TransactionRequest request, Map<String, BigDecimal> shareBalances) {
+    var type = request.type();
+    if (request.ticker() == null) {
+      return;
+    }
     var current = shareBalances.getOrDefault(request.ticker(), BigDecimal.ZERO);
-    if ("buy".equals(request.type())) {
-      shareBalances.put(request.ticker(), current.add(request.quantity()));
-    } else {
-      shareBalances.put(request.ticker(), current.subtract(request.quantity()));
+    switch (type) {
+      case "buy" -> shareBalances.put(request.ticker(), current.add(request.quantity()));
+      case "sell" -> shareBalances.put(request.ticker(), current.subtract(request.quantity()));
+      case "split" -> shareBalances.put(request.ticker(), current.multiply(request.quantity()));
+      default -> {
+        // dividend and cash types do not change the share balance
+      }
     }
   }
 

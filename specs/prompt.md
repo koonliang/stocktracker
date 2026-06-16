@@ -31,3 +31,25 @@ Backend flow: Lambda -> MySQL
 - for dev mode, user id and password will be sufficient
 - for production mode in aws, suggest if it should integrate with Cognito or use DynamoDB (include a cost analysis)
 - include an account sign up feature and reset password
+
+# 006-live-data-analytics
+### 1. Live Market Data Integration
+Replace the static seed price snapshots with a real quote provider (e.g., Alpha
+Vantage, Finnhub, or Yahoo Finance via a backend proxy).
+- Backend: scheduled refresh job + cache table; expose `/quotes?symbols=...`.
+- Frontend: poll or SSE stream so dashboard tiles and watchlist rows tick.
+- Includes rate-limit handling and a "last updated" indicator per quote.
+### 2. Dividends, Splits & Cash Transactions
+Extend the transaction model beyond buy/sell.
+- New types: `dividend`, `split`, `deposit`, `withdrawal`, `fee`.
+- Update cost-basis and P&L calculations to handle splits retroactively.
+- Update CSV schema (with backwards-compatible parsing of the v1 schema).
+### 3. Realized vs. Unrealized P&L Reporting
+Today the dashboard only shows unrealized P&L. Add:
+- Realized P&L per closed lot (FIFO by default, optional LIFO/specific-lot).
+- A "Performance" page with cumulative return chart, time-weighted return,
+  and a per-holding contribution breakdown.
+### 4. Price Alerts & Notifications
+Let users set thresholds on a ticker (price >, price <, % change).
+- Backend: alert evaluation on each quote refresh; persist in MySQL.
+- Delivery: in-app toast first; email/push notifications later.

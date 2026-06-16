@@ -1,11 +1,19 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ListChecks, ArrowLeftRight } from 'lucide-react';
+import {
+  Bell,
+  ChartNoAxesCombined,
+  LayoutDashboard,
+  ListChecks,
+  ArrowLeftRight,
+} from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const items = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/watchlists', label: 'Watchlists', icon: ListChecks },
   { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { to: '/performance', label: 'Returns', icon: ChartNoAxesCombined },
+  { to: '/alerts', label: 'Alerts', icon: Bell },
 ];
 
 export function BottomTabBar({ className }: { className?: string }) {

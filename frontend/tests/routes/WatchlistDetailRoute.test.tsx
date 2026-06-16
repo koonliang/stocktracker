@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WatchlistDetailRoute } from '@/routes/WatchlistDetailRoute';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { loadTickers } from '@/lib/seed';
+import { setMockApiState } from '@/test/server';
 
 function reset() {
   localStorage.clear();
@@ -41,7 +42,34 @@ describe('WatchlistDetailRoute', () => {
     if (!res.ok) throw new Error('create failed');
     setup(res.id);
     expect(await screen.findByRole('heading', { name: /Tech/i, level: 1 })).toBeInTheDocument();
-    expect(screen.getByLabelText(/Add ticker/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Search symbols/i)).toBeInTheDocument();
+  });
+
+  it('renders backend instrument names for symbols outside the frontend seed catalog', async () => {
+    setMockApiState({
+      watchlists: [
+        {
+          id: 'global',
+          name: 'Global ETFs',
+          tickers: ['VWRA.L'],
+          instruments: [
+            {
+              symbol: 'VWRA.L',
+              name: 'Vanguard FTSE All-World UCITS ETF',
+              exchange: 'LSE',
+              currency: 'USD',
+            },
+          ],
+          createdAt: '2026-06-14T00:00:00',
+          updatedAt: '2026-06-14T00:00:00',
+        },
+      ],
+    });
+
+    setup('global');
+
+    expect(await screen.findByText('VWRA.L')).toBeInTheDocument();
+    expect(await screen.findByText('Vanguard FTSE All-World UCITS ETF')).toBeInTheDocument();
   });
 
   it('removes a ticker when its remove button is clicked', async () => {

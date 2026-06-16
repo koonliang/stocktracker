@@ -46,11 +46,13 @@ export function ImportPreview({ result, pending = false, onConfirm, onCancel }: 
       status: 'valid',
       raw: {
         date: row.normalized.date,
-        ticker: row.normalized.ticker,
+        ticker: row.normalized.ticker ?? '',
         type: row.normalized.type,
         quantity: String(row.normalized.quantity),
         price: String(row.normalized.price),
         fees: String(row.normalized.fees),
+        amount: row.normalized.amount == null ? '' : String(row.normalized.amount),
+        currency: row.normalized.currency ?? '',
       },
     });
   });
@@ -68,6 +70,12 @@ export function ImportPreview({ result, pending = false, onConfirm, onCancel }: 
           </span>
           <span className="rounded-full bg-negative/10 px-3 py-1 font-medium text-negative">
             {invalidCount} invalid
+          </span>
+          <span
+            data-testid="csv-version"
+            className="rounded-full bg-surface-alt px-3 py-1 font-medium text-text-muted"
+          >
+            CSV {result.detectedVersion}
           </span>
         </div>
         <div className="flex gap-2">
@@ -91,6 +99,8 @@ export function ImportPreview({ result, pending = false, onConfirm, onCancel }: 
               <TH align="right">Qty</TH>
               <TH align="right">Price</TH>
               <TH align="right">Fees</TH>
+              <TH align="right">Amount</TH>
+              <TH>Currency</TH>
             </TR>
           </THead>
           <TBody>
@@ -120,6 +130,10 @@ export function ImportPreview({ result, pending = false, onConfirm, onCancel }: 
                 <TD align="right" mono>
                   {item.raw.fees ?? '0'}
                 </TD>
+                <TD align="right" mono>
+                  {item.raw.amount ?? ''}
+                </TD>
+                <TD mono>{item.raw.currency ?? ''}</TD>
               </TR>
             ))}
           </TBody>

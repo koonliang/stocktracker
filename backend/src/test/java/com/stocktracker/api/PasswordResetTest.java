@@ -72,6 +72,18 @@ class PasswordResetTest extends IntegrationTestSupport {
         .path("token");
   }
 
+  private String loginToken(String password) {
+    return given()
+        .contentType(ContentType.JSON)
+        .body(Map.of("email", EMAIL, "password", password))
+        .when()
+        .post("/api/auth/login")
+        .then()
+        .statusCode(200)
+        .extract()
+        .path("token");
+  }
+
   private int loginStatus(String password) {
     return given()
         .contentType(ContentType.JSON)
@@ -110,7 +122,14 @@ class PasswordResetTest extends IntegrationTestSupport {
         .statusCode(200)
         .body("status", equalTo("reset"));
 
-    Assertions.assertEquals(200, loginStatus(NEW_PASSWORD));
+    var newToken = loginToken(NEW_PASSWORD);
+    given()
+        .header("Authorization", "Bearer " + newToken)
+        .when()
+        .get("/api/auth/me")
+        .then()
+        .statusCode(200)
+        .body("email", equalTo(EMAIL));
     Assertions.assertEquals(401, loginStatus(OLD_PASSWORD));
   }
 

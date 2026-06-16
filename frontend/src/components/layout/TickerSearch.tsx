@@ -23,7 +23,9 @@ export function TickerSearch() {
   function select(symbol: string) {
     setQuery('');
     setOpen(false);
-    navigate(`/analysis/${symbol}`);
+    navigate(`/analysis/${symbol}`, {
+      state: { backTo: '/', backLabel: 'Back to dashboard' },
+    });
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {

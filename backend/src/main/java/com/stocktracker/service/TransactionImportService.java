@@ -19,6 +19,8 @@ import org.apache.commons.csv.CSVRecord;
 public class TransactionImportService {
   private static final List<String> REQUIRED_HEADERS =
       List.of("date", "ticker", "type", "quantity", "price");
+  private static final List<String> CANONICAL_RAW_FIELDS =
+      List.of("date", "ticker", "type", "quantity", "price", "fees", "amount", "currency");
 
   @Inject PortfolioService portfolioService;
   @Inject TransactionValidationService transactionValidationService;
@@ -50,31 +52,30 @@ public class TransactionImportService {
         // optional
       }
       if (!headerErrors.isEmpty()) {
-        return new TransactionImportPreviewResponse(validRows, invalidRows, headerErrors);
+        return new TransactionImportPreviewResponse(validRows, invalidRows, headerErrors, "unknown");
       }
 
+      var records = parser.getRecords();
+      var detectedVersion = detectVersion(headerMap.keySet(), records);
       var balances = portfolioService.currentShareBalances();
-      for (CSVRecord record : parser) {
-        var raw =
-            Map.of(
-                "date", record.isMapped("date") ? record.get("date") : "",
-                "ticker", record.isMapped("ticker") ? record.get("ticker") : "",
-                "type", record.isMapped("type") ? record.get("type") : "",
-                "quantity", record.isMapped("quantity") ? record.get("quantity") : "",
-                "price", record.isMapped("price") ? record.get("price") : "",
-                "fees", record.isMapped("fees") ? record.get("fees") : "");
+      for (CSVRecord record : records) {
+        var raw = raw(record);
         try {
           var request =
               transactionValidationService.normalize(
                   new TransactionRequest(
                       LocalDate.parse(raw.get("date")),
-                      raw.get("ticker").trim().toUpperCase(Locale.ROOT),
+                      blankToNull(raw.get("ticker")) == null
+                          ? null
+                          : raw.get("ticker").trim().toUpperCase(Locale.ROOT),
                       raw.get("type").trim().toLowerCase(Locale.ROOT),
-                      new BigDecimal(raw.get("quantity")),
-                      new BigDecimal(raw.get("price")),
-                      raw.get("fees").isBlank()
-                          ? BigDecimal.ZERO
-                          : new BigDecimal(raw.get("fees"))));
+                      decimalOrNull(raw.get("quantity")),
+                      decimalOrNull(raw.get("price")),
+                      raw.get("fees").isBlank() ? BigDecimal.ZERO : new BigDecimal(raw.get("fees")),
+                      decimalOrNull(raw.get("amount")),
+                      blankToNull(raw.get("currency")) == null
+                          ? null
+                          : raw.get("currency").trim().toUpperCase(Locale.ROOT)));
           var issue = transactionValidationService.validate(request, balances);
           if (issue != null) {
             invalidRows.add(
@@ -94,11 +95,40 @@ public class TransactionImportService {
                   raw));
         }
       }
+      return new TransactionImportPreviewResponse(
+          validRows, invalidRows, headerErrors, detectedVersion);
     } catch (Exception exception) {
       headerErrors.add("unable to parse CSV");
     }
 
-    return new TransactionImportPreviewResponse(validRows, invalidRows, headerErrors);
+    return new TransactionImportPreviewResponse(validRows, invalidRows, headerErrors, "unknown");
+  }
+
+  private String detectVersion(java.util.Set<String> headers, List<CSVRecord> records) {
+    if (headers.contains("amount") || headers.contains("currency")) {
+      return "v2";
+    }
+    return records.stream()
+            .map(record -> record.isMapped("type") ? record.get("type") : "")
+            .anyMatch(type -> !type.equalsIgnoreCase("buy") && !type.equalsIgnoreCase("sell"))
+        ? "v2"
+        : "v1";
+  }
+
+  private Map<String, String> raw(CSVRecord record) {
+    var raw = new java.util.LinkedHashMap<String, String>();
+    for (var field : CANONICAL_RAW_FIELDS) {
+      raw.put(field, record.isMapped(field) ? record.get(field) : "");
+    }
+    return raw;
+  }
+
+  private BigDecimal decimalOrNull(String value) {
+    return value == null || value.isBlank() ? null : new BigDecimal(value);
+  }
+
+  private String blankToNull(String value) {
+    return value == null || value.isBlank() ? null : value;
   }
 
   private String stripBom(String text) {

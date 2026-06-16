@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import { Dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
-import { formatCurrency, formatDateISO, formatShares } from '@/lib/format';
+import { formatCurrency, formatCurrencyCode, formatDateISO, formatShares } from '@/lib/format';
 import type { Transaction } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
@@ -13,6 +13,19 @@ type Props = {
 };
 
 type Direction = 'asc' | 'desc';
+
+function displayAmount(tx: Transaction) {
+  if (tx.amount != null) {
+    return tx.amount;
+  }
+  if (tx.type === 'buy') {
+    return tx.quantity * tx.price + tx.fees;
+  }
+  if (tx.type === 'sell') {
+    return tx.quantity * tx.price - tx.fees;
+  }
+  return null;
+}
 
 export function TransactionsTable({ transactions, onDelete }: Props) {
   const [direction, setDirection] = useState<Direction>('desc');
@@ -44,6 +57,8 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
             <TH align="right">Qty</TH>
             <TH align="right">Price</TH>
             <TH align="right">Fees</TH>
+            <TH align="right">Amount</TH>
+            <TH>Currency</TH>
             <TH align="right">
               <span className="sr-only">Actions</span>
             </TH>
@@ -60,7 +75,7 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
                 <span
                   className={cn(
                     'inline-flex items-center rounded px-2 py-0.5 text-small font-medium uppercase',
-                    tx.type === 'buy'
+                    tx.type === 'buy' || tx.type === 'deposit' || tx.type === 'dividend'
                       ? 'bg-positive/10 text-positive'
                       : 'bg-negative/10 text-negative',
                   )}
@@ -69,14 +84,18 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
                 </span>
               </TD>
               <TD align="right" mono>
-                {formatShares(tx.quantity)}
+                {tx.quantity ? formatShares(tx.quantity) : '—'}
               </TD>
               <TD align="right" mono>
-                {formatCurrency(tx.price)}
+                {tx.price ? formatCurrency(tx.price) : '—'}
               </TD>
               <TD align="right" mono>
                 {formatCurrency(tx.fees)}
               </TD>
+              <TD align="right" mono>
+                {formatCurrencyCode(displayAmount(tx), tx.currency)}
+              </TD>
+              <TD mono>{tx.currency ?? '—'}</TD>
               <TD align="right">
                 <button
                   type="button"
@@ -116,9 +135,10 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
       >
         {pendingDelete && (
           <div className="text-small text-text-muted">
-            <span className="font-mono font-semibold text-text">{pendingDelete.ticker}</span> ·{' '}
-            {pendingDelete.type} {formatShares(pendingDelete.quantity)} @{' '}
-            {formatCurrency(pendingDelete.price)} on {formatDateISO(pendingDelete.date)}
+            <span className="font-mono font-semibold text-text">
+              {pendingDelete.ticker ?? 'Cash'}
+            </span>{' '}
+            · {pendingDelete.type} on {formatDateISO(pendingDelete.date)}
           </div>
         )}
       </Dialog>

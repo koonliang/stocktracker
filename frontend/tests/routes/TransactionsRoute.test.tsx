@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { renderWithProviders } from '@/test/utils';
@@ -43,6 +44,45 @@ describe('TransactionsRoute', () => {
     renderWithProviders(<TransactionsRoute />);
     expect(await screen.findByText('AAPL')).toBeInTheDocument();
     expect(screen.getByText('MSFT')).toBeInTheDocument();
+  });
+
+  it('shows computed trade amount when a buy row has no stored amount', async () => {
+    setMockApiState({
+      transactions: [
+        {
+          id: 'manual-buy',
+          date: '2026-06-13',
+          ticker: 'AAPL',
+          type: 'buy',
+          quantity: 2,
+          price: 320,
+          fees: 1.4,
+          amount: null,
+          currency: 'USD',
+        },
+      ],
+    });
+
+    renderWithProviders(<TransactionsRoute />);
+
+    expect(await screen.findByText('$641.40')).toBeInTheDocument();
+  });
+
+  it('keeps the ticker smart-search dropdown closed after selecting a result', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TransactionsRoute />);
+
+    await user.type(screen.getByTestId('transaction-ticker-search'), 'AAP');
+    const result = await screen.findByTestId('transaction-ticker-result');
+    await user.click(result);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('transaction-ticker-search')).toHaveValue('AAPL');
+      expect(screen.queryByTestId('transaction-ticker-result')).not.toBeInTheDocument();
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 350));
+    expect(screen.queryByTestId('transaction-ticker-result')).not.toBeInTheDocument();
   });
 
   it('has no critical accessibility violations', async () => {

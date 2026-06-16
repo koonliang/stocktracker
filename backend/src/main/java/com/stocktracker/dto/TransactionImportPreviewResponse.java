@@ -4,7 +4,10 @@ import java.util.List;
 import java.util.Map;
 
 public record TransactionImportPreviewResponse(
-    List<ValidRow> validRows, List<InvalidRow> invalidRows, List<String> headerErrors) {
+    List<ValidRow> validRows,
+    List<InvalidRow> invalidRows,
+    List<String> headerErrors,
+    String detectedVersion) {
   public record ValidRow(int row, TransactionRequest normalized) {}
 
   public record InvalidRow(int row, String reason, Map<String, String> raw) {}

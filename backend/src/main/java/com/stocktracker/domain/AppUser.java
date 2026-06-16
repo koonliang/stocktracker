@@ -36,6 +36,10 @@ public class AppUser extends PanacheEntityBase {
   @Column(name = "email_verified", nullable = false)
   public boolean emailVerified = false;
 
+  /** User-chosen reporting currency for combined totals/P&L (FR-031). */
+  @Column(name = "base_currency", nullable = false, length = 3)
+  public String baseCurrency = "USD";
+
   @Column(name = "created_at", nullable = false)
   public LocalDateTime createdAt;
 

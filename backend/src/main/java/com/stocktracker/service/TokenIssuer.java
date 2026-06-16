@@ -23,11 +23,15 @@ public class TokenIssuer {
 
   public String issue(AppUser user) {
     var now = Instant.now();
+    var issuedAtMillis = now.toEpochMilli();
+    if (user.sessionsInvalidBeforeMs != null && issuedAtMillis <= user.sessionsInvalidBeforeMs) {
+      issuedAtMillis = user.sessionsInvalidBeforeMs + 1;
+    }
     return Jwt.issuer(issuer)
         .subject(String.valueOf(user.id))
         .upn(user.email)
         .claim("email", user.email)
-        .claim("st_iat_ms", now.toEpochMilli())
+        .claim("st_iat_ms", issuedAtMillis)
         .groups(Set.of("user"))
         .expiresIn(Duration.ofSeconds(ttlSeconds))
         .sign();

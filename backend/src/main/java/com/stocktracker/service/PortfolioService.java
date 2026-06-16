@@ -2,6 +2,7 @@ package com.stocktracker.service;
 
 import com.stocktracker.api.ApiException;
 import com.stocktracker.domain.InstrumentPriceBar;
+import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.dto.TransactionRequest;
@@ -15,11 +16,13 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.core.Response.Status;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
@@ -28,6 +31,14 @@ public class PortfolioService {
   @Inject InstrumentRepository instrumentRepository;
   @Inject TransactionValidationService transactionValidationService;
   @Inject CurrentUser currentUser;
+  @Inject QuoteCacheService quoteCacheService;
+  @Inject CurrencyService currencyService;
+  @Inject CostBasisEngine costBasisEngine;
+
+  @org.eclipse.microprofile.config.inject.ConfigProperty(
+      name = "stocktracker.base-currency.default",
+      defaultValue = "USD")
+  String defaultBaseCurrency;
 
   public DashboardResponse getDashboard() {
     return buildDashboard(transactionRepository.listAscending(currentUser.id()));
@@ -43,12 +54,18 @@ public class PortfolioService {
     var balances = new LinkedHashMap<String, BigDecimal>();
     for (var transaction : transactionRepository.listAscending(currentUser.id())) {
       var ticker = transaction.instrumentSymbol;
+      if (ticker == null) {
+        continue; // cash events carry no symbol
+      }
       var quantity = transaction.quantity;
       var current = balances.getOrDefault(ticker, BigDecimal.ZERO);
-      if ("buy".equals(transaction.transactionType)) {
-        balances.put(ticker, current.add(quantity));
-      } else {
-        balances.put(ticker, current.subtract(quantity));
+      switch (transaction.transactionType) {
+        case "buy" -> balances.put(ticker, current.add(quantity));
+        case "sell" -> balances.put(ticker, current.subtract(quantity));
+        case "split" -> balances.put(ticker, current.multiply(quantity));
+        default -> {
+          // dividend / cash types do not change the share balance
+        }
       }
     }
     return balances;
@@ -65,9 +82,11 @@ public class PortfolioService {
       transaction.tradeDate = request.date();
       transaction.instrumentSymbol = request.ticker();
       transaction.transactionType = request.type();
-      transaction.quantity = request.quantity();
-      transaction.price = request.price();
-      transaction.fees = request.fees();
+      transaction.quantity = request.quantity() == null ? BigDecimal.ZERO : request.quantity();
+      transaction.price = request.price() == null ? BigDecimal.ZERO : request.price();
+      transaction.fees = request.fees() == null ? BigDecimal.ZERO : request.fees();
+      transaction.amount = request.amount();
+      transaction.currency = request.currency();
       transaction.source = source;
       transactionRepository.persist(transaction);
     }
@@ -86,107 +105,87 @@ public class PortfolioService {
   }
 
   public DashboardResponse buildDashboard(List<PortfolioTransaction> transactions) {
+    var baseCurrency =
+        currentUser.optional().map(user -> user.baseCurrency).orElse(defaultBaseCurrency);
+    var today = LocalDate.now();
+
     var symbols =
         transactions.stream()
             .map(transaction -> transaction.instrumentSymbol)
+            .filter(Objects::nonNull)
             .collect(Collectors.toSet());
     if (symbols.isEmpty()) {
-      return new DashboardResponse(new DashboardResponse.Summary(0, 0, 0, 0, 0, 0), List.of());
+      return new DashboardResponse(
+          new DashboardResponse.Summary(0, 0, 0, 0, 0, 0, baseCurrency), List.of());
     }
 
     var instruments = instrumentRepository.findBySymbols(symbols);
     var barsBySymbol = groupBars(instrumentRepository.listPriceBars(symbols));
-    var positions = new LinkedHashMap<String, PositionAccumulator>();
-
-    for (var transaction : transactions) {
-      var accumulator =
-          positions.computeIfAbsent(
-              transaction.instrumentSymbol, ignored -> new PositionAccumulator());
-      if ("buy".equals(transaction.transactionType)) {
-        var newShares = accumulator.shares.add(transaction.quantity);
-        var addedCost = transaction.quantity.multiply(transaction.price).add(transaction.fees);
-        accumulator.averageCost =
-            newShares.compareTo(BigDecimal.ZERO) > 0
-                ? accumulator.totalCost.add(addedCost).divide(newShares, 8, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-        accumulator.totalCost = accumulator.totalCost.add(addedCost);
-        accumulator.shares = newShares;
-      } else {
-        var soldShares = transaction.quantity.min(accumulator.shares);
-        accumulator.totalCost =
-            accumulator.totalCost.subtract(
-                soldShares.multiply(accumulator.averageCost).setScale(8, RoundingMode.HALF_UP));
-        accumulator.shares = accumulator.shares.subtract(soldShares);
-        if (accumulator.shares.compareTo(BigDecimal.ZERO) <= 0) {
-          accumulator.shares = BigDecimal.ZERO;
-          accumulator.averageCost = BigDecimal.ZERO;
-          accumulator.totalCost = BigDecimal.ZERO;
-        }
-      }
-    }
+    var quotes = quoteCacheService.cachedBySymbol(symbols);
+    var costBasis = costBasisEngine.replay(transactions);
 
     List<DashboardResponse.Holding> holdings = new ArrayList<>();
     var totalMarketValue = BigDecimal.ZERO;
     var totalCostBasis = BigDecimal.ZERO;
     var totalDayChange = BigDecimal.ZERO;
 
-    for (var entry : positions.entrySet()) {
-      if (entry.getValue().shares.compareTo(BigDecimal.ZERO) <= 0) {
+    for (var symbol : symbols) {
+      var shares = costBasis.shares(symbol);
+      if (shares.compareTo(BigDecimal.ZERO) <= 0) {
         continue;
       }
-      var symbol = entry.getKey();
+      var instrument = instruments.get(symbol);
+      var nativeCurrency = instrument == null ? baseCurrency : instrument.currency;
       var bars = barsBySymbol.getOrDefault(symbol, List.of());
-      var currentPrice = latestClose(bars);
-      var previousClose = previousClose(bars, currentPrice);
-      var shares = entry.getValue().shares;
-      var costBasis = shares.multiply(entry.getValue().averageCost);
-      var marketValue = shares.multiply(currentPrice);
-      var unrealizedPnL = marketValue.subtract(costBasis);
-      var dayChange = shares.multiply(currentPrice.subtract(previousClose));
+      var price = currentPrice(quotes.get(symbol), bars);
 
-      totalMarketValue = totalMarketValue.add(marketValue);
-      totalCostBasis = totalCostBasis.add(costBasis);
-      totalDayChange = totalDayChange.add(dayChange);
+      var averageCost = costBasis.averageCost(symbol);
+      var nativeCostBasis = costBasis.costBasis(symbol);
+      var nativeMarketValue = shares.multiply(price.price());
+      var nativeDayChange = shares.multiply(price.price().subtract(price.previousClose()));
+
+      var baseCostBasis =
+          currencyService.convert(nativeCostBasis, nativeCurrency, baseCurrency, today);
+      var baseMarketValue =
+          currencyService.convert(nativeMarketValue, nativeCurrency, baseCurrency, today);
+      var basePrice = currencyService.convert(price.price(), nativeCurrency, baseCurrency, today);
+      var baseDayChange =
+          currencyService.convert(nativeDayChange, nativeCurrency, baseCurrency, today);
+      var baseUnrealized = baseMarketValue.value().subtract(baseCostBasis.value());
+
+      totalMarketValue = totalMarketValue.add(baseMarketValue.value());
+      totalCostBasis = totalCostBasis.add(baseCostBasis.value());
+      totalDayChange = totalDayChange.add(baseDayChange.value());
+
+      var fxStale = baseMarketValue.stale() || baseCostBasis.stale() || baseDayChange.stale();
 
       holdings.add(
           new DashboardResponse.Holding(
               symbol,
-              instruments.containsKey(symbol) ? instruments.get(symbol).name : symbol,
+              instrument == null ? symbol : instrument.name,
               scale6(shares),
-              scale4(entry.getValue().averageCost),
-              scale4(costBasis),
-              scale4(currentPrice),
-              scale4(marketValue),
-              scale4(unrealizedPnL),
-              ratio(unrealizedPnL, costBasis),
-              scale4(dayChange),
-              ratio(currentPrice.subtract(previousClose), previousClose),
-              0));
+              nativeCurrency,
+              scale4(averageCost),
+              scale4(price.price()),
+              scale4(nativeMarketValue),
+              scale4(baseCostBasis.value()),
+              scale4(basePrice.value()),
+              scale4(baseMarketValue.value()),
+              scale4(baseUnrealized),
+              ratio(baseUnrealized, baseCostBasis.value()),
+              scale4(baseDayChange.value()),
+              ratio(price.price().subtract(price.previousClose()), price.previousClose()),
+              0,
+              price.asOf(),
+              price.fetchedAt(),
+              price.stale() || fxStale));
     }
 
     var portfolioMarketValue = totalMarketValue;
     holdings =
         holdings.stream()
             .sorted((left, right) -> Double.compare(right.marketValue(), left.marketValue()))
-            .map(
-                holding ->
-                    new DashboardResponse.Holding(
-                        holding.ticker(),
-                        holding.name(),
-                        holding.shares(),
-                        holding.averageCost(),
-                        holding.costBasis(),
-                        holding.currentPrice(),
-                        holding.marketValue(),
-                        holding.unrealizedPnL(),
-                        holding.unrealizedPnLPct(),
-                        holding.dayChange(),
-                        holding.dayChangePct(),
-                        portfolioMarketValue.compareTo(BigDecimal.ZERO) > 0
-                            ? scale4(
-                                BigDecimal.valueOf(holding.marketValue())
-                                    .divide(portfolioMarketValue, 8, RoundingMode.HALF_UP))
-                            : 0))
+            .map(holding -> withWeight(holding, portfolioMarketValue))
             .toList();
 
     var totalUnrealizedPnL = totalMarketValue.subtract(totalCostBasis);
@@ -199,8 +198,61 @@ public class PortfolioService {
             scale4(totalUnrealizedPnL),
             ratio(totalUnrealizedPnL, totalCostBasis),
             scale4(totalDayChange),
-            ratio(totalDayChange, previousPortfolioValue)),
+            ratio(totalDayChange, previousPortfolioValue),
+            baseCurrency),
         holdings);
+  }
+
+  private DashboardResponse.Holding withWeight(
+      DashboardResponse.Holding holding, BigDecimal portfolioMarketValue) {
+    var weight =
+        portfolioMarketValue.compareTo(BigDecimal.ZERO) > 0
+            ? scale4(
+                BigDecimal.valueOf(holding.marketValue())
+                    .divide(portfolioMarketValue, 8, RoundingMode.HALF_UP))
+            : 0;
+    return new DashboardResponse.Holding(
+        holding.ticker(),
+        holding.name(),
+        holding.shares(),
+        holding.currency(),
+        holding.averageCost(),
+        holding.nativePrice(),
+        holding.nativeMarketValue(),
+        holding.costBasis(),
+        holding.currentPrice(),
+        holding.marketValue(),
+        holding.unrealizedPnL(),
+        holding.unrealizedPnLPct(),
+        holding.dayChange(),
+        holding.dayChangePct(),
+        weight,
+        holding.asOf(),
+        holding.fetchedAt(),
+        holding.stale());
+  }
+
+  private record CurrentPrice(
+      BigDecimal price,
+      BigDecimal previousClose,
+      java.time.Instant asOf,
+      java.time.Instant fetchedAt,
+      boolean stale) {}
+
+  /** Native current price for a symbol: live quote if present, else latest price bar (stale). */
+  private CurrentPrice currentPrice(InstrumentQuote quote, List<InstrumentPriceBar> bars) {
+    if (quote != null && quote.price != null) {
+      var previous =
+          quote.previousClose != null ? quote.previousClose : previousClose(bars, quote.price);
+      return new CurrentPrice(
+          quote.price,
+          previous,
+          quote.asOf,
+          quote.fetchedAt,
+          quoteCacheService.effectiveStale(quote));
+    }
+    var current = latestClose(bars);
+    return new CurrentPrice(current, previousClose(bars, current), null, null, true);
   }
 
   public PositionSnapshot findPosition(String symbol) {
@@ -232,6 +284,8 @@ public class PortfolioService {
         scale6(transaction.quantity),
         scale4(transaction.price),
         scale4(transaction.fees),
+        transaction.amount == null ? null : scale4(transaction.amount),
+        transaction.currency,
         transaction.source);
   }
 
@@ -270,12 +324,6 @@ public class PortfolioService {
 
   private static double scale6(BigDecimal value) {
     return value.setScale(6, RoundingMode.HALF_UP).doubleValue();
-  }
-
-  private static final class PositionAccumulator {
-    private BigDecimal shares = BigDecimal.ZERO;
-    private BigDecimal averageCost = BigDecimal.ZERO;
-    private BigDecimal totalCost = BigDecimal.ZERO;
   }
 
   public record PositionSnapshot(
