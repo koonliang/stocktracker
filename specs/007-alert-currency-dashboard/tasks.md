@@ -51,16 +51,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T015 [P] [US1] Add component tests for notification dialog filled, empty, overflow, and action visibility states in frontend/src/features/alerts/NotificationDialog.test.tsx
-- [ ] T016 [P] [US1] Add accessibility tests for focus trap, keyboard close, and labeled actions in frontend/src/features/alerts/NotificationDialog.a11y.test.tsx
+- [X] T015 [P] [US1] Add component tests for notification dialog filled, empty, overflow, and action visibility states in frontend/tests/alerts/NotificationDialog.test.tsx
+- [X] T016 [P] [US1] Add accessibility tests for focus trap, keyboard close, and labeled actions in frontend/tests/alerts/NotificationDialog.a11y.test.tsx
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Implement NotificationDialog component using existing Dialog, Button, Badge, EmptyState, and Table primitives in frontend/src/features/alerts/NotificationDialog.tsx
-- [ ] T018 [P] [US1] Implement notification row rendering with read/unread state and stable data-testid values in frontend/src/features/alerts/NotificationRow.tsx
-- [ ] T019 [US1] Add notification dialog trigger with unread badge to the top bar in frontend/src/components/layout/TopBar.tsx
-- [ ] T020 [US1] Wire NotificationDialog into the application shell without route navigation in frontend/src/components/layout/AppShell.tsx
-- [ ] T021 [US1] Add static mock/demo fixture support for stakeholder review in frontend/src/features/alerts/NotificationDialog.mock.ts
+- [X] T017 [P] [US1] Implement NotificationDialog component using existing Dialog, Button, Badge, EmptyState, and Table primitives in frontend/tests/alerts/NotificationDialog.tsx
+- [X] T018 [P] [US1] Implement notification row rendering with read/unread state and stable data-testid values in frontend/src/features/alerts/NotificationRow.tsx
+- [X] T019 [US1] Add notification dialog trigger with unread badge to the top bar in frontend/src/components/layout/TopBar.tsx
+- [X] T020 [US1] Wire NotificationDialog into the application shell without route navigation in frontend/src/components/layout/AppShell.tsx
+- [X] T021 [US1] Add static mock/demo fixture support for stakeholder review in frontend/tests/alerts/NotificationDialog.mock.ts
 
 **Checkpoint**: User Story 1 is independently reviewable and testable as a frontend mockup.
 
@@ -78,7 +78,7 @@
 - [ ] T023 [P] [US2] Add backend API tests for POST /api/notifications/{id}/read, POST /api/notifications/read-all, and DELETE /api/notifications/{id} in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java
 - [ ] T024 [P] [US2] Add alert crossing and re-arm service tests for once-per-crossing behavior in backend/src/test/java/com/stocktracker/service/AlertEvaluationTest.java
 - [ ] T025 [P] [US2] Add frontend API/store tests for notification history, unread count, mark-read, mark-all-read, and delete flows in frontend/src/stores/notificationsStore.test.ts
-- [ ] T026 [P] [US2] Add notification dialog integration tests for loading data, marking read, deleting, and empty state after deletion in frontend/src/features/alerts/NotificationDialog.integration.test.tsx
+- [ ] T026 [P] [US2] Add notification dialog integration tests for loading data, marking read, deleting, and empty state after deletion in frontend/tests/alerts/NotificationDialog.integration.test.tsx
 
 ### Implementation for User Story 2
 
@@ -89,7 +89,7 @@
 - [ ] T031 [US2] Update backend notification DTO mapping with symbol, condition, threshold, observed value, triggeredAt, read state, and message in backend/src/main/java/com/stocktracker/dto/NotificationDtos.java
 - [ ] T032 [US2] Implement frontend notifications API methods for list, mark-read, mark-all-read, and delete in frontend/src/api/notificationsApi.ts
 - [ ] T033 [US2] Implement notificationsStore for dialog history, unread count, optimistic read/delete updates, and error state in frontend/src/stores/notificationsStore.ts
-- [ ] T034 [US2] Connect NotificationDialog actions to notificationsStore and backend APIs in frontend/src/features/alerts/NotificationDialog.tsx
+- [ ] T034 [US2] Connect NotificationDialog actions to notificationsStore and backend APIs in frontend/tests/alerts/NotificationDialog.tsx
 - [ ] T035 [US2] Update NotificationToaster to share unread state with notificationsStore without duplicate toasts in frontend/src/components/layout/NotificationToaster.tsx
 - [ ] T036 [US2] Add Selenium e2e coverage for alert crossing, dialog history, mark-read, mark-all-read, delete, and re-arm behavior in e2e/src/test/java/com/stocktracker/e2e/journeys/AlertsTest.java
 
@@ -173,7 +173,7 @@
 - [ ] T074 Run backend verification gate from backend/pom.xml using cd backend && ./mvnw -B verify
 - [ ] T075 Run frontend verification gate from frontend/package.json using cd frontend && npm run verify
 - [ ] T076 Run e2e verification gate from e2e/pom.xml using cd e2e && ./mvnw -B test
-- [ ] T077 Review UI text wrapping and responsive dialog layout at mobile and desktop widths in frontend/src/features/alerts/NotificationDialog.tsx
+- [ ] T077 Review UI text wrapping and responsive dialog layout at mobile and desktop widths in frontend/tests/alerts/NotificationDialog.tsx
 - [ ] T078 Confirm no unrelated changes were introduced and review final git diff for AGENTS.md, specs/007-alert-currency-dashboard/tasks.md, backend/src, frontend/src, and e2e/src
 
 ---
@@ -213,9 +213,9 @@
 ### US1
 
 ```text
-Task: "T015 [P] [US1] Add component tests in frontend/src/features/alerts/NotificationDialog.test.tsx"
-Task: "T016 [P] [US1] Add accessibility tests in frontend/src/features/alerts/NotificationDialog.a11y.test.tsx"
-Task: "T017 [P] [US1] Implement NotificationDialog in frontend/src/features/alerts/NotificationDialog.tsx"
+Task: "T015 [P] [US1] Add component tests in frontend/tests/alerts/NotificationDialog.test.tsx"
+Task: "T016 [P] [US1] Add accessibility tests in frontend/tests/alerts/NotificationDialog.a11y.test.tsx"
+Task: "T017 [P] [US1] Implement NotificationDialog in frontend/tests/alerts/NotificationDialog.tsx"
 Task: "T018 [P] [US1] Implement NotificationRow in frontend/src/features/alerts/NotificationRow.tsx"
 ```
 
@@ -225,7 +225,7 @@ Task: "T018 [P] [US1] Implement NotificationRow in frontend/src/features/alerts/
 Task: "T022 [P] [US2] Add notification API tests in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java"
 Task: "T024 [P] [US2] Add alert crossing tests in backend/src/test/java/com/stocktracker/service/AlertEvaluationTest.java"
 Task: "T025 [P] [US2] Add store tests in frontend/src/stores/notificationsStore.test.ts"
-Task: "T026 [P] [US2] Add dialog integration tests in frontend/src/features/alerts/NotificationDialog.integration.test.tsx"
+Task: "T026 [P] [US2] Add dialog integration tests in frontend/tests/alerts/NotificationDialog.integration.test.tsx"
 ```
 
 ### US3

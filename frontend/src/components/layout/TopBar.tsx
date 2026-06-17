@@ -2,6 +2,7 @@ import { LogOut, Moon, Sun } from 'lucide-react';
 import { useUiStore } from '@/stores/uiStore';
 import { useAuth } from '@/auth/AuthProvider';
 import { useAuthStore } from '@/stores/authStore';
+import { NotificationDialogTrigger } from '@/features/alerts/NotificationDialogTrigger';
 import { TickerSearch } from './TickerSearch';
 import { BaseCurrencySelect } from './BaseCurrencySelect';
 
@@ -25,6 +26,7 @@ export function TopBar() {
       <div className="ml-auto">
         <BaseCurrencySelect />
       </div>
+      <NotificationDialogTrigger />
       <button
         type="button"
         onClick={toggle}
