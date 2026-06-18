@@ -49,7 +49,7 @@ export function NotificationToaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed right-4 top-20 z-[80] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-20 z-[80] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
       ))}
@@ -77,7 +77,7 @@ function ToastCard({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
           type="button"
           onClick={onDismiss}
           aria-label="Dismiss notification"
-          className="shrink-0 rounded-md p-1 text-text-muted hover:bg-surface-alt hover:text-text transition-colors"
+          className="pointer-events-auto shrink-0 rounded-md p-1 text-text-muted hover:bg-surface-alt hover:text-text transition-colors"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

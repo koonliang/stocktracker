@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { SummaryTiles } from '@/features/dashboard/SummaryTiles';
 import { HoldingsTable } from '@/features/dashboard/HoldingsTable';
 import { AllocationChart } from '@/features/dashboard/AllocationChart';
@@ -17,18 +17,16 @@ export function DashboardRoute() {
   const { holdings, summary, dashboardStatus, error } = useHoldings();
   const loadDashboard = usePortfolioStore((state) => state.loadDashboard);
   const setSymbols = useQuotesStore((state) => state.setSymbols);
-  const startPolling = useQuotesStore((state) => state.startPolling);
-  const stopPolling = useQuotesStore((state) => state.stopPolling);
 
-  useEffect(() => {
-    void loadDashboard();
+  const refreshDashboard = useCallback(() => {
+    return loadDashboard().then(() => {
+      useQuotesStore.setState({ lastUpdated: new Date().toISOString() });
+    });
   }, [loadDashboard]);
 
-  // Visibility-aware quote polling; each tick re-loads the dashboard so values tick without reload.
   useEffect(() => {
-    startPolling(() => void loadDashboard());
-    return () => stopPolling();
-  }, [startPolling, stopPolling, loadDashboard]);
+    void refreshDashboard();
+  }, [refreshDashboard]);
 
   // Keep the polled symbol set in sync with what's held.
   useEffect(() => {
@@ -59,7 +57,7 @@ export function DashboardRoute() {
         <div className="flex flex-col gap-6">
           <Card>
             <CardHeader eyebrow="Add a symbol" title="Track any market" />
-            <SymbolSearch onAdded={() => void loadDashboard()} />
+            <SymbolSearch onAdded={() => void refreshDashboard()} />
           </Card>
 
           {holdings.length === 0 ? (
