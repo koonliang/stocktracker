@@ -15,10 +15,10 @@
 
 **Purpose**: Prepare shared fixtures, docs, and implementation touchpoints used by all stories.
 
-- [ ] T001 Update backend stub quote and FX fixture coverage for AAPL crossing and stale FX scenarios in backend/src/main/resources/provider-stub/quotes.json and backend/src/main/resources/provider-stub/fx-rates.json
-- [ ] T002 [P] Add notification dialog MSW fixture responses for unread, read, empty, and error states in frontend/src/test/msw/handlers.ts
-- [ ] T003 [P] Add shared frontend notification fixture builders in frontend/src/test/fixtures/notifications.ts
-- [ ] T004 [P] Add backend test data helper methods for alerts, notifications, FX rates, and legacy transactions in backend/src/test/java/com/stocktracker/support/IntegrationTestSupport.java
+- [X] T001 Update backend stub quote and FX fixture coverage for AAPL crossing and stale FX scenarios in backend/src/main/resources/provider-stub/quotes.json and backend/src/main/resources/provider-stub/fx-rates.json
+- [X] T002 [P] Add notification dialog MSW fixture responses for unread, read, empty, and error states in frontend/src/test/msw/handlers.ts
+- [X] T003 [P] Add shared frontend notification fixture builders in frontend/src/test/fixtures/notifications.ts
+- [X] T004 [P] Add backend test data helper methods for alerts, notifications, FX rates, and legacy transactions in backend/src/test/java/com/stocktracker/support/IntegrationTestSupport.java
 
 ---
 
@@ -28,16 +28,16 @@
 
 **CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T005 Create Flyway migration for notification crossing fields, transaction currency source fields, legacy backfill, and required indexes in backend/src/main/resources/db/migration/V5__alert_currency_dashboard_refinements.sql
-- [ ] T006 Update Alert entity crossing/re-arm fields in backend/src/main/java/com/stocktracker/domain/Alert.java
-- [ ] T007 Update Notification entity with trigger snapshot fields and crossing key in backend/src/main/java/com/stocktracker/domain/Notification.java
-- [ ] T008 Update PortfolioTransaction entity with currencySource and currencyBackfilledAt in backend/src/main/java/com/stocktracker/domain/PortfolioTransaction.java
-- [ ] T009 [P] Extend NotificationRepository query methods for newest-first history, unread count, mark-all-read, and delete-by-alert in backend/src/main/java/com/stocktracker/persistence/NotificationRepository.java
-- [ ] T010 [P] Extend PortfolioTransactionRepository query methods for missing-currency backfill candidates in backend/src/main/java/com/stocktracker/persistence/PortfolioTransactionRepository.java
-- [ ] T011 [P] Add notification DTOs for history list, unread count, read-all response, and delete contract in backend/src/main/java/com/stocktracker/dto/NotificationDtos.java
-- [ ] T012 [P] Add conversion metadata DTOs for fxDate and fxStatus in backend/src/main/java/com/stocktracker/dto/ConversionDtos.java
-- [ ] T013 [P] Update frontend API shared types for notifications, conversion metadata, and transaction currency source in frontend/src/api/types.ts
-- [ ] T014 [P] Update frontend formatting helpers for stale/unavailable conversion labels in frontend/src/lib/format.ts
+- [X] T005 Create Flyway migration for notification crossing fields, transaction currency source fields, legacy backfill, and required indexes in backend/src/main/resources/db/migration/V5__alert_currency_dashboard_refinements.sql
+- [X] T006 Update Alert entity crossing/re-arm fields in backend/src/main/java/com/stocktracker/domain/Alert.java
+- [X] T007 Update Notification entity with trigger snapshot fields and crossing key in backend/src/main/java/com/stocktracker/domain/Notification.java
+- [X] T008 Update PortfolioTransaction entity with currencySource and currencyBackfilledAt in backend/src/main/java/com/stocktracker/domain/PortfolioTransaction.java
+- [X] T009 [P] Extend NotificationRepository query methods for newest-first history, unread count, mark-all-read, and delete-by-alert in backend/src/main/java/com/stocktracker/persistence/NotificationRepository.java
+- [X] T010 [P] Extend PortfolioTransactionRepository query methods for missing-currency backfill candidates in backend/src/main/java/com/stocktracker/persistence/PortfolioTransactionRepository.java
+- [X] T011 [P] Add notification DTOs for history list, unread count, read-all response, and delete contract in backend/src/main/java/com/stocktracker/dto/NotificationDtos.java
+- [X] T012 [P] Add conversion metadata DTOs for fxDate and fxStatus in backend/src/main/java/com/stocktracker/dto/ConversionDtos.java
+- [X] T013 [P] Update frontend API shared types for notifications, conversion metadata, and transaction currency source in frontend/src/api/types.ts
+- [X] T014 [P] Update frontend formatting helpers for stale/unavailable conversion labels in frontend/src/lib/format.ts
 
 **Checkpoint**: Database, DTO, repository, and shared type foundations are ready.
 

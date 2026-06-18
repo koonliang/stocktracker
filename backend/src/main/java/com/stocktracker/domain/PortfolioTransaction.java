@@ -51,6 +51,14 @@ public class PortfolioTransaction extends PanacheEntityBase {
   @Column(length = 3)
   public String currency;
 
+  /** How the currency was determined: instrument, manual, import, user_base_backfill. */
+  @Column(name = "currency_source", length = 32)
+  public String currencySource;
+
+  /** When the currency was backfilled (legacy rows only). */
+  @Column(name = "currency_backfilled_at")
+  public LocalDateTime currencyBackfilledAt;
+
   @Column(nullable = false)
   public String source;
 

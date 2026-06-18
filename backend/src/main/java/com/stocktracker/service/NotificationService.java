@@ -1,8 +1,8 @@
 package com.stocktracker.service;
 
 import com.stocktracker.api.ApiException;
-import com.stocktracker.dto.AlertDtos.NotificationListResponse;
-import com.stocktracker.dto.AlertDtos.NotificationView;
+import com.stocktracker.dto.NotificationDtos.NotificationListResponse;
+import com.stocktracker.dto.NotificationDtos.NotificationView;
 import com.stocktracker.persistence.NotificationRepository;
 import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -16,17 +16,27 @@ public class NotificationService {
   @Inject CurrentUser currentUser;
 
   public NotificationListResponse list(boolean unreadOnly) {
+    var all = notifications.listForUser(currentUser.id(), unreadOnly);
+    var unreadCount = notifications.unreadCount(currentUser.id());
     return new NotificationListResponse(
-        notifications.listForUser(currentUser.id(), unreadOnly).stream()
+        (int) unreadCount,
+        all.stream()
             .map(
                 n ->
                     new NotificationView(
                         n.id.toString(),
                         n.alertId == null ? null : n.alertId.toString(),
-                        n.message,
+                        n.instrumentSymbol,
+                        n.conditionType,
+                        n.threshold == null ? 0 : n.threshold.doubleValue(),
+                        n.observedCurrency,
+                        n.observedValue == null ? 0 : n.observedValue.doubleValue(),
+                        n.observedCurrency,
+                        n.triggeredAt,
                         n.read,
-                        n.createdAt))
-            .toList());
+                        n.message))
+            .toList(),
+        null);
   }
 
   @Transactional

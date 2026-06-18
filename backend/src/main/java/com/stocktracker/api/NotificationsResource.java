@@ -1,6 +1,6 @@
 package com.stocktracker.api;
 
-import com.stocktracker.dto.AlertDtos.NotificationListResponse;
+import com.stocktracker.dto.NotificationDtos.NotificationListResponse;
 import com.stocktracker.service.NotificationService;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;

@@ -47,6 +47,7 @@ export type Transaction = {
   amount?: number | null;
   currency?: string | null;
   source?: 'MANUAL' | 'CSV_IMPORT';
+  currencySource?: 'instrument' | 'manual' | 'import' | 'user_base_backfill';
 };
 
 export type Holding = {
@@ -273,9 +274,33 @@ export type AlertRequest = {
 export type Notification = {
   id: string;
   alertId: string | null;
-  message: string;
+  symbol: string | null;
+  conditionType: string | null;
+  threshold: number;
+  thresholdCurrency: string | null;
+  observedValue: number;
+  observedCurrency: string | null;
+  triggeredAt: string | null;
   read: boolean;
-  createdAt: string;
+  message: string;
 };
 
-export type NotificationListResponse = { notifications: Notification[] };
+export type NotificationListResponse = {
+  unreadCount: number;
+  notifications: Notification[];
+  nextCursor: string | null;
+};
+
+export type ReadAllResponse = {
+  updated: number;
+  unreadCount: number;
+};
+
+export type FxStatus = 'current' | 'stale' | 'unavailable';
+
+export type ConversionMetadata = {
+  baseCurrency: string;
+  amountBase: number;
+  fxDate: string | null;
+  fxStatus: FxStatus;
+};

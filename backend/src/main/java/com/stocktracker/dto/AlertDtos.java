@@ -20,9 +20,4 @@ public final class AlertDtos {
       boolean armed,
       Instant lastTriggeredAt,
       LocalDateTime createdAt) {}
-
-  public record NotificationListResponse(List<NotificationView> notifications) {}
-
-  public record NotificationView(
-      String id, String alertId, String message, boolean read, LocalDateTime createdAt) {}
 }

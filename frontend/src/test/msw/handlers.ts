@@ -13,16 +13,32 @@ import type {
   WatchlistInstrument,
 } from '@/lib/types';
 
+type NotificationItem = {
+  id: string;
+  alertId: string;
+  symbol: string;
+  conditionType: string;
+  threshold: number;
+  thresholdCurrency: string;
+  observedValue: number;
+  observedCurrency: string;
+  triggeredAt: string;
+  read: boolean;
+  message: string;
+};
+
 type MockState = {
   transactions: Transaction[];
   watchlists: Watchlist[];
   baseCurrency: string;
+  notifications: NotificationItem[];
 };
 
 const defaultState = (): MockState => ({
   transactions: [],
   watchlists: [],
   baseCurrency: 'USD',
+  notifications: [],
 });
 
 const SUPPORTED_CURRENCIES = ['USD', 'SGD', 'EUR'];
@@ -508,6 +524,53 @@ export async function handleMockApi(
       return json({ code: 'not_found', message: 'Ticker not found' }, { status: 404 });
     }
     return json(analysis);
+  }
+
+  if (path === '/api/notifications' && method === 'GET') {
+    const unread = url.searchParams.get('unread');
+    let filtered = [...state.notifications];
+    if (unread === 'true') {
+      filtered = filtered.filter((n) => !n.read);
+    }
+    const limit = parseInt(url.searchParams.get('limit') ?? '25', 10);
+    const cursor = url.searchParams.get('cursor');
+    const startIndex = cursor ? filtered.findIndex((n) => n.id === cursor) + 1 : 0;
+    const page = filtered.slice(startIndex, startIndex + limit);
+    return json({
+      unreadCount: filtered.filter((n) => !n.read).length,
+      notifications: page,
+      nextCursor:
+        startIndex + limit < filtered.length ? (filtered[startIndex + limit]?.id ?? null) : null,
+    });
+  }
+
+  if (path === '/api/notifications/read-all' && method === 'POST') {
+    const body = JSON.parse(String(init?.body ?? '{}')) as { ids?: string[] };
+    if (body.ids && body.ids.length > 0) {
+      state.notifications.forEach((n) => {
+        if (body.ids!.includes(n.id)) n.read = true;
+      });
+    } else {
+      state.notifications.forEach((n) => (n.read = true));
+    }
+    const unreadCount = state.notifications.filter((n) => !n.read).length;
+    return json({ updated: body.ids?.length ?? state.notifications.length, unreadCount });
+  }
+
+  if (path.match(/^\/api\/notifications\/[^/]+\/read$/) && method === 'POST') {
+    const id = path.split('/')[3];
+    const notification = state.notifications.find((n) => n.id === id);
+    if (!notification) return new Response(null, { status: 404 });
+    notification.read = true;
+    return new Response(null, { status: 204 });
+  }
+
+  if (path.match(/^\/api\/notifications\/[^/]+$/) && method === 'DELETE') {
+    const id = path.split('/')[3];
+    const index = state.notifications.findIndex((n) => n.id === id);
+    if (index === -1) return new Response(null, { status: 404 });
+    state.notifications.splice(index, 1);
+    return new Response(null, { status: 204 });
   }
 
   return new Response('Not found', { status: 404 });
