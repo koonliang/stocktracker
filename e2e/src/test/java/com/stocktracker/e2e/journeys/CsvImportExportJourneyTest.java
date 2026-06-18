@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Test;
 
-/** J4 — Transactions import from CSV and export to CSV (Story 2 AS-4). */
+/** J4 — Transactions import from CSV and export to CSV (Story 2 AS-4, US3 currency round-trip). */
 class CsvImportExportJourneyTest extends BaseTest {
 
   /**
@@ -19,6 +19,21 @@ class CsvImportExportJourneyTest extends BaseTest {
   @Test
   void importThenExport() throws Exception {
     Path csv = Paths.get(getClass().getResource("/transactions-sample.csv").toURI());
+
+    signInAsSeedUser();
+    open("/transactions");
+    TransactionsPage transactions = new TransactionsPage(driver, waits);
+
+    transactions.importCsv(csv);
+    transactions.waitForTicker(IMPORTED_TICKER);
+
+    transactions.export();
+    assertThat(transactions.waitForExportedCsv()).isTrue();
+  }
+
+  @Test
+  void v2ImportWithCurrencyRoundTrip() throws Exception {
+    Path csv = Paths.get(getClass().getResource("/transactions-v2-sample.csv").toURI());
 
     signInAsSeedUser();
     open("/transactions");

@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
 public class TransactionValidationService {
@@ -22,6 +23,9 @@ public class TransactionValidationService {
   private static final Set<String> CASH_TYPES = Set.of("deposit", "withdrawal", "fee");
 
   @Inject InstrumentRepository instrumentRepository;
+
+  @ConfigProperty(name = "stocktracker.base-currency.default", defaultValue = "USD")
+  String defaultBaseCurrency;
 
   public TransactionRequest normalize(TransactionRequest request) {
     return new TransactionRequest(
@@ -64,10 +68,11 @@ public class TransactionValidationService {
       if (request.ticker() == null) {
         return type + " requires a ticker";
       }
-      if (!instrumentRepository.existsSymbol(request.ticker())) {
+      var instrument = instrumentRepository.findBySymbol(request.ticker()).orElse(null);
+      if (instrument == null) {
         return "unknown ticker: " + request.ticker();
       }
-      var currencyIssue = validateSecurityCurrency(request);
+      var currencyIssue = validateSecurityCurrency(request, instrument.currency);
       if (currencyIssue != null) {
         return currencyIssue;
       }
@@ -77,6 +82,9 @@ public class TransactionValidationService {
       }
       if (request.currency() == null) {
         return type + " requires a currency";
+      }
+      if (!supportedCurrency(request.currency())) {
+        return "unsupported currency: " + request.currency();
       }
     }
 
@@ -122,15 +130,18 @@ public class TransactionValidationService {
   }
 
   /** A security txn's currency, if provided, must match the instrument's native currency. */
-  private String validateSecurityCurrency(TransactionRequest request) {
-    if (request.currency() == null) {
-      return null;
+  private String validateSecurityCurrency(TransactionRequest request, String instrumentCurrency) {
+    if (request.currency() != null && !instrumentCurrency.equalsIgnoreCase(request.currency())) {
+      return "currency must match the instrument currency (" + instrumentCurrency + ")";
     }
-    var instrument = instrumentRepository.findBySymbol(request.ticker()).orElse(null);
-    if (instrument != null && !instrument.currency.equalsIgnoreCase(request.currency())) {
-      return "currency must match the instrument currency (" + instrument.currency + ")";
+    if (!supportedCurrency(request.currency() == null ? instrumentCurrency : request.currency())) {
+      return "unsupported currency: " + (request.currency() == null ? instrumentCurrency : request.currency());
     }
     return null;
+  }
+
+  private boolean supportedCurrency(String currency) {
+    return currency != null && List.of(defaultBaseCurrency.toUpperCase(), "USD", "SGD", "EUR").contains(currency);
   }
 
   public void applyToBalances(TransactionRequest request, Map<String, BigDecimal> shareBalances) {

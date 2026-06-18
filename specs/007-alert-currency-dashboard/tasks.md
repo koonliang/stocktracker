@@ -91,7 +91,7 @@
 - [X] T033 [US2] Implement notificationsStore for dialog history, unread count, optimistic read/delete updates, and error state in frontend/src/stores/notificationsStore.ts
 - [X] T034 [US2] Connect NotificationDialog actions to notificationsStore and backend APIs in frontend/tests/alerts/NotificationDialog.tsx
 - [X] T035 [US2] Update NotificationToaster to share unread state with notificationsStore without duplicate toasts in frontend/src/components/layout/NotificationToaster.tsx
-- [ ] T036 [US2] Add Selenium e2e coverage for alert crossing, dialog history, mark-read, mark-all-read, delete, and re-arm behavior in e2e/src/test/java/com/stocktracker/e2e/journeys/AlertsTest.java
+- [X] T036 [US2] Add Selenium e2e coverage for alert crossing, dialog history, mark-read, mark-all-read, delete, and re-arm behavior in e2e/src/test/java/com/stocktracker/e2e/journeys/AlertsTest.java
 
 **Checkpoint**: User Story 2 is fully functional and independently testable.
 
@@ -105,26 +105,26 @@
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Add backend transaction validation tests for required/defaulted currency and unsupported currency errors in backend/src/test/java/com/stocktracker/service/TransactionValidationServiceTest.java
-- [ ] T038 [P] [US3] Add backend legacy currency backfill tests for instrument-linked and cash-only transactions in backend/src/test/java/com/stocktracker/service/TransactionCurrencyBackfillTest.java
-- [ ] T039 [P] [US3] Add backend CSV import/export currency round-trip tests in backend/src/test/java/com/stocktracker/service/CsvImportV2Test.java
-- [ ] T040 [P] [US3] Add frontend transaction form currency field tests for security and cash transaction types in frontend/src/features/transactions/TransactionForm.test.tsx
-- [ ] T041 [P] [US3] Add frontend import preview tests for missing/unsupported currency row-level errors in frontend/src/features/transactions/ImportPreview.test.tsx
+- [X] T037 [P] [US3] Add backend transaction validation tests for required/defaulted currency and unsupported currency errors in backend/src/test/java/com/stocktracker/service/TransactionValidationServiceTest.java
+- [X] T038 [P] [US3] Add backend legacy currency backfill tests for instrument-linked and cash-only transactions in backend/src/test/java/com/stocktracker/service/TransactionCurrencyBackfillTest.java
+- [X] T039 [P] [US3] Add backend CSV import/export currency round-trip tests in backend/src/test/java/com/stocktracker/service/CsvImportV2Test.java
+- [X] T040 [P] [US3] Add frontend transaction form currency field tests for security and cash transaction types in frontend/src/features/transactions/TransactionForm.test.tsx
+- [X] T041 [P] [US3] Add frontend import preview tests for missing/unsupported currency row-level errors in frontend/src/features/transactions/ImportPreview.test.tsx
 
 ### Implementation for User Story 3
 
-- [ ] T042 [US3] Implement currency source and legacy backfill service logic in backend/src/main/java/com/stocktracker/service/TransactionCurrencyBackfillService.java
-- [ ] T043 [US3] Update TransactionValidationService to enforce currency rules for buy, sell, dividend, fee, deposit, withdrawal, and split rows in backend/src/main/java/com/stocktracker/service/TransactionValidationService.java
-- [ ] T044 [US3] Update TransactionsResource create/update mapping to include currency and currencySource in backend/src/main/java/com/stocktracker/api/TransactionsResource.java
-- [ ] T045 [US3] Update TransactionRequest and TransactionResponse DTOs with currency and currencySource fields in backend/src/main/java/com/stocktracker/dto/TransactionRequest.java and backend/src/main/java/com/stocktracker/dto/TransactionResponse.java
-- [ ] T046 [US3] Update TransactionImportService to parse, default, validate, and preview currency per row in backend/src/main/java/com/stocktracker/service/TransactionImportService.java
-- [ ] T047 [US3] Update TransactionExportService to always export resolved currency in the v2 CSV header in backend/src/main/java/com/stocktracker/service/TransactionExportService.java
-- [ ] T048 [US3] Update frontend transaction API types and mapping for currencySource in frontend/src/api/transactionsApi.ts
-- [ ] T049 [US3] Update TransactionForm currency controls, defaults, and validation messages in frontend/src/features/transactions/TransactionForm.tsx
-- [ ] T050 [US3] Update TransactionsTable to display transaction monetary values with transaction currency in frontend/src/features/transactions/TransactionsTable.tsx
-- [ ] T051 [US3] Update ImportPreview to show currency values and row-level validation issues in frontend/src/features/transactions/ImportPreview.tsx
-- [ ] T052 [US3] Update ExportButton expectations for v2 currency export in frontend/src/features/transactions/ExportButton.tsx
-- [ ] T053 [US3] Add Selenium e2e coverage for transaction currency entry, v1/v2 import, validation, and export round-trip in e2e/src/test/java/com/stocktracker/e2e/journeys/CsvImportExportJourneyTest.java
+- [X] T042 [US3] Implement currency source and legacy backfill service logic in backend/src/main/java/com/stocktracker/service/TransactionCurrencyBackfillService.java
+- [X] T043 [US3] Update TransactionValidationService to enforce currency rules for buy, sell, dividend, fee, deposit, withdrawal, and split rows in backend/src/main/java/com/stocktracker/service/TransactionValidationService.java
+- [X] T044 [US3] Update TransactionsResource create/update mapping to include currency and currencySource in backend/src/main/java/com/stocktracker/api/TransactionsResource.java
+- [X] T045 [US3] Update TransactionRequest and TransactionResponse DTOs with currency and currencySource fields in backend/src/main/java/com/stocktracker/dto/TransactionRequest.java and backend/src/main/java/com/stocktracker/dto/TransactionResponse.java
+- [X] T046 [US3] Update TransactionImportService to parse, default, validate, and preview currency per row in backend/src/main/java/com/stocktracker/service/TransactionImportService.java
+- [X] T047 [US3] Update TransactionExportService to always export resolved currency in the v2 CSV header in backend/src/main/java/com/stocktracker/service/TransactionExportService.java
+- [X] T048 [US3] Update frontend transaction API types and mapping for currencySource in frontend/src/api/transactionsApi.ts
+- [X] T049 [US3] Update TransactionForm currency controls, defaults, and validation messages in frontend/src/features/transactions/TransactionForm.tsx
+- [X] T050 [US3] Update TransactionsTable to display transaction monetary values with transaction currency in frontend/src/features/transactions/TransactionsTable.tsx
+- [X] T051 [US3] Update ImportPreview to show currency values and row-level validation issues in frontend/src/features/transactions/ImportPreview.tsx
+- [X] T052 [US3] Update ExportButton expectations for v2 currency export in frontend/src/features/transactions/ExportButton.tsx
+- [X] T053 [US3] Add Selenium e2e coverage for transaction currency entry, v1/v2 import, validation, and export round-trip in e2e/src/test/java/com/stocktracker/e2e/journeys/CsvImportExportJourneyTest.java
 
 **Checkpoint**: User Story 3 is fully functional and independently testable.
 

@@ -37,6 +37,6 @@ class TransactionExportResourceTest extends IntegrationTestSupport {
             .asString();
 
     assertTrue(csv.startsWith("date,ticker,type,quantity,price,fees,amount,currency\n"));
-    assertTrue(csv.contains("2024-02-12,MSFT,buy,3,250,1.25,,"));
+    assertTrue(csv.contains("2024-02-12,MSFT,buy,3,250,1.25,751.25,"));
   }
 }

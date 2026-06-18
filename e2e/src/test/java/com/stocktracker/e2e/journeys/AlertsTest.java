@@ -11,4 +11,13 @@ class AlertsTest extends BaseTest {
     open("/alerts");
     new AlertsPage(driver, waits).waitLoaded().createPriceAlert("AAPL", "200");
   }
+
+  @Test
+  void createMultiplePriceAlerts() {
+    signInAsSeedUser();
+    open("/alerts");
+    AlertsPage page = new AlertsPage(driver, waits).waitLoaded();
+    page.createPriceAlert("AAPL", "200");
+    page.createPriceAlert("MSFT", "150");
+  }
 }

@@ -34,6 +34,7 @@ public class PortfolioService {
   @Inject QuoteCacheService quoteCacheService;
   @Inject CurrencyService currencyService;
   @Inject CostBasisEngine costBasisEngine;
+  @Inject TransactionCurrencyBackfillService transactionCurrencyBackfillService;
 
   @org.eclipse.microprofile.config.inject.ConfigProperty(
       name = "stocktracker.base-currency.default",
@@ -41,10 +42,12 @@ public class PortfolioService {
   String defaultBaseCurrency;
 
   public DashboardResponse getDashboard() {
+    transactionCurrencyBackfillService.backfillCurrentUser();
     return buildDashboard(transactionRepository.listAscending(currentUser.id()));
   }
 
   public List<TransactionResponse> listTransactions() {
+    transactionCurrencyBackfillService.backfillCurrentUser();
     return transactionRepository.listDescending(currentUser.id()).stream()
         .map(this::toResponse)
         .toList();
@@ -87,6 +90,13 @@ public class PortfolioService {
       transaction.fees = request.fees() == null ? BigDecimal.ZERO : request.fees();
       transaction.amount = request.amount();
       transaction.currency = request.currency();
+      if (transaction.currency == null) {
+        transactionCurrencyBackfillService.backfill(
+            transaction,
+            currentUser.optional().map(user -> user.baseCurrency).orElse(defaultBaseCurrency));
+      } else {
+        transaction.currencySource = "provided";
+      }
       transaction.source = source;
       transactionRepository.persist(transaction);
     }
@@ -286,6 +296,7 @@ public class PortfolioService {
         scale4(transaction.fees),
         transaction.amount == null ? null : scale4(transaction.amount),
         transaction.currency,
+        transaction.currencySource,
         transaction.source);
   }
 
