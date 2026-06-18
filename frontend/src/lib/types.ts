@@ -1,6 +1,7 @@
 export type {
   AddInstrumentResponse,
   BaseCurrencyResponse,
+  ConversionMetadata,
   DashboardResponse,
   Holding,
   InstrumentAnalysisResponse,

@@ -32,4 +32,8 @@ public class DashboardPage {
   public String summaryTilesText() {
     return driver.findElement(SUMMARY_TILES).getText().trim();
   }
+
+  public String holdingsText() {
+    return driver.findElement(HOLDINGS_TABLE).getText().trim();
+  }
 }

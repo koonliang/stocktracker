@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { PerformanceRoute } from '@/routes/PerformanceRoute';
 
 const getPerformanceMock = vi.hoisted(() => vi.fn());
@@ -29,6 +29,12 @@ describe('PerformanceRoute', () => {
           proceedsNative: 1442.53,
           realizedPnLNative: 188.65,
           realizedPnLBase: 188.65,
+          realizedPnlConversion: {
+            baseCurrency: 'USD',
+            amountBase: 188.65,
+            fxDate: '2025-03-10',
+            fxStatus: 'current',
+          },
         },
       ],
       incomeEvents: [
@@ -39,13 +45,31 @@ describe('PerformanceRoute', () => {
           type: 'dividend',
           amountNative: 200,
           amountBase: 200,
+          amountConversion: {
+            baseCurrency: 'USD',
+            amountBase: 200,
+            fxDate: '2026-06-03',
+            fxStatus: 'stale',
+          },
         },
       ],
       returnSeries: [
         { date: '2025-06-14', cumulativeReturnPct: 0 },
         { date: '2026-06-14', cumulativeReturnPct: 13.78 },
       ],
-      contributions: [],
+      contributions: [
+        {
+          symbol: 'AAPL',
+          contributionPct: 12.4,
+          contributionBase: 27084.44,
+          contributionConversion: {
+            baseCurrency: 'USD',
+            amountBase: 27084.44,
+            fxDate: null,
+            fxStatus: 'unavailable',
+          },
+        },
+      ],
     });
   });
 
@@ -60,5 +84,18 @@ describe('PerformanceRoute', () => {
     expect(screen.getAllByText('+$200.00').length).toBeGreaterThan(0);
     expect(screen.getAllByText('+$388.65').length).toBeGreaterThan(0);
     expect(screen.getByText('Dividend')).toBeInTheDocument();
+    expect(screen.getAllByText('Stale rate').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Rate unavailable').length).toBeGreaterThan(0);
+  });
+
+  it('refetches when base currency changes', async () => {
+    render(<PerformanceRoute />);
+
+    expect(await screen.findByText('Realized P&L details')).toBeInTheDocument();
+    act(() => {
+      window.dispatchEvent(new CustomEvent('stocktracker:base-currency-changed'));
+    });
+
+    await waitFor(() => expect(getPerformanceMock).toHaveBeenCalledTimes(2));
   });
 });

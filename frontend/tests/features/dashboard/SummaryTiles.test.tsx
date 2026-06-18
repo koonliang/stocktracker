@@ -41,4 +41,35 @@ describe('SummaryTiles', () => {
     // No NaN strings present
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
+
+  it('renders stale and unavailable FX indicators', () => {
+    render(
+      <SummaryTiles
+        summary={{
+          totalMarketValue: 100_000,
+          totalCostBasis: 80_000,
+          totalUnrealizedPnL: 20_000,
+          totalUnrealizedPnLPct: 0.25,
+          totalDayChange: 0,
+          totalDayChangePct: 0,
+          baseCurrency: 'SGD',
+          marketValueConversion: {
+            baseCurrency: 'SGD',
+            amountBase: 100_000,
+            fxDate: '2026-06-17',
+            fxStatus: 'stale',
+          },
+          costBasisConversion: {
+            baseCurrency: 'SGD',
+            amountBase: 80_000,
+            fxDate: null,
+            fxStatus: 'unavailable',
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText('Stale rate')).toBeInTheDocument();
+    expect(screen.getByText('Rate unavailable')).toBeInTheDocument();
+  });
 });

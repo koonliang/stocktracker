@@ -3,7 +3,7 @@ package com.stocktracker.dto;
 import java.time.Instant;
 import java.util.List;
 
-public record DashboardResponse(Summary summary, List<Holding> holdings) {
+public record DashboardResponse(Summary summary, List<Holding> holdings, List<String> warnings) {
   /** Combined totals are expressed in the user's {@code baseCurrency} (FR-031). */
   public record Summary(
       double totalMarketValue,
@@ -12,7 +12,10 @@ public record DashboardResponse(Summary summary, List<Holding> holdings) {
       double totalUnrealizedPnLPct,
       double totalDayChange,
       double totalDayChangePct,
-      String baseCurrency) {}
+      String baseCurrency,
+      ConversionDtos.ConversionMetadata marketValueConversion,
+      ConversionDtos.ConversionMetadata costBasisConversion,
+      ConversionDtos.ConversionMetadata dayChangeConversion) {}
 
   public record Holding(
       String ticker,
@@ -32,6 +35,11 @@ public record DashboardResponse(Summary summary, List<Holding> holdings) {
       double dayChange,
       double dayChangePct,
       double weight,
+      String baseCurrency,
+      ConversionDtos.ConversionMetadata costBasisConversion,
+      ConversionDtos.ConversionMetadata priceConversion,
+      ConversionDtos.ConversionMetadata marketValueConversion,
+      ConversionDtos.ConversionMetadata dayChangeConversion,
       // Freshness for the "last updated" / stale indicators (FR-005).
       Instant asOf,
       Instant fetchedAt,

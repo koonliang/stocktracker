@@ -138,27 +138,27 @@
 
 ### Tests for User Story 4
 
-- [ ] T054 [P] [US4] Add backend CurrencyService tests for transaction-date FX, valuation-date FX, latest-prior stale fallback, and unavailable status in backend/src/test/java/com/stocktracker/service/CurrencyServiceTest.java
-- [ ] T055 [P] [US4] Add backend dashboard conversion metadata tests in backend/src/test/java/com/stocktracker/api/DashboardResourceTest.java
-- [ ] T056 [P] [US4] Add backend performance conversion metadata and percentage consistency tests in backend/src/test/java/com/stocktracker/api/PerformanceResourceTest.java
-- [ ] T057 [P] [US4] Add frontend BaseCurrencySelect persistence and refetch tests in frontend/src/components/layout/BaseCurrencySelect.test.tsx
-- [ ] T058 [P] [US4] Add frontend dashboard stale/unavailable FX indicator tests in frontend/src/features/dashboard/SummaryTiles.test.tsx and frontend/src/features/dashboard/HoldingsTable.test.tsx
-- [ ] T059 [P] [US4] Add frontend performance conversion status tests in frontend/src/routes/PerformanceRoute.test.tsx
+- [X] T054 [P] [US4] Add backend CurrencyService tests for transaction-date FX, valuation-date FX, latest-prior stale fallback, and unavailable status in backend/src/test/java/com/stocktracker/service/CurrencyServiceTest.java
+- [X] T055 [P] [US4] Add backend dashboard conversion metadata tests in backend/src/test/java/com/stocktracker/api/DashboardResourceTest.java
+- [X] T056 [P] [US4] Add backend performance conversion metadata and percentage consistency tests in backend/src/test/java/com/stocktracker/api/PerformanceResourceTest.java
+- [X] T057 [P] [US4] Add frontend BaseCurrencySelect persistence and refetch tests in frontend/tests/layout/BaseCurrencySelect.test.tsx
+- [X] T058 [P] [US4] Add frontend dashboard stale/unavailable FX indicator tests in frontend/tests/features/dashboard/SummaryTiles.test.tsx and frontend/tests/features/dashboard/HoldingsTable.test.tsx
+- [X] T059 [P] [US4] Add frontend performance conversion status tests in frontend/tests/routes/PerformanceRoute.test.tsx
 
 ### Implementation for User Story 4
 
-- [ ] T060 [US4] Update CurrencyService conversion methods to return amount, fxDate, and fxStatus for transaction-date and valuation-date calls in backend/src/main/java/com/stocktracker/service/CurrencyService.java
-- [ ] T061 [US4] Update DashboardResponse DTOs to include baseCurrency, native amount, converted amount, fxDate, fxStatus, and warnings in backend/src/main/java/com/stocktracker/dto/DashboardResponse.java
-- [ ] T062 [US4] Update PerformanceResponse DTOs to include conversion metadata for realized lots, income events, current holdings, and contribution values in backend/src/main/java/com/stocktracker/dto/PerformanceResponse.java
-- [ ] T063 [US4] Update DashboardResource and PortfolioService to use valuation-date FX for holdings and expose conversion warnings in backend/src/main/java/com/stocktracker/api/DashboardResource.java and backend/src/main/java/com/stocktracker/service/PortfolioService.java
-- [ ] T064 [US4] Update PerformanceResource and PerformanceService to use transaction-date FX for transaction values and valuation-date FX for current holdings in backend/src/main/java/com/stocktracker/api/PerformanceResource.java and backend/src/main/java/com/stocktracker/service/PerformanceService.java
-- [ ] T065 [US4] Update SettingsService base-currency persistence/refetch behavior if needed for dashboard/performance invalidation in backend/src/main/java/com/stocktracker/service/SettingsService.java
-- [ ] T066 [US4] Update frontend dashboard API types and mapping for conversion metadata in frontend/src/api/dashboardApi.ts
-- [ ] T067 [US4] Update frontend performance API types and mapping for conversion metadata in frontend/src/api/performanceApi.ts
-- [ ] T068 [US4] Update BaseCurrencySelect to refetch dashboard and performance data after preference changes in frontend/src/components/layout/BaseCurrencySelect.tsx
-- [ ] T069 [US4] Update SummaryTiles and HoldingsTable to render base currency, native currency, stale FX, and unavailable FX indicators in frontend/src/features/dashboard/SummaryTiles.tsx and frontend/src/features/dashboard/HoldingsTable.tsx
-- [ ] T070 [US4] Update PerformanceRoute to render base currency, conversion status, stale FX, and unavailable FX indicators in frontend/src/routes/PerformanceRoute.tsx
-- [ ] T071 [US4] Add Selenium e2e coverage for base-currency switching, stale FX display, and dashboard/performance consistency in e2e/src/test/java/com/stocktracker/e2e/journeys/PerformanceTest.java
+- [X] T060 [US4] Update CurrencyService conversion methods to return amount, fxDate, and fxStatus for transaction-date and valuation-date calls in backend/src/main/java/com/stocktracker/service/CurrencyService.java
+- [X] T061 [US4] Update DashboardResponse DTOs to include baseCurrency, native amount, converted amount, fxDate, fxStatus, and warnings in backend/src/main/java/com/stocktracker/dto/DashboardResponse.java
+- [X] T062 [US4] Update PerformanceResponse DTOs to include conversion metadata for realized lots, income events, current holdings, and contribution values in backend/src/main/java/com/stocktracker/dto/PerformanceResponse.java
+- [X] T063 [US4] Update DashboardResource and PortfolioService to use valuation-date FX for holdings and expose conversion warnings in backend/src/main/java/com/stocktracker/api/DashboardResource.java and backend/src/main/java/com/stocktracker/service/PortfolioService.java
+- [X] T064 [US4] Update PerformanceResource and PerformanceService to use transaction-date FX for transaction values and valuation-date FX for current holdings in backend/src/main/java/com/stocktracker/api/PerformanceResource.java and backend/src/main/java/com/stocktracker/service/PerformanceService.java
+- [X] T065 [US4] Update SettingsService base-currency persistence/refetch behavior if needed for dashboard/performance invalidation in backend/src/main/java/com/stocktracker/service/SettingsService.java
+- [X] T066 [US4] Update frontend dashboard API types and mapping for conversion metadata in frontend/src/api/dashboardApi.ts
+- [X] T067 [US4] Update frontend performance API types and mapping for conversion metadata in frontend/src/api/performanceApi.ts
+- [X] T068 [US4] Update BaseCurrencySelect to refetch dashboard and performance data after preference changes in frontend/src/components/layout/BaseCurrencySelect.tsx
+- [X] T069 [US4] Update SummaryTiles and HoldingsTable to render base currency, native currency, stale FX, and unavailable FX indicators in frontend/src/features/dashboard/SummaryTiles.tsx and frontend/src/features/dashboard/HoldingsTable.tsx
+- [X] T070 [US4] Update PerformanceRoute to render base currency, conversion status, stale FX, and unavailable FX indicators in frontend/src/routes/PerformanceRoute.tsx
+- [X] T071 [US4] Add Selenium e2e coverage for base-currency switching, stale FX display, and dashboard/performance consistency in e2e/src/test/java/com/stocktracker/e2e/journeys/PerformanceTest.java
 
 **Checkpoint**: User Story 4 is fully functional and independently testable.
 
@@ -242,8 +242,8 @@ Task: "T041 [P] [US3] Add import preview tests in frontend/src/features/transact
 ```text
 Task: "T054 [P] [US4] Add CurrencyService tests in backend/src/test/java/com/stocktracker/service/CurrencyServiceTest.java"
 Task: "T055 [P] [US4] Add dashboard API tests in backend/src/test/java/com/stocktracker/api/DashboardResourceTest.java"
-Task: "T057 [P] [US4] Add BaseCurrencySelect tests in frontend/src/components/layout/BaseCurrencySelect.test.tsx"
-Task: "T059 [P] [US4] Add PerformanceRoute tests in frontend/src/routes/PerformanceRoute.test.tsx"
+Task: "T057 [P] [US4] Add BaseCurrencySelect tests in frontend/tests/layout/BaseCurrencySelect.test.tsx"
+Task: "T059 [P] [US4] Add PerformanceRoute tests in frontend/tests/routes/PerformanceRoute.test.tsx"
 ```
 
 ---

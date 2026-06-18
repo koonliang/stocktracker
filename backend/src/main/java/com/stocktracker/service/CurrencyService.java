@@ -1,20 +1,20 @@
 package com.stocktracker.service;
 
 import com.stocktracker.domain.FxRate;
+import com.stocktracker.dto.ConversionDtos.FxStatus;
 import com.stocktracker.persistence.FxRateRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.TreeSet;
 
 /**
- * Converts amounts between currencies using the cached {@code fx_rate} table (contracts/currency-
- * api.md). Uses the rate for the date (or the most recent prior date); on a missing direct pair it
- * inverts or cross-converts via a USD pivot. A converted value backed by no usable rate is returned
- * unchanged and flagged stale rather than failing the view (FX-unavailable edge case).
+ * Converts amounts between currencies using the cached {@code fx_rate} table. Uses the exact date
+ * when available, latest-prior rates as stale fallback, and marks truly missing pairs unavailable.
  */
 @ApplicationScoped
 public class CurrencyService {
@@ -22,38 +22,54 @@ public class CurrencyService {
 
   @Inject FxRateRepository fxRates;
 
-  /** A converted amount and whether the rate behind it was a stale/last-known value. */
-  public record Converted(BigDecimal value, boolean stale) {}
+  /** A converted amount and the FX metadata used to produce it. */
+  public record Converted(BigDecimal value, LocalDate fxDate, FxStatus fxStatus) {
+    public boolean stale() {
+      return fxStatus == FxStatus.stale;
+    }
+
+    public boolean unavailable() {
+      return fxStatus == FxStatus.unavailable;
+    }
+  }
 
   public Converted convert(BigDecimal amount, String from, String to, LocalDate onDate) {
     if (amount == null) {
-      return new Converted(BigDecimal.ZERO, false);
+      return new Converted(BigDecimal.ZERO, onDate, FxStatus.current);
     }
     if (from == null || to == null || from.equalsIgnoreCase(to)) {
-      return new Converted(amount, false);
+      return new Converted(amount, onDate, FxStatus.current);
     }
     var rate = rate(from, to, onDate);
     if (rate.isEmpty()) {
-      return new Converted(amount, true); // no usable rate — pass through, flagged stale
+      return new Converted(BigDecimal.ZERO, null, FxStatus.unavailable);
     }
     var value = amount.multiply(rate.get().value()).setScale(4, RoundingMode.HALF_UP);
-    return new Converted(value, rate.get().stale());
+    return new Converted(value, rate.get().fxDate(), rate.get().fxStatus());
+  }
+
+  public Converted convertTransaction(BigDecimal amount, String from, String to, LocalDate date) {
+    return convert(amount, from, to, date);
+  }
+
+  public Converted convertHolding(BigDecimal amount, String from, String to, LocalDate valuationDate) {
+    return convert(amount, from, to, valuationDate);
   }
 
   /** Resolved conversion rate from one currency to another, with a staleness flag. */
   public Optional<Converted> rate(String from, String to, LocalDate onDate) {
     if (from.equalsIgnoreCase(to)) {
-      return Optional.of(new Converted(BigDecimal.ONE, false));
+      return Optional.of(new Converted(BigDecimal.ONE, onDate, FxStatus.current));
     }
     var direct = lookup(from, to, onDate);
     if (direct.isPresent()) {
-      return direct.map(r -> new Converted(r.rate, stale(r, onDate)));
+      return direct.map(r -> new Converted(r.rate, r.rateDate, status(r, onDate)));
     }
     var inverse = lookup(to, from, onDate);
     if (inverse.isPresent()) {
       var r = inverse.get();
       var inverted = BigDecimal.ONE.divide(r.rate, 8, RoundingMode.HALF_UP);
-      return Optional.of(new Converted(inverted, stale(r, onDate)));
+      return Optional.of(new Converted(inverted, r.rateDate, status(r, onDate)));
     }
     // Cross-convert via the USD pivot: from -> USD -> to.
     if (!from.equalsIgnoreCase(PIVOT) && !to.equalsIgnoreCase(PIVOT)) {
@@ -66,8 +82,13 @@ public class CurrencyService {
                 .value()
                 .multiply(pivotTo.get().value())
                 .setScale(8, RoundingMode.HALF_UP);
-        return Optional.of(
-            new Converted(crossed, fromPivot.get().stale() || pivotTo.get().stale()));
+        var fxDate = older(fromPivot.get().fxDate(), pivotTo.get().fxDate());
+        var fxStatus =
+            fromPivot.get().fxStatus() == FxStatus.current
+                    && pivotTo.get().fxStatus() == FxStatus.current
+                ? FxStatus.current
+                : FxStatus.stale;
+        return Optional.of(new Converted(crossed, fxDate, fxStatus));
       }
     }
     return Optional.empty();
@@ -78,8 +99,21 @@ public class CurrencyService {
     return exact.isPresent() ? exact : fxRates.findLatestOnOrBefore(from, to, onDate);
   }
 
-  private boolean stale(FxRate rate, LocalDate onDate) {
-    return rate.stale || !rate.rateDate.isEqual(onDate);
+  private FxStatus status(FxRate rate, LocalDate onDate) {
+    if (rate.stale) {
+      return FxStatus.stale;
+    }
+    return ChronoUnit.DAYS.between(rate.rateDate, onDate) > 1 ? FxStatus.stale : FxStatus.current;
+  }
+
+  private LocalDate older(LocalDate left, LocalDate right) {
+    if (left == null) {
+      return right;
+    }
+    if (right == null) {
+      return left;
+    }
+    return left.isBefore(right) ? left : right;
   }
 
   /** Currencies the FX cache can convert between (for the base-currency picker). */

@@ -74,4 +74,42 @@ describe('HoldingsTable', () => {
     // Pressing Enter should not throw; navigation target is '/analysis/:ticker'
     await user.keyboard('{Enter}');
   });
+
+  it('renders native value and FX status for converted holdings', () => {
+    renderWithProviders(
+      <HoldingsTable
+        baseCurrency="SGD"
+        holdings={[
+          h({
+            ticker: 'AAPL',
+            currency: 'USD',
+            nativeMarketValue: 1500,
+            marketValue: 2025,
+            marketValueConversion: {
+              baseCurrency: 'SGD',
+              amountBase: 2025,
+              fxDate: '2026-06-17',
+              fxStatus: 'stale',
+            },
+          }),
+          h({
+            ticker: 'MSFT',
+            currency: 'USD',
+            nativeMarketValue: 3500,
+            marketValue: 0,
+            marketValueConversion: {
+              baseCurrency: 'SGD',
+              amountBase: 0,
+              fxDate: null,
+              fxStatus: 'unavailable',
+            },
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('$1,500 USD')).toBeInTheDocument();
+    expect(screen.getAllByText('Stale rate').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Rate unavailable').length).toBeGreaterThan(0);
+  });
 });

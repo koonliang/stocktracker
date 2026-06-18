@@ -3,6 +3,7 @@ package com.stocktracker.support;
 import com.stocktracker.domain.Alert;
 import com.stocktracker.domain.FxRate;
 import com.stocktracker.domain.Notification;
+import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.domain.Watchlist;
 import com.stocktracker.domain.WatchlistItem;
@@ -42,6 +43,10 @@ public abstract class IntegrationTestSupport {
           Alert.deleteAll();
           PortfolioTransaction.deleteAll();
           FxRate.deleteAll();
+          var seedUser = AppUser.<AppUser>findById(SEED_USER_ID);
+          if (seedUser != null) {
+            seedUser.baseCurrency = "USD";
+          }
         });
   }
 

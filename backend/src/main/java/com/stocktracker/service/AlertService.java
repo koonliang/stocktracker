@@ -24,6 +24,7 @@ public class AlertService {
   @Inject InstrumentRepository instruments;
   @Inject CurrentUser currentUser;
   @Inject NotificationRepository notifications;
+  @Inject MarketDataService marketDataService;
 
   public AlertListResponse list() {
     return new AlertListResponse(
@@ -62,10 +63,7 @@ public class AlertService {
           ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is required");
     }
     var symbol = request.symbol().trim().toUpperCase(Locale.ROOT);
-    if (!instruments.existsSymbol(symbol)) {
-      throw new ApiException(
-          ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is unknown");
-    }
+    ensureInstrumentKnown(symbol);
     alert.instrumentSymbol = symbol;
     alert.conditionType = normalizeCondition(request.conditionType());
     if (request.threshold() == null || request.threshold().compareTo(BigDecimal.ZERO) <= 0) {
@@ -82,6 +80,21 @@ public class AlertService {
     }
     throw new ApiException(
         ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "conditionType is invalid");
+  }
+
+  private void ensureInstrumentKnown(String symbol) {
+    if (instruments.existsSymbol(symbol)) {
+      return;
+    }
+    try {
+      marketDataService.addInstrument(symbol);
+    } catch (ApiException exception) {
+      if ("unknown_symbol".equals(exception.code())) {
+        throw new ApiException(
+            ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is unknown");
+      }
+      throw exception;
+    }
   }
 
   private Alert owned(Long id) {
