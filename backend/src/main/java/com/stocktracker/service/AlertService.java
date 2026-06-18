@@ -8,6 +8,7 @@ import com.stocktracker.dto.AlertDtos.AlertRequest;
 import com.stocktracker.dto.AlertDtos.AlertView;
 import com.stocktracker.persistence.AlertRepository;
 import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.persistence.NotificationRepository;
 import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,7 @@ public class AlertService {
   @Inject AlertRepository alerts;
   @Inject InstrumentRepository instruments;
   @Inject CurrentUser currentUser;
+  @Inject NotificationRepository notifications;
 
   public AlertListResponse list() {
     return new AlertListResponse(
@@ -49,7 +51,9 @@ public class AlertService {
 
   @Transactional
   public void delete(Long id) {
-    alerts.delete(owned(id));
+    var alert = owned(id);
+    notifications.deleteByAlertId(alert.id);
+    alerts.delete(alert);
   }
 
   private void apply(Alert alert, AlertRequest request) {

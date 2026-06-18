@@ -2,9 +2,9 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatCurrencyCode } from '@/lib/format';
 import { cn } from '@/lib/cn';
-import type { MockNotification } from './NotificationDialog.mock';
+import type { Notification } from '@/api/types';
 
-function conditionLabel(notification: MockNotification) {
+function conditionLabel(notification: Notification) {
   if (notification.conditionType === 'pct_change') {
     return `Moved by ${notification.threshold.toFixed(2)}%`;
   }
@@ -12,7 +12,7 @@ function conditionLabel(notification: MockNotification) {
   return `${direction} ${formatCurrencyCode(notification.threshold, notification.thresholdCurrency)}`;
 }
 
-function observedLabel(notification: MockNotification) {
+function observedLabel(notification: Notification) {
   if (notification.conditionType === 'pct_change') {
     return `${notification.observedValue.toFixed(2)}%`;
   }
@@ -30,7 +30,7 @@ function timeLabel(iso: string) {
 }
 
 type Props = {
-  notification: MockNotification;
+  notification: Notification;
   onMarkRead: (id: string) => void;
   onDelete: (id: string) => void;
 };
@@ -62,7 +62,9 @@ export function NotificationRow({ notification, onMarkRead, onDelete }: Props) {
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-small text-text-muted">
             <span className="whitespace-nowrap">{conditionLabel(notification)}</span>
             <span className="whitespace-nowrap">Observed {observedLabel(notification)}</span>
-            <span className="whitespace-nowrap">{timeLabel(notification.triggeredAt)}</span>
+            <span className="whitespace-nowrap">
+              {notification.triggeredAt ? timeLabel(notification.triggeredAt) : '—'}
+            </span>
           </div>
         </div>
         <div className="flex shrink-0 gap-2">

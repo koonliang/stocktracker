@@ -137,6 +137,7 @@ public abstract class IntegrationTestSupport {
           notification.observedCurrency = "USD";
           notification.triggeredAt = LocalDateTime.now();
           notification.read = read;
+          notification.message = String.format("%s %s %s", symbol, conditionType.equals("price_above") ? "crossed above" : "crossed below", threshold);
           notification.crossingKey = String.format("%d-%s-%s", alertId, symbol, Instant.now().toEpochMilli());
           notificationRepository.persist(notification);
           holder[0] = notification.id;

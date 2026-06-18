@@ -74,23 +74,23 @@
 
 ### Tests for User Story 2
 
-- [ ] T022 [P] [US2] Add backend API tests for GET /api/notifications pagination, unread filtering, ownership, empty state, and ordering in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java
-- [ ] T023 [P] [US2] Add backend API tests for POST /api/notifications/{id}/read, POST /api/notifications/read-all, and DELETE /api/notifications/{id} in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java
-- [ ] T024 [P] [US2] Add alert crossing and re-arm service tests for once-per-crossing behavior in backend/src/test/java/com/stocktracker/service/AlertEvaluationTest.java
-- [ ] T025 [P] [US2] Add frontend API/store tests for notification history, unread count, mark-read, mark-all-read, and delete flows in frontend/src/stores/notificationsStore.test.ts
-- [ ] T026 [P] [US2] Add notification dialog integration tests for loading data, marking read, deleting, and empty state after deletion in frontend/tests/alerts/NotificationDialog.integration.test.tsx
+- [X] T022 [P] [US2] Add backend API tests for GET /api/notifications pagination, unread filtering, ownership, empty state, and ordering in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java
+- [X] T023 [P] [US2] Add backend API tests for POST /api/notifications/{id}/read, POST /api/notifications/read-all, and DELETE /api/notifications/{id} in backend/src/test/java/com/stocktracker/api/NotificationsResourceTest.java
+- [X] T024 [P] [US2] Add alert crossing and re-arm service tests for once-per-crossing behavior in backend/src/test/java/com/stocktracker/service/AlertEvaluationTest.java
+- [X] T025 [P] [US2] Add frontend API/store tests for notification history, unread count, mark-read, mark-all-read, and delete flows in frontend/src/stores/notificationsStore.test.ts
+- [X] T026 [P] [US2] Add notification dialog integration tests for loading data, marking read, deleting, and empty state after deletion in frontend/tests/alerts/NotificationDialog.integration.test.tsx
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Implement NotificationService history, unread count, mark-read, mark-all-read, delete, and delete-by-alert behavior in backend/src/main/java/com/stocktracker/service/NotificationService.java
-- [ ] T028 [US2] Implement NotificationsResource endpoints for list, mark-read, mark-all-read, and delete in backend/src/main/java/com/stocktracker/api/NotificationsResource.java
-- [ ] T029 [US2] Update AlertEvaluationService to create one notification per crossing key and re-arm only after condition clears in backend/src/main/java/com/stocktracker/service/AlertEvaluationService.java
-- [ ] T030 [US2] Update AlertService delete behavior to remove associated notification history in backend/src/main/java/com/stocktracker/service/AlertService.java
-- [ ] T031 [US2] Update backend notification DTO mapping with symbol, condition, threshold, observed value, triggeredAt, read state, and message in backend/src/main/java/com/stocktracker/dto/NotificationDtos.java
-- [ ] T032 [US2] Implement frontend notifications API methods for list, mark-read, mark-all-read, and delete in frontend/src/api/notificationsApi.ts
-- [ ] T033 [US2] Implement notificationsStore for dialog history, unread count, optimistic read/delete updates, and error state in frontend/src/stores/notificationsStore.ts
-- [ ] T034 [US2] Connect NotificationDialog actions to notificationsStore and backend APIs in frontend/tests/alerts/NotificationDialog.tsx
-- [ ] T035 [US2] Update NotificationToaster to share unread state with notificationsStore without duplicate toasts in frontend/src/components/layout/NotificationToaster.tsx
+- [X] T027 [US2] Implement NotificationService history, unread count, mark-read, mark-all-read, delete, and delete-by-alert behavior in backend/src/main/java/com/stocktracker/service/NotificationService.java
+- [X] T028 [US2] Implement NotificationsResource endpoints for list, mark-read, mark-all-read, and delete in backend/src/main/java/com/stocktracker/api/NotificationsResource.java
+- [X] T029 [US2] Update AlertEvaluationService to create one notification per crossing key and re-arm only after condition clears in backend/src/main/java/com/stocktracker/service/AlertEvaluationService.java
+- [X] T030 [US2] Update AlertService delete behavior to remove associated notification history in backend/src/main/java/com/stocktracker/service/AlertService.java
+- [X] T031 [US2] Update backend notification DTO mapping with symbol, condition, threshold, observed value, triggeredAt, read state, and message in backend/src/main/java/com/stocktracker/dto/NotificationDtos.java
+- [X] T032 [US2] Implement frontend notifications API methods for list, mark-read, mark-all-read, and delete in frontend/src/api/notificationsApi.ts
+- [X] T033 [US2] Implement notificationsStore for dialog history, unread count, optimistic read/delete updates, and error state in frontend/src/stores/notificationsStore.ts
+- [X] T034 [US2] Connect NotificationDialog actions to notificationsStore and backend APIs in frontend/tests/alerts/NotificationDialog.tsx
+- [X] T035 [US2] Update NotificationToaster to share unread state with notificationsStore without duplicate toasts in frontend/src/components/layout/NotificationToaster.tsx
 - [ ] T036 [US2] Add Selenium e2e coverage for alert crossing, dialog history, mark-read, mark-all-read, delete, and re-arm behavior in e2e/src/test/java/com/stocktracker/e2e/journeys/AlertsTest.java
 
 **Checkpoint**: User Story 2 is fully functional and independently testable.

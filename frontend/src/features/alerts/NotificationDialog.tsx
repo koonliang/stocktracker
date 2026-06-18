@@ -1,13 +1,10 @@
-import { useMemo, useState } from 'react';
-import { BellRing, RotateCcw } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { mockNotifications, type MockNotification } from './NotificationDialog.mock';
+import { useNotificationsStore } from '@/stores/notificationsStore';
 import { NotificationRow } from './NotificationRow';
-
-type Mode = 'filled' | 'empty' | 'error';
 
 type Props = {
   open: boolean;
@@ -15,62 +12,17 @@ type Props = {
 };
 
 export function NotificationDialog({ open, onClose }: Props) {
-  const [mode, setMode] = useState<Mode>('filled');
-  const [notifications, setNotifications] = useState<MockNotification[]>(mockNotifications);
-  const unreadCount = useMemo(
-    () => notifications.filter((notification) => !notification.read).length,
-    [notifications],
-  );
-
-  const visibleNotifications = mode === 'empty' ? [] : notifications;
-
-  const reset = () => {
-    setMode('filled');
-    setNotifications(mockNotifications);
-  };
-
-  const markRead = (id: string) => {
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification,
-      ),
-    );
-  };
-
-  const markAllRead = () => {
-    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })));
-  };
-
-  const deleteNotification = (id: string) => {
-    setNotifications((current) => current.filter((notification) => notification.id !== id));
-  };
+  const notifications = useNotificationsStore((state) => state.notifications);
+  const unreadCount = useNotificationsStore((state) => state.unreadCount);
+  const loading = useNotificationsStore((state) => state.loading);
+  const error = useNotificationsStore((state) => state.error);
+  const fetch = useNotificationsStore((state) => state.fetch);
+  const markRead = useNotificationsStore((state) => state.markRead);
+  const markAllRead = useNotificationsStore((state) => state.markAllRead);
+  const remove = useNotificationsStore((state) => state.remove);
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      title="Triggered Alerts"
-      description="Frontend MVP mockup for alert notification review."
-      footer={
-        <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <div className="flex gap-2">
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMode('filled')}>
-              Filled
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMode('empty')}>
-              Empty
-            </Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setMode('error')}>
-              Error
-            </Button>
-          </div>
-          <Button type="button" variant="secondary" size="sm" onClick={reset}>
-            <RotateCcw size={14} aria-hidden />
-            Reset mock
-          </Button>
-        </div>
-      }
-    >
+    <Dialog open={open} onClose={onClose} title="Triggered Alerts">
       <div data-testid="notification-dialog" className="space-y-4">
         <div className="rounded-2xl border border-border bg-surface-alt/60 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -90,17 +42,20 @@ export function NotificationDialog({ open, onClose }: Props) {
           </div>
         </div>
 
-        {mode === 'error' ? (
+        {error && notifications.length === 0 ? (
           <EmptyState
             title="Could not load triggered alerts"
-            description="This mock state previews the retry/error treatment before the API is wired."
             actions={
-              <Button type="button" variant="secondary" onClick={reset}>
-                Retry mock
+              <Button type="button" variant="secondary" onClick={fetch}>
+                Retry
               </Button>
             }
           />
-        ) : visibleNotifications.length === 0 ? (
+        ) : loading && notifications.length === 0 ? (
+          <div className="flex items-center justify-center py-12">
+            <p className="text-body text-text-muted">Loading...</p>
+          </div>
+        ) : notifications.length === 0 ? (
           <div data-testid="notification-empty">
             <EmptyState
               title="No triggered alerts"
@@ -124,12 +79,12 @@ export function NotificationDialog({ open, onClose }: Props) {
               </Button>
             </div>
             <ul className="max-h-[54vh] space-y-3 overflow-y-auto pr-1">
-              {visibleNotifications.map((notification) => (
+              {notifications.map((notification) => (
                 <NotificationRow
                   key={notification.id}
                   notification={notification}
                   onMarkRead={markRead}
-                  onDelete={deleteNotification}
+                  onDelete={remove}
                 />
               ))}
             </ul>

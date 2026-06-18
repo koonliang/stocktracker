@@ -10,6 +10,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.LocalDateTime;
 
 @ApplicationScoped
 public class AlertEvaluationService {
@@ -24,12 +25,23 @@ public class AlertEvaluationService {
     }
     for (var alert : alerts.listForSymbol(quote.instrumentSymbol)) {
       var matches = matches(alert, quote);
-      if (alert.armed && matches) {
+      var wasMet = Boolean.TRUE.equals(alert.lastConditionMet);
+      var isNewCrossing = !wasMet && matches && alert.armed;
+      var didClear = wasMet && !matches;
+
+      if (isNewCrossing) {
         fire(alert, quote);
-      } else if (!alert.armed && !matches) {
-        alert.armed = true;
-        alerts.persist(alert);
       }
+
+      alert.lastConditionMet = matches;
+      if (didClear && !alert.armed) {
+        alert.armed = true;
+        alert.lastClearedAt = clock.instant();
+      }
+      if (matches) {
+        alert.lastTriggeredAt = clock.instant();
+      }
+      alerts.persist(alert);
     }
   }
 
@@ -47,9 +59,19 @@ public class AlertEvaluationService {
     alert.lastTriggeredAt = clock.instant();
     alerts.persist(alert);
 
+    var crossingKey =
+        alert.id + "-" + clock.instant().toEpochMilli();
+
     var notification = new Notification();
     notification.userId = alert.userId;
     notification.alertId = alert.id;
+    notification.instrumentSymbol = alert.instrumentSymbol;
+    notification.conditionType = alert.conditionType;
+    notification.threshold = alert.threshold;
+    notification.observedValue = quote.price != null ? quote.price : quote.changePct;
+    notification.observedCurrency = null;
+    notification.triggeredAt = LocalDateTime.now(clock);
+    notification.crossingKey = crossingKey;
     notification.message =
         "%s %s %s"
             .formatted(

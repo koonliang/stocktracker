@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useQuotesStore, selectAnyStale } from './quotesStore';
+import { useQuotesStore, selectAnyStale } from '@/stores/quotesStore';
 
 describe('quotesStore', () => {
   beforeEach(() => useQuotesStore.getState().reset());

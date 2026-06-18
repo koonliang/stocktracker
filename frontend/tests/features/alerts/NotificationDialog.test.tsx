@@ -1,10 +1,103 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen, within } from '@/test/utils';
+import { useNotificationsStore } from '@/stores/notificationsStore';
 import { NotificationDialogTrigger } from '@/features/alerts/NotificationDialogTrigger';
 
+const mockNotifications = [
+  {
+    id: 'n1',
+    alertId: 'a1',
+    symbol: 'AAPL',
+    conditionType: 'price_above',
+    threshold: 300.0,
+    thresholdCurrency: 'USD',
+    observedValue: 301.25,
+    observedCurrency: 'USD',
+    triggeredAt: new Date().toISOString(),
+    read: false,
+    message: 'AAPL crossed above 300.00 USD',
+  },
+  {
+    id: 'n2',
+    alertId: 'a1',
+    symbol: 'AAPL',
+    conditionType: 'price_above',
+    threshold: 300.0,
+    thresholdCurrency: 'USD',
+    observedValue: 301.25,
+    observedCurrency: 'USD',
+    triggeredAt: new Date(Date.now() - 60_000).toISOString(),
+    read: true,
+    message: 'AAPL crossed above 300.00 USD',
+  },
+  {
+    id: 'n3',
+    alertId: 'a2',
+    symbol: 'D05.SI',
+    conditionType: 'price_below',
+    threshold: 44.5,
+    thresholdCurrency: 'SGD',
+    observedValue: 44.1,
+    observedCurrency: 'SGD',
+    triggeredAt: new Date(Date.now() - 120_000).toISOString(),
+    read: false,
+    message: 'D05.SI crossed below 44.50 SGD',
+  },
+  {
+    id: 'n4',
+    alertId: 'a2',
+    symbol: 'D05.SI',
+    conditionType: 'price_below',
+    threshold: 44.5,
+    thresholdCurrency: 'SGD',
+    observedValue: 44.0,
+    observedCurrency: 'SGD',
+    triggeredAt: new Date(Date.now() - 180_000).toISOString(),
+    read: true,
+    message: 'D05.SI crossed below 44.50 SGD',
+  },
+];
+
+function seedStore() {
+  useNotificationsStore.setState({
+    notifications: mockNotifications,
+    unreadCount: 2,
+    loading: false,
+    error: null,
+  });
+}
+
+function seedEmpty() {
+  useNotificationsStore.setState({
+    notifications: [],
+    unreadCount: 0,
+    loading: false,
+    error: null,
+  });
+}
+
+function seedError() {
+  useNotificationsStore.setState({
+    notifications: [],
+    unreadCount: 0,
+    loading: false,
+    error: 'Failed to load notifications',
+  });
+}
+
 describe('NotificationDialog', () => {
-  it('shows filled notification rows, unread count, and row actions', async () => {
+  beforeEach(() => {
+    useNotificationsStore.setState({
+      notifications: [],
+      unreadCount: 0,
+      loading: true,
+      error: null,
+    });
+  });
+
+  it('shows notification rows, unread count, and row actions', async () => {
+    seedStore();
     const user = userEvent.setup();
     renderWithProviders(<NotificationDialogTrigger />);
 
@@ -19,6 +112,7 @@ describe('NotificationDialog', () => {
   });
 
   it('marks all notifications read', async () => {
+    seedStore();
     const user = userEvent.setup();
     renderWithProviders(<NotificationDialogTrigger />);
 
@@ -32,15 +126,21 @@ describe('NotificationDialog', () => {
     );
   });
 
-  it('previews empty and error states', async () => {
+  it('shows empty state when no notifications', async () => {
+    seedEmpty();
     const user = userEvent.setup();
     renderWithProviders(<NotificationDialogTrigger />);
 
     await user.click(screen.getByTestId('notification-dialog-trigger'));
-    await user.click(screen.getByRole('button', { name: 'Empty' }));
     expect(screen.getByTestId('notification-empty')).toHaveTextContent('No triggered alerts');
+  });
 
-    await user.click(screen.getByRole('button', { name: 'Error' }));
+  it('shows error state', async () => {
+    seedError();
+    const user = userEvent.setup();
+    renderWithProviders(<NotificationDialogTrigger />);
+
+    await user.click(screen.getByTestId('notification-dialog-trigger'));
     expect(screen.getByText('Could not load triggered alerts')).toBeInTheDocument();
   });
 });
