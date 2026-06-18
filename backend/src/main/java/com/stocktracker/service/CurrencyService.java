@@ -61,13 +61,23 @@ public class CurrencyService {
     if (from.equalsIgnoreCase(to)) {
       return Optional.of(new Converted(BigDecimal.ONE, onDate, FxStatus.current));
     }
-    var direct = lookup(from, to, onDate);
-    if (direct.isPresent()) {
-      return direct.map(r -> new Converted(r.rate, r.rateDate, status(r, onDate)));
+    var directExact = fxRates.find(from, to, onDate);
+    if (directExact.isPresent()) {
+      return directExact.map(r -> new Converted(r.rate, r.rateDate, status(r, onDate)));
     }
-    var inverse = lookup(to, from, onDate);
-    if (inverse.isPresent()) {
-      var r = inverse.get();
+    var inverseExact = fxRates.find(to, from, onDate);
+    if (inverseExact.isPresent()) {
+      var r = inverseExact.get();
+      var inverted = BigDecimal.ONE.divide(r.rate, 8, RoundingMode.HALF_UP);
+      return Optional.of(new Converted(inverted, r.rateDate, status(r, onDate)));
+    }
+    var directFallback = fxRates.findLatestOnOrBefore(from, to, onDate);
+    if (directFallback.isPresent()) {
+      return directFallback.map(r -> new Converted(r.rate, r.rateDate, status(r, onDate)));
+    }
+    var inverseFallback = fxRates.findLatestOnOrBefore(to, from, onDate);
+    if (inverseFallback.isPresent()) {
+      var r = inverseFallback.get();
       var inverted = BigDecimal.ONE.divide(r.rate, 8, RoundingMode.HALF_UP);
       return Optional.of(new Converted(inverted, r.rateDate, status(r, onDate)));
     }
@@ -92,11 +102,6 @@ public class CurrencyService {
       }
     }
     return Optional.empty();
-  }
-
-  private Optional<FxRate> lookup(String from, String to, LocalDate onDate) {
-    var exact = fxRates.find(from, to, onDate);
-    return exact.isPresent() ? exact : fxRates.findLatestOnOrBefore(from, to, onDate);
   }
 
   private FxStatus status(FxRate rate, LocalDate onDate) {

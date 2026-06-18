@@ -32,6 +32,7 @@ public class PerformanceService {
   @Inject LotMatchingService lotMatchingService;
   @Inject CurrencyService currencyService;
   @Inject HistoricalBackfillService historicalBackfillService;
+  @Inject FxHistoricalBackfillService fxHistoricalBackfillService;
 
   public PerformanceResponse performance(String window, String method) {
     var user = currentUser.require();
@@ -41,6 +42,7 @@ public class PerformanceService {
     var today = LocalDate.now();
     var start = windowStart(normalizedWindow, today);
     var transactions = transactionRepository.listAscending(user.id);
+    backfillHistoricalFx(transactions, baseCurrency, start, today);
     var symbols =
         transactions.stream()
             .map(transaction -> transaction.instrumentSymbol)
@@ -297,6 +299,36 @@ public class PerformanceService {
         || bars.get(bars.size() - 1).tradeDate.isBefore(today.minusDays(1))) {
       historicalBackfillService.backfill(symbol, start);
     }
+  }
+
+  private void backfillHistoricalFx(
+      List<PortfolioTransaction> transactions, String baseCurrency, LocalDate start, LocalDate today) {
+    if (transactions.isEmpty()) {
+      return;
+    }
+    var from =
+        transactions.stream()
+            .map(transaction -> transaction.tradeDate)
+            .filter(Objects::nonNull)
+            .min(LocalDate::compareTo)
+            .orElse(start);
+    var neededCurrencies =
+        transactions.stream()
+            .map(transaction -> transaction.currency)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var instrumentSymbols =
+        transactions.stream()
+            .map(transaction -> transaction.instrumentSymbol)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    if (!instrumentSymbols.isEmpty()) {
+      instrumentRepository.findBySymbols(instrumentSymbols).values().stream()
+          .map(instrument -> instrument.currency)
+          .filter(Objects::nonNull)
+          .forEach(neededCurrencies::add);
+    }
+    fxHistoricalBackfillService.backfillForBase(baseCurrency, neededCurrencies, from, today);
   }
 
   private Map<String, List<InstrumentPriceBar>> groupBars(List<InstrumentPriceBar> bars) {

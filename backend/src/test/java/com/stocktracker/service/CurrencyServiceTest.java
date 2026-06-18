@@ -117,6 +117,17 @@ class CurrencyServiceTest extends IntegrationTestSupport {
   }
 
   @Test
+  void exactInverseRateBeatsOlderDirectFallback() throws Exception {
+    persistRate("USD", "SGD", TODAY.minusDays(10), "1.40");
+    persistRate("SGD", "USD", TODAY, "0.740741");
+
+    var result = currencyService.convertTransaction(new BigDecimal("100"), "USD", "SGD", TODAY);
+
+    assertEquals(TODAY, result.fxDate());
+    assertEquals(FxStatus.current, result.fxStatus());
+  }
+
+  @Test
   void absentPairReturnsUnavailableWithoutPassThroughAmount() {
     var result = currencyService.convert(new BigDecimal("100"), "USD", "EUR", TODAY);
 

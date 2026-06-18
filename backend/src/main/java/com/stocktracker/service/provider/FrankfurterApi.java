@@ -17,13 +17,29 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 @Produces(MediaType.APPLICATION_JSON)
 public interface FrankfurterApi {
   @GET
-  @Path("/latest")
+  @Path("/v1/latest")
   JsonNode latest(@QueryParam("base") String base, @QueryParam("symbols") String symbols);
 
   @GET
-  @Path("/{date}")
+  @Path("/v1/{date}")
   JsonNode onDate(
       @PathParam("date") String date,
+      @QueryParam("base") String base,
+      @QueryParam("symbols") String symbols);
+
+  @GET
+  @Path("/v2/rates")
+  JsonNode range(
+      @QueryParam("base") String base,
+      @QueryParam("quotes") String quotes,
+      @QueryParam("from") String from,
+      @QueryParam("to") String to);
+
+  @GET
+  @Path("/v1/{from}..{to}")
+  JsonNode rangeV1(
+      @PathParam("from") String from,
+      @PathParam("to") String to,
       @QueryParam("base") String base,
       @QueryParam("symbols") String symbols);
 }
