@@ -59,7 +59,16 @@ Let users set thresholds on a ticker (price >, price <, % change).
 - Tag each transaction with a currency.
 - User can choose to view dashboard and performance using user-chosen base currency
 
-# 008-
+# 008-homelab-deployment
+- new profile: sit => homelab environment
+- deploy backend services to homelab environment
+- frontend is deployed in Vercel (already done, integrated with gitlab main branch)
+- frontend is configured with backend as VITE_API_BASE_URL=https://example.com
+- for this feature, just need to configure backend with sit profile
+- backend app server ip (this should be configurable in the deployment)
+- backend database server ip (this should be configurable in the deployment)
+
+# 009-
 - On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
 - On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)
     - General Info
