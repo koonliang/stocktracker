@@ -13,6 +13,8 @@ public class LiveQuotesPage {
   private static final By SYMBOL_RESULT = By.cssSelector("[data-testid='symbol-search-result']");
   private static final By SYMBOL_ADD = By.cssSelector("[data-testid='symbol-add']");
   private static final By BASE_CURRENCY = By.cssSelector("[data-testid='base-currency-select']");
+  private static final By BASE_CURRENCY_OPTIONS =
+      By.cssSelector("[data-testid='base-currency-select'] option");
 
   private final WebDriver driver;
   private final Waits waits;
@@ -37,7 +39,12 @@ public class LiveQuotesPage {
   }
 
   public LiveQuotesPage selectBaseCurrency(String currency) {
-    new Select(waits.untilVisible(BASE_CURRENCY)).selectByVisibleText(currency);
+    var select = waits.untilVisible(BASE_CURRENCY);
+    waits.untilTrue(
+        d ->
+            d.findElements(BASE_CURRENCY_OPTIONS).stream()
+                .anyMatch(option -> option.getText().trim().equals(currency)));
+    new Select(select).selectByVisibleText(currency);
     return this;
   }
 
