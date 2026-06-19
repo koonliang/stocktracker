@@ -39,4 +39,9 @@ public class PerformancePage {
   public String pageText() {
     return driver.findElement(PAGE).getText().trim();
   }
+
+  public PerformancePage waitForPageTextContaining(String text) {
+    waits.untilTrue(d -> d.findElement(PAGE).getText().contains(text));
+    return this;
+  }
 }

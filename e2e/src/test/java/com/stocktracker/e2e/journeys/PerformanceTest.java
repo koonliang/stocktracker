@@ -24,13 +24,13 @@ class PerformanceTest extends BaseTest {
     signInAsSeedUser();
     open("/");
     new LiveQuotesPage(driver, waits).waitLoaded().selectBaseCurrency("SGD");
-    var dashboard = new DashboardPage(driver, waits).waitLoaded();
+    var dashboard = new DashboardPage(driver, waits).waitLoaded().waitForSummaryTextContaining("SGD");
 
     assertThat(dashboard.summaryTilesText()).contains("SGD");
     assertThat(dashboard.holdingsText()).containsAnyOf("SGD", "Stale rate", "Rate unavailable");
 
     open("/performance");
-    var performance = new PerformancePage(driver, waits).waitLoaded();
+    var performance = new PerformancePage(driver, waits).waitLoaded().waitForPageTextContaining("SGD");
 
     assertThat(performance.pageText()).containsAnyOf("SGD", "Stale rate", "Rate unavailable");
   }
