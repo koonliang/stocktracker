@@ -23,7 +23,11 @@ class PerformanceTest extends BaseTest {
   void baseCurrencySwitchRefreshesDashboardAndPerformanceCurrencyViews() {
     signInAsSeedUser();
     open("/");
-    new LiveQuotesPage(driver, waits).waitLoaded().selectBaseCurrency("SGD");
+    new LiveQuotesPage(driver, waits)
+        .waitLoaded()
+        .search("DBS", "D05.SI")
+        .addFirstResult()
+        .selectBaseCurrency("SGD");
     var dashboard = new DashboardPage(driver, waits).waitLoaded().waitForSummaryTextContaining("SGD");
 
     assertThat(dashboard.summaryTilesText()).contains("SGD");
