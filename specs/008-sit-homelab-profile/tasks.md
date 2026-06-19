@@ -25,9 +25,9 @@
 
 **Purpose**: Prepare repo-level script/config scaffolding for the homelab deployment path
 
-- [ ] T001 Add homelab deployment script and env sample placeholders in `scripts/deploy-homelab-sit.sh` and `scripts/.env.example`
-- [ ] T002 [P] Update git ignore rules for local homelab env files in `.gitignore`
-- [ ] T003 [P] Add a homelab deployment usage section stub to `backend/README.md`
+- [X] T001 Add homelab deployment script and env sample placeholders in `scripts/deploy-homelab-sit.sh` and `scripts/.env.example`
+- [X] T002 [P] Update git ignore rules for local homelab env files in `.gitignore`
+- [X] T003 [P] Add a homelab deployment usage section stub to `backend/README.md`
 
 ---
 
@@ -37,11 +37,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Add `sit` profile defaults and environment-variable hooks in `backend/src/main/resources/application.properties`
-- [ ] T005 [P] Implement backend runtime config helper(s) for SIT deployment values in `backend/src/main/java/com/stocktracker/config/`
-- [ ] T006 [P] Create minimal backend unit tests for SIT profile resolution in `backend/src/test/java/com/stocktracker/config/`
-- [ ] T007 Implement shared shell helpers for env loading, validation, and logging in `scripts/deploy-homelab-sit.sh`
-- [ ] T008 [P] Reuse or adapt HTTP verification flow from `scripts/smoke-check.sh` inside `scripts/deploy-homelab-sit.sh`
+- [X] T004 Add `sit` profile defaults and environment-variable hooks in `backend/src/main/resources/application.properties`
+- [X] T005 [P] Implement backend runtime config helper(s) for SIT deployment values in `backend/src/main/java/com/stocktracker/config/`
+- [X] T006 [P] Create minimal backend unit tests for SIT profile resolution in `backend/src/test/java/com/stocktracker/config/`
+- [X] T007 Implement shared shell helpers for env loading, validation, and logging in `scripts/deploy-homelab-sit.sh`
+- [X] T008 [P] Reuse or adapt HTTP verification flow from `scripts/smoke-check.sh` inside `scripts/deploy-homelab-sit.sh`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -55,15 +55,15 @@
 
 ### Tests for User Story 1 (Minimum Required) ⚠️
 
-- [ ] T009 [P] [US1] Add minimal script validation and dry-run coverage for deployment entry paths in `scripts/deploy-homelab-sit.sh`
-- [ ] T010 [P] [US1] Add minimal backend unit coverage for SIT startup-related config wiring in `backend/src/test/java/com/stocktracker/config/`
+- [X] T009 [P] [US1] Add minimal script validation and dry-run coverage for deployment entry paths in `scripts/deploy-homelab-sit.sh`
+- [X] T010 [P] [US1] Add minimal backend unit coverage for SIT startup-related config wiring in `backend/src/test/java/com/stocktracker/config/`
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Implement backend JVM packaging flow for homelab deployment in `scripts/deploy-homelab-sit.sh`
-- [ ] T012 [US1] Implement remote artifact copy and restart flow in `scripts/deploy-homelab-sit.sh`
-- [ ] T013 [US1] Implement post-deploy public health verification in `scripts/deploy-homelab-sit.sh`
-- [ ] T014 [US1] Document the full SIT deployment runbook in `specs/008-sit-homelab-profile/quickstart.md`
+- [X] T011 [US1] Implement backend JVM packaging flow for homelab deployment in `scripts/deploy-homelab-sit.sh`
+- [X] T012 [US1] Implement remote artifact copy and restart flow in `scripts/deploy-homelab-sit.sh`
+- [X] T013 [US1] Implement post-deploy public health verification in `scripts/deploy-homelab-sit.sh`
+- [X] T014 [US1] Document the full SIT deployment runbook in `specs/008-sit-homelab-profile/quickstart.md`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -77,15 +77,15 @@
 
 ### Tests for User Story 2 (Minimum Required) ⚠️
 
-- [ ] T015 [P] [US2] Add minimal script coverage for env-file loading and override precedence in `scripts/deploy-homelab-sit.sh`
-- [ ] T016 [P] [US2] Add minimal backend unit tests for JDBC/host composition in `backend/src/test/java/com/stocktracker/config/`
+- [X] T015 [P] [US2] Add minimal script coverage for env-file loading and override precedence in `scripts/deploy-homelab-sit.sh`
+- [X] T016 [P] [US2] Add minimal backend unit tests for JDBC/host composition in `backend/src/test/java/com/stocktracker/config/`
 
 ### Implementation for User Story 2
 
-- [ ] T017 [US2] Implement `scripts/.env` loading and explicit override precedence in `scripts/deploy-homelab-sit.sh`
-- [ ] T018 [US2] Implement required-input and private-network preflight validation in `scripts/deploy-homelab-sit.sh`
-- [ ] T019 [US2] Create documented sample deployment inputs in `scripts/.env.example`
-- [ ] T020 [US2] Update runtime config contract and operator guidance for configurable hosts in `specs/008-sit-homelab-profile/contracts/runtime-config-contract.md` and `specs/008-sit-homelab-profile/contracts/deployment-script-contract.md`
+- [X] T017 [US2] Implement `scripts/.env` loading and explicit override precedence in `scripts/deploy-homelab-sit.sh`
+- [X] T018 [US2] Implement required-input and private-network preflight validation in `scripts/deploy-homelab-sit.sh`
+- [X] T019 [US2] Create documented sample deployment inputs in `scripts/.env.example`
+- [X] T020 [US2] Update runtime config contract and operator guidance for configurable hosts in `specs/008-sit-homelab-profile/contracts/runtime-config-contract.md` and `specs/008-sit-homelab-profile/contracts/deployment-script-contract.md`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -99,14 +99,14 @@
 
 ### Tests for User Story 3 (Minimum Required) ⚠️
 
-- [ ] T021 [US3] Add manual non-regression verification steps for the existing frontend/API contract in `specs/008-sit-homelab-profile/quickstart.md`
-- [ ] T022 [P] [US3] Add automated coverage ensuring SIT profile changes do not alter default non-SIT runtime behavior in `backend/src/test/java/com/stocktracker/config/`
+- [X] T021 [US3] Add manual non-regression verification steps for the existing frontend/API contract in `specs/008-sit-homelab-profile/quickstart.md`
+- [X] T022 [P] [US3] Add automated coverage ensuring SIT profile changes do not alter default non-SIT runtime behavior in `backend/src/test/java/com/stocktracker/config/`
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] Confirm frontend-facing backend URL guidance remains externalized and unchanged in `specs/008-sit-homelab-profile/quickstart.md` and `backend/README.md`
-- [ ] T024 [US3] Ensure SIT-specific config is isolated from existing AWS production behavior in `backend/src/main/resources/application.properties`
-- [ ] T025 [US3] Add manual verification steps for frontend-after-backend deployment in `specs/008-sit-homelab-profile/quickstart.md`
+- [X] T023 [US3] Confirm frontend-facing backend URL guidance remains externalized and unchanged in `specs/008-sit-homelab-profile/quickstart.md` and `backend/README.md`
+- [X] T024 [US3] Ensure SIT-specific config is isolated from existing AWS production behavior in `backend/src/main/resources/application.properties`
+- [X] T025 [US3] Add manual verification steps for frontend-after-backend deployment in `specs/008-sit-homelab-profile/quickstart.md`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -116,9 +116,9 @@
 
 **Purpose**: Final hardening, consistency, and verification across stories
 
-- [ ] T026 [P] Add final script usage/help text and failure messaging cleanup in `scripts/deploy-homelab-sit.sh`
-- [ ] T027 [P] Add final documentation cross-links in `backend/README.md` and `specs/008-sit-homelab-profile/plan.md`
-- [ ] T028 Run full backend verification notes and record manual homelab validation steps in `specs/008-sit-homelab-profile/quickstart.md`
+- [X] T026 [P] Add final script usage/help text and failure messaging cleanup in `scripts/deploy-homelab-sit.sh`
+- [X] T027 [P] Add final documentation cross-links in `backend/README.md` and `specs/008-sit-homelab-profile/plan.md`
+- [X] T028 Run full backend verification notes and record manual homelab validation steps in `specs/008-sit-homelab-profile/quickstart.md`
 
 ---
 

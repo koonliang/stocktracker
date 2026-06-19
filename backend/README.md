@@ -28,6 +28,27 @@ For backend-only work outside Docker:
 The application expects MySQL unless you are running the test suite, where
 Quarkus Dev Services will provision an ephemeral database.
 
+## SIT homelab deployment
+
+The repository includes a manual deployment path for the private homelab SIT
+environment:
+
+```sh
+cp scripts/.env.example scripts/.env
+# edit scripts/.env on the homelab machine
+bash scripts/deploy-homelab-sit.sh --validate-only
+bash scripts/deploy-homelab-sit.sh
+```
+
+Expected inputs live in `scripts/.env` and are intentionally kept out of git.
+The script builds the backend as a Quarkus JVM app, uploads it to the app host,
+uploads or updates the systemd unit when `systemctl` is available, restarts the
+configured service or process, and verifies
+`PUBLIC_BASE_URL/q/health` before succeeding.
+
+The deploy user on the homelab app host must be able to run the required
+`sudo install` and `sudo systemctl` commands non-interactively.
+
 ## Authentication
 
 The backend gates every non-auth API route behind a signed-in user and scopes

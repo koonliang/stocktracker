@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.stocktracker.dto.ApiErrorResponse;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
@@ -88,5 +89,16 @@ class ApiExceptionMapperTest {
     assertTrue(
         records.stream().noneMatch(r -> r.getMessage().contains("code=internal_error")),
         "a domain ApiException must not be logged as an internal_error");
+  }
+
+  @Test
+  void notFoundExceptionReturns404WithoutInternalErrorLog() {
+    var response = mapper.toResponse(new NotFoundException("HTTP 404 Not Found"));
+
+    assertEquals(404, response.getStatus());
+    assertEquals("not_found", ((ApiErrorResponse) response.getEntity()).code());
+    assertTrue(
+        records.stream().noneMatch(r -> r.getMessage().contains("code=internal_error")),
+        "a NotFoundException must not be logged as an internal_error");
   }
 }

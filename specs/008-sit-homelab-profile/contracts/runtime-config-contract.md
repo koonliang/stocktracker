@@ -16,10 +16,12 @@ machine.
 | Setting | Purpose | Expected Source |
 |--------|---------|-----------------|
 | `QUARKUS_PROFILE=sit` | Activate the SIT-specific runtime profile | deployment script |
-| `QUARKUS_DATASOURCE_JDBC_URL` | Point the backend to the homelab MySQL instance | deployment script using `DB_HOST` |
+| `QUARKUS_DATASOURCE_JDBC_URL` | Full JDBC URL for the homelab MySQL instance | deployment script |
 | `QUARKUS_DATASOURCE_USERNAME` | Database login user | deployment environment |
 | `QUARKUS_DATASOURCE_PASSWORD` | Database login password | deployment environment or secret file outside git |
-| `STOCKTRACKER_AUTH_MODE` | Authentication mode appropriate for SIT | `sit` profile default or deployment override |
+| `SIT_AUTH_MODE` | Authentication mode override for SIT | deployment environment or `sit` profile default |
+| `SIT_DEV_BOOTSTRAP_ENABLED` | Toggle dev bootstrap for SIT | deployment environment or `sit` profile default |
+| `SIT_SCHEDULER_ENABLED` | Toggle scheduler for SIT | deployment environment or `sit` profile default |
 | `QUARKUS_HTTP_HOST` | Bind address for the app process | `sit` profile default |
 
 ## SIT Defaults

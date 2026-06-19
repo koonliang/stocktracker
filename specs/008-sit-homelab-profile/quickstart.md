@@ -8,6 +8,8 @@ public backend URL.
 
 - Access to a machine inside the homelab network
 - Shell access from that machine to the backend app host
+- `DEPLOY_USER` can run `sudo install`, `sudo systemctl daemon-reload`,
+  `sudo systemctl enable`, and `sudo systemctl restart` on the backend app host
 - Network reachability from that machine to:
   - the backend app host
   - the MySQL host
@@ -22,7 +24,12 @@ Recommended local file on the homelab machine: `scripts/.env`
 APP_HOST=192.168.100.101
 DB_HOST=192.168.100.102
 DB_PORT=3306
+DB_NAME=stocktracker
+DB_USERNAME=stocktracker
+DB_PASSWORD=change-me
 PUBLIC_BASE_URL=https://example.com
+DEPLOY_USER=deploy
+SERVICE_NAME=stocktracker-backend-sit
 QUARKUS_PROFILE=sit
 ```
 
@@ -34,7 +41,8 @@ be committed if documentation is needed.
 ## Planned Deployment Flow
 
 ```bash
-scripts/deploy-homelab-sit.sh
+bash scripts/deploy-homelab-sit.sh --validate-only
+bash scripts/deploy-homelab-sit.sh
 ```
 
 Expected script behavior:
@@ -43,7 +51,8 @@ Expected script behavior:
 2. Validate required inputs and private-network reachability.
 3. Build or locate the backend runtime artifact for SIT.
 4. Copy the artifact to the app host.
-5. Restart the backend process using the `sit` profile.
+5. Upload or update the systemd unit on the app host, then restart the backend
+   process using the `sit` profile.
 6. Verify `<public backend URL>/q/health`.
 
 ## Manual Verification
@@ -55,7 +64,12 @@ curl -fsS <public backend URL>/q/health
 ```
 
 Then open the deployed frontend and confirm it can load data from the SIT
-backend without frontend redeployment.
+backend without frontend redeployment. A minimal manual non-regression check is:
+
+1. Open the existing frontend URL.
+2. Log in with a SIT-capable account if authentication is enabled.
+3. Confirm the dashboard or watchlist view loads data successfully from the
+   deployed backend without any Vercel/frontend redeploy.
 
 ## Non-Goals
 

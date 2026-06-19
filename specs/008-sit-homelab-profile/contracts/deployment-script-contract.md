@@ -27,6 +27,9 @@ that file.
 |------|--------|-------------|
 | `APP_HOST` | `.env`, env, or flag | Backend application server host/IP |
 | `DB_HOST` | `.env`, env, or flag | MySQL host/IP |
+| `DB_NAME` | `.env`, env, or flag | MySQL schema/database name |
+| `DB_USERNAME` | `.env`, env, or flag | Backend database username |
+| `DB_PASSWORD` | `.env`, env, or flag | Backend database password |
 | `PUBLIC_BASE_URL` | `.env`, env, or flag | Public backend base URL for final verification |
 | `DEPLOY_USER` | `.env`, env, or flag | Remote user on the app host |
 | `SERVICE_NAME` | `.env`, env, or flag | Service or process identifier to restart |
@@ -49,9 +52,11 @@ that file.
    network access to `APP_HOST` and `DB_HOST`.
 4. Build or locate the backend artifact for the homelab runtime.
 5. Transfer the artifact and any required runtime config to `APP_HOST`.
-6. Restart or replace the backend process using the `sit` runtime profile.
-7. Verify the backend through `PUBLIC_BASE_URL/q/health`.
-8. Exit non-zero on the first failed validation, rollout, or verification step.
+6. Write runtime environment values for the `sit` profile, including DB host
+   fragments and datasource credentials.
+7. Restart or replace the backend process using the `sit` runtime profile.
+8. Verify the backend through `PUBLIC_BASE_URL/q/health`.
+9. Exit non-zero on the first failed validation, rollout, or verification step.
 
 ## Output Contract
 

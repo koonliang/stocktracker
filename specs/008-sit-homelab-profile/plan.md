@@ -76,6 +76,7 @@ scripts/
 ├── package-lambda.sh           # existing AWS packaging path; unchanged
 ├── smoke-check.sh              # reusable post-deploy verification
 ├── deploy-homelab-sit.sh       # new operator-run homelab deployment script
+├── test-deploy-homelab-sit.sh  # minimal automated validation for script entry paths
 └── .env.example                # documented sample input file for homelab deploys
 
 frontend/
