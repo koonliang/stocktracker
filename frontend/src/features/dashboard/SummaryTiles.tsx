@@ -75,30 +75,37 @@ function tone(n: number): 'positive' | 'negative' | 'neutral' {
 export function SummaryTiles({ summary }: Props) {
   const base = summary.baseCurrency;
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-testid="summary-tiles">
-      <Tile
-        eyebrow="Market Value"
-        value={formatCurrencyCode(summary.totalMarketValue, base, { cents: false })}
-        conversion={summary.marketValueConversion}
-      />
-      <Tile
-        eyebrow="Cost Basis"
-        value={formatCurrencyCode(summary.totalCostBasis, base, { cents: false })}
-        conversion={summary.costBasisConversion}
-      />
-      <Tile
-        eyebrow="Unrealised P&L"
-        value={formatSignedCurrencyCode(summary.totalUnrealizedPnL, base, { cents: false })}
-        deltaPct={formatSignedPercent(summary.totalUnrealizedPnLPct)}
-        tone={tone(summary.totalUnrealizedPnL)}
-      />
-      <Tile
-        eyebrow="Today"
-        value={formatSignedCurrencyCode(summary.totalDayChange, base, { cents: false })}
-        deltaPct={formatSignedPercent(summary.totalDayChangePct)}
-        conversion={summary.dayChangeConversion}
-        tone={tone(summary.totalDayChange)}
-      />
+    <div data-testid="summary-tiles">
+      {base ? (
+        <div className="mb-2 flex justify-end text-xs uppercase tracking-wide text-text-subtle">
+          Base currency {base}
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <Tile
+          eyebrow="Market Value"
+          value={formatCurrencyCode(summary.totalMarketValue, base, { cents: false })}
+          conversion={summary.marketValueConversion}
+        />
+        <Tile
+          eyebrow="Cost Basis"
+          value={formatCurrencyCode(summary.totalCostBasis, base, { cents: false })}
+          conversion={summary.costBasisConversion}
+        />
+        <Tile
+          eyebrow="Unrealised P&L"
+          value={formatSignedCurrencyCode(summary.totalUnrealizedPnL, base, { cents: false })}
+          deltaPct={formatSignedPercent(summary.totalUnrealizedPnLPct)}
+          tone={tone(summary.totalUnrealizedPnL)}
+        />
+        <Tile
+          eyebrow="Today"
+          value={formatSignedCurrencyCode(summary.totalDayChange, base, { cents: false })}
+          deltaPct={formatSignedPercent(summary.totalDayChangePct)}
+          conversion={summary.dayChangeConversion}
+          tone={tone(summary.totalDayChange)}
+        />
+      </div>
     </div>
   );
 }

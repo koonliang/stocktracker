@@ -77,6 +77,7 @@ describe('PerformanceRoute', () => {
     render(<PerformanceRoute />);
 
     expect(await screen.findByText('Realized P&L details')).toBeInTheDocument();
+    expect(screen.getByText(/Base currency USD/i)).toBeInTheDocument();
     expect(screen.getByText('Closed lot gains')).toBeInTheDocument();
     expect(screen.getByText('Dividend income')).toBeInTheDocument();
     expect(screen.getByText('Income events')).toBeInTheDocument();

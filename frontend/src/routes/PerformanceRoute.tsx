@@ -110,6 +110,9 @@ export function PerformanceRoute() {
           </Card>
         ) : (
           <>
+            <div className="text-right text-xs uppercase tracking-wide text-text-subtle">
+              Base currency {data.baseCurrency}
+            </div>
             <div className="grid gap-4 md:grid-cols-3">
               <Metric
                 label="Realized P&L"

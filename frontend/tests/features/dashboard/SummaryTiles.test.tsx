@@ -72,4 +72,22 @@ describe('SummaryTiles', () => {
     expect(screen.getByText('Stale rate')).toBeInTheDocument();
     expect(screen.getByText('Rate unavailable')).toBeInTheDocument();
   });
+
+  it('shows the selected base currency label', () => {
+    render(
+      <SummaryTiles
+        summary={{
+          totalMarketValue: 100_000,
+          totalCostBasis: 80_000,
+          totalUnrealizedPnL: 20_000,
+          totalUnrealizedPnLPct: 0.25,
+          totalDayChange: 0,
+          totalDayChangePct: 0,
+          baseCurrency: 'SGD',
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/Base currency SGD/i)).toBeInTheDocument();
+  });
 });
