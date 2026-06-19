@@ -3,6 +3,7 @@ package com.stocktracker.e2e.pages;
 import com.stocktracker.e2e.support.Waits;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.support.ui.Select;
 
 /** Dashboard live-data surfaces: last-updated indicator, symbol search/add, base-currency select. */
 public class LiveQuotesPage {
@@ -12,6 +13,8 @@ public class LiveQuotesPage {
   private static final By SYMBOL_RESULT = By.cssSelector("[data-testid='symbol-search-result']");
   private static final By SYMBOL_ADD = By.cssSelector("[data-testid='symbol-add']");
   private static final By BASE_CURRENCY = By.cssSelector("[data-testid='base-currency-select']");
+  private static final By BASE_CURRENCY_OPTIONS =
+      By.cssSelector("[data-testid='base-currency-select'] option");
 
   private final WebDriver driver;
   private final Waits waits;
@@ -33,6 +36,16 @@ public class LiveQuotesPage {
 
   public boolean hasBaseCurrencySelect() {
     return !driver.findElements(BASE_CURRENCY).isEmpty();
+  }
+
+  public LiveQuotesPage selectBaseCurrency(String currency) {
+    var select = waits.untilVisible(BASE_CURRENCY);
+    waits.untilTrue(
+        d ->
+            d.findElements(BASE_CURRENCY_OPTIONS).stream()
+                .anyMatch(option -> option.getText().trim().equals(currency)));
+    new Select(select).selectByVisibleText(currency);
+    return this;
   }
 
   /** Type a query and wait until a result row containing {@code expectedSymbol} appears. */

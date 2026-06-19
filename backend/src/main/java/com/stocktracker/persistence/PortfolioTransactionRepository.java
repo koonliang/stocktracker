@@ -29,4 +29,12 @@ public class PortfolioTransactionRepository
   public List<PortfolioTransaction> listDescending() {
     return list("order by tradeDate desc, createdAt desc");
   }
+
+  public List<PortfolioTransaction> findMissingCurrency(Long userId) {
+    return list("userId = ?1 and currency is null order by tradeDate asc", userId);
+  }
+
+  public long countMissingCurrency(Long userId) {
+    return count("userId = ?1 and currency is null", userId);
+  }
 }

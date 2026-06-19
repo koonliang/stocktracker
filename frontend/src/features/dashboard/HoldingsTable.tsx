@@ -5,12 +5,14 @@ import type { Holding } from '@/lib/types';
 import { TBody, TD, TH, THead, TR, Table } from '@/components/ui/Table';
 import {
   formatCurrencyCode,
+  formatFxStatus,
   formatPercent,
   formatShares,
   formatSignedCurrencyCode,
   formatSignedPercent,
 } from '@/lib/format';
 import { cn } from '@/lib/cn';
+import type { ConversionMetadata } from '@/api/types';
 
 type SortKey =
   | 'ticker'
@@ -87,13 +89,16 @@ function buildColumns(baseCurrency?: string): Column[] {
       render: (h) => (
         <div className="inline-flex flex-col items-end leading-tight">
           <span data-testid="holding-base-value">
-            {formatCurrencyCode(h.marketValue, baseCurrency, { cents: false })}
+            {formatConvertedValue(h.marketValue, baseCurrency, h.marketValueConversion, {
+              cents: false,
+            })}
           </span>
           {h.currency && h.currency !== baseCurrency && h.nativeMarketValue != null ? (
             <span data-testid="holding-native-value" className="text-small text-text-muted">
               {formatCurrencyCode(h.nativeMarketValue, h.currency, { cents: false })} {h.currency}
             </span>
           ) : null}
+          <FxStatus conversion={h.marketValueConversion} />
         </div>
       ),
     },
@@ -122,6 +127,7 @@ function buildColumns(baseCurrency?: string): Column[] {
         >
           <span>{formatSignedCurrencyCode(h.unrealizedPnL, baseCurrency)}</span>
           <span className="text-small opacity-80">{formatSignedPercent(h.unrealizedPnLPct)}</span>
+          <FxStatus conversion={h.marketValueConversion} />
         </div>
       ),
     },
@@ -141,10 +147,36 @@ function buildColumns(baseCurrency?: string): Column[] {
         >
           <span>{formatSignedCurrencyCode(h.dayChange, baseCurrency)}</span>
           <span className="text-small opacity-80">{formatSignedPercent(h.dayChangePct)}</span>
+          <FxStatus conversion={h.dayChangeConversion} />
         </div>
       ),
     },
   ];
+}
+
+function formatConvertedValue(
+  amount: number,
+  currency: string | undefined,
+  conversion: ConversionMetadata | undefined,
+  opts?: { cents?: boolean },
+) {
+  if (conversion?.fxStatus === 'unavailable') {
+    return '—';
+  }
+  return formatCurrencyCode(amount, currency, opts);
+}
+
+function FxStatus({ conversion }: { conversion?: ConversionMetadata }) {
+  const label = formatFxStatus(conversion?.fxStatus);
+  if (!label) return null;
+  return (
+    <span
+      data-testid={`fx-status-${conversion?.fxStatus}`}
+      className="mt-1 rounded border border-warning/40 px-1.5 py-0.5 text-[0.6875rem] uppercase leading-none text-warning"
+    >
+      {label}
+    </span>
+  );
 }
 
 export function HoldingsTable({

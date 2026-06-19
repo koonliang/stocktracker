@@ -53,3 +53,29 @@ Today the dashboard only shows unrealized P&L. Add:
 Let users set thresholds on a ticker (price >, price <, % change).
 - Backend: alert evaluation on each quote refresh; persist in MySQL.
 - Delivery: in-app toast first; email/push notifications later.
+
+# 007-alert-currency-dashboard
+- notification dialog with the list of alerts triggered
+- Tag each transaction with a currency.
+- User can choose to view dashboard and performance using user-chosen base currency
+
+# 008-
+- On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
+- On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)
+    - General Info
+        - Industry
+        - Sector
+        - Went public on
+        - Method of going public
+        - Full time employees 
+    - CEO Info 
+        - Name and Picture of CEO
+        - Compensation Summary
+            - Salary
+            - Stock Awards
+            - Incentive
+            - Others
+    - Upcoming Earnings
+    - Competition Analysis
+    - Income Statement
+    - Sector Peers and Price

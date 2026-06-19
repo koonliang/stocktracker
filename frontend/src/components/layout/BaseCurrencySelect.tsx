@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getBaseCurrency, updateBaseCurrency } from '@/api/settingsApi';
+import { SUPPORTED_CURRENCIES_CHANGED_EVENT } from '@/api/searchApi';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 
 /**
@@ -14,19 +15,34 @@ export function BaseCurrencySelect() {
 
   useEffect(() => {
     let active = true;
-    void getBaseCurrency()
-      .then((response) => {
-        if (!active) return;
-        setBase(response.baseCurrency);
-        setSupported(response.supported);
-      })
-      .catch(() => {
-        /* leave hidden if settings are unavailable */
-      });
+    const loadSettings = () =>
+      getBaseCurrency()
+        .then((response) => {
+          if (!active) return;
+          setBase(response.baseCurrency);
+          setSupported(response.supported);
+        })
+        .catch(() => {
+          /* leave hidden if settings are unavailable */
+        });
+    const refreshSupportedCurrencies = () => {
+      if (!saving) {
+        void loadSettings();
+      }
+    };
+    void loadSettings();
+    globalThis.window.addEventListener(
+      SUPPORTED_CURRENCIES_CHANGED_EVENT,
+      refreshSupportedCurrencies,
+    );
     return () => {
       active = false;
+      globalThis.window.removeEventListener(
+        SUPPORTED_CURRENCIES_CHANGED_EVENT,
+        refreshSupportedCurrencies,
+      );
     };
-  }, []);
+  }, [saving]);
 
   async function handleChange(next: string) {
     const previous = base;
@@ -35,6 +51,7 @@ export function BaseCurrencySelect() {
     try {
       await updateBaseCurrency(next);
       await loadDashboard();
+      window.dispatchEvent(new CustomEvent('stocktracker:base-currency-changed'));
     } catch {
       setBase(previous); // revert on failure
     } finally {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeAuthState, encodeAuthState, hostedLogoutUrl } from './authConfig';
+import { decodeAuthState, encodeAuthState, hostedLogoutUrl } from '@/auth/authConfig';
 
 describe('authConfig', () => {
   it('builds the Cognito hosted logout URL', () => {

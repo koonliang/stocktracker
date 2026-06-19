@@ -1,9 +1,12 @@
 package com.stocktracker.api;
 
-import com.stocktracker.dto.AlertDtos.NotificationListResponse;
+import com.stocktracker.dto.NotificationDtos.NotificationListResponse;
+import com.stocktracker.dto.NotificationDtos.ReadAllRequest;
+import com.stocktracker.dto.NotificationDtos.ReadAllResponse;
 import com.stocktracker.service.NotificationService;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -19,7 +22,11 @@ public class NotificationsResource {
   @Inject NotificationService notificationService;
 
   @GET
-  public NotificationListResponse list(@QueryParam("unread") boolean unread) {
+  public NotificationListResponse list(
+      @QueryParam("unread") boolean unread, @QueryParam("limit") int limit) {
+    if (limit > 0) {
+      return notificationService.list(limit);
+    }
     return notificationService.list(unread);
   }
 
@@ -27,5 +34,17 @@ public class NotificationsResource {
   @Path("/{id}/read")
   public void read(@PathParam("id") Long id) {
     notificationService.markRead(id);
+  }
+
+  @POST
+  @Path("/read-all")
+  public ReadAllResponse readAll(ReadAllRequest request) {
+    return notificationService.markAllRead(request);
+  }
+
+  @DELETE
+  @Path("/{id}")
+  public void delete(@PathParam("id") Long id) {
+    notificationService.delete(id);
   }
 }

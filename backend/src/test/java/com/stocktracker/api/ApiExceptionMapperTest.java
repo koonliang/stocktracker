@@ -26,10 +26,13 @@ class ApiExceptionMapperTest {
   private final List<LogRecord> records = new ArrayList<>();
   private Logger julLogger;
   private Handler handler;
+  private boolean previousUseParentHandlers;
 
   @BeforeEach
   void attachHandler() {
     julLogger = Logger.getLogger(ApiExceptionMapper.class.getName());
+    previousUseParentHandlers = julLogger.getUseParentHandlers();
+    julLogger.setUseParentHandlers(false);
     handler =
         new Handler() {
           @Override
@@ -51,6 +54,7 @@ class ApiExceptionMapperTest {
   @AfterEach
   void detachHandler() {
     julLogger.removeHandler(handler);
+    julLogger.setUseParentHandlers(previousUseParentHandlers);
   }
 
   @Test

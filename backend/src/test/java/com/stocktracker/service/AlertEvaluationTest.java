@@ -55,6 +55,45 @@ class AlertEvaluationTest extends IntegrationTestSupport {
     assertEquals(2, Notification.count());
   }
 
+  @Test
+  void crossingKeyIsGeneratedOnFire() throws Exception {
+    var alertId = persistAlert("AAPL", "price_above", "120");
+    inTransaction(() -> evaluator.evaluate(quote("AAPL", "125", "5")));
+
+    var notification = (Notification) Notification.findAll().firstResult();
+    assertFalse(notification.crossingKey.isBlank());
+    assertTrue(notification.crossingKey.startsWith(alertId + "-"));
+    assertEquals("AAPL", notification.instrumentSymbol);
+    assertEquals("price_above", notification.conditionType);
+  }
+
+  @Test
+  void multipleAlertsForSameSymbolEachFireIndependently() throws Exception {
+    var alert1 = persistAlert("AAPL", "price_above", "120");
+    var alert2 = persistAlert("AAPL", "price_below", "100");
+
+    inTransaction(() -> evaluator.evaluate(quote("AAPL", "125", "5")));
+    assertEquals(1, Notification.count());
+
+    // alert2 still armed, price above 100 so it doesn't fire
+    // Clear the condition for alert1 to re-arm
+    inTransaction(() -> evaluator.evaluate(quote("AAPL", "90", "-15")));
+    assertEquals(2, Notification.count()); // alert1 clears, alert2 fires
+  }
+
+  @Test
+  void tracksLastConditionMet() throws Exception {
+    var alertId = persistAlert("AAPL", "price_above", "120");
+
+    inTransaction(() -> evaluator.evaluate(quote("AAPL", "125", "5")));
+    entityManager.clear();
+    assertTrue(alerts.findById(alertId).lastConditionMet);
+
+    inTransaction(() -> evaluator.evaluate(quote("AAPL", "110", "-5")));
+    entityManager.clear();
+    assertFalse(alerts.findById(alertId).lastConditionMet);
+  }
+
   private boolean armed(Long alertId) throws Exception {
     var holder = new boolean[1];
     inTransaction(

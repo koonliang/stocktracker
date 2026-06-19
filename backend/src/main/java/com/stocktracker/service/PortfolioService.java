@@ -5,6 +5,7 @@ import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.dto.DashboardResponse;
+import com.stocktracker.dto.ConversionDtos.ConversionMetadata;
 import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.dto.TransactionResponse;
 import com.stocktracker.persistence.InstrumentRepository;
@@ -34,6 +35,7 @@ public class PortfolioService {
   @Inject QuoteCacheService quoteCacheService;
   @Inject CurrencyService currencyService;
   @Inject CostBasisEngine costBasisEngine;
+  @Inject TransactionCurrencyBackfillService transactionCurrencyBackfillService;
 
   @org.eclipse.microprofile.config.inject.ConfigProperty(
       name = "stocktracker.base-currency.default",
@@ -41,10 +43,12 @@ public class PortfolioService {
   String defaultBaseCurrency;
 
   public DashboardResponse getDashboard() {
+    transactionCurrencyBackfillService.backfillCurrentUser();
     return buildDashboard(transactionRepository.listAscending(currentUser.id()));
   }
 
   public List<TransactionResponse> listTransactions() {
+    transactionCurrencyBackfillService.backfillCurrentUser();
     return transactionRepository.listDescending(currentUser.id()).stream()
         .map(this::toResponse)
         .toList();
@@ -87,6 +91,13 @@ public class PortfolioService {
       transaction.fees = request.fees() == null ? BigDecimal.ZERO : request.fees();
       transaction.amount = request.amount();
       transaction.currency = request.currency();
+      if (transaction.currency == null) {
+        transactionCurrencyBackfillService.backfill(
+            transaction,
+            currentUser.optional().map(user -> user.baseCurrency).orElse(defaultBaseCurrency));
+      } else {
+        transaction.currencySource = "provided";
+      }
       transaction.source = source;
       transactionRepository.persist(transaction);
     }
@@ -116,7 +127,19 @@ public class PortfolioService {
             .collect(Collectors.toSet());
     if (symbols.isEmpty()) {
       return new DashboardResponse(
-          new DashboardResponse.Summary(0, 0, 0, 0, 0, 0, baseCurrency), List.of());
+          new DashboardResponse.Summary(
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              baseCurrency,
+              conversion(baseCurrency, 0, today, "current"),
+              conversion(baseCurrency, 0, today, "current"),
+              conversion(baseCurrency, 0, today, "current")),
+          List.of(),
+          List.of());
     }
 
     var instruments = instrumentRepository.findBySymbols(symbols);
@@ -128,6 +151,10 @@ public class PortfolioService {
     var totalMarketValue = BigDecimal.ZERO;
     var totalCostBasis = BigDecimal.ZERO;
     var totalDayChange = BigDecimal.ZERO;
+    var warnings = new ArrayList<String>();
+    var summaryFxDate = today;
+    var summaryFxStale = false;
+    var summaryFxUnavailable = false;
 
     for (var symbol : symbols) {
       var shares = costBasis.shares(symbol);
@@ -145,19 +172,42 @@ public class PortfolioService {
       var nativeDayChange = shares.multiply(price.price().subtract(price.previousClose()));
 
       var baseCostBasis =
-          currencyService.convert(nativeCostBasis, nativeCurrency, baseCurrency, today);
+          currencyService.convertHolding(nativeCostBasis, nativeCurrency, baseCurrency, today);
       var baseMarketValue =
-          currencyService.convert(nativeMarketValue, nativeCurrency, baseCurrency, today);
-      var basePrice = currencyService.convert(price.price(), nativeCurrency, baseCurrency, today);
+          currencyService.convertHolding(nativeMarketValue, nativeCurrency, baseCurrency, today);
+      var basePrice =
+          currencyService.convertHolding(price.price(), nativeCurrency, baseCurrency, today);
       var baseDayChange =
-          currencyService.convert(nativeDayChange, nativeCurrency, baseCurrency, today);
+          currencyService.convertHolding(nativeDayChange, nativeCurrency, baseCurrency, today);
       var baseUnrealized = baseMarketValue.value().subtract(baseCostBasis.value());
 
-      totalMarketValue = totalMarketValue.add(baseMarketValue.value());
-      totalCostBasis = totalCostBasis.add(baseCostBasis.value());
-      totalDayChange = totalDayChange.add(baseDayChange.value());
+      if (baseMarketValue.unavailable()
+          || baseCostBasis.unavailable()
+          || baseDayChange.unavailable()) {
+        warnings.add(
+            "FX rate unavailable for " + symbol + " " + nativeCurrency + " to " + baseCurrency);
+        summaryFxUnavailable = true;
+      } else {
+        totalMarketValue = totalMarketValue.add(baseMarketValue.value());
+        totalCostBasis = totalCostBasis.add(baseCostBasis.value());
+        totalDayChange = totalDayChange.add(baseDayChange.value());
+        summaryFxStale =
+            summaryFxStale
+                || baseMarketValue.stale()
+                || baseCostBasis.stale()
+                || baseDayChange.stale();
+        summaryFxDate = oldest(summaryFxDate, baseMarketValue.fxDate());
+        summaryFxDate = oldest(summaryFxDate, baseCostBasis.fxDate());
+        summaryFxDate = oldest(summaryFxDate, baseDayChange.fxDate());
+      }
 
-      var fxStale = baseMarketValue.stale() || baseCostBasis.stale() || baseDayChange.stale();
+      var fxStale =
+          baseMarketValue.stale()
+              || baseCostBasis.stale()
+              || baseDayChange.stale()
+              || baseMarketValue.unavailable()
+              || baseCostBasis.unavailable()
+              || baseDayChange.unavailable();
 
       holdings.add(
           new DashboardResponse.Holding(
@@ -176,6 +226,11 @@ public class PortfolioService {
               scale4(baseDayChange.value()),
               ratio(price.price().subtract(price.previousClose()), price.previousClose()),
               0,
+              baseCurrency,
+              conversion(baseCurrency, baseCostBasis),
+              conversion(baseCurrency, basePrice),
+              conversion(baseCurrency, baseMarketValue),
+              conversion(baseCurrency, baseDayChange),
               price.asOf(),
               price.fetchedAt(),
               price.stale() || fxStale));
@@ -199,8 +254,20 @@ public class PortfolioService {
             ratio(totalUnrealizedPnL, totalCostBasis),
             scale4(totalDayChange),
             ratio(totalDayChange, previousPortfolioValue),
-            baseCurrency),
-        holdings);
+            baseCurrency,
+            conversion(
+                baseCurrency,
+                totalMarketValue,
+                summaryFxDate,
+                summaryStatus(summaryFxUnavailable, summaryFxStale)),
+            conversion(
+                baseCurrency,
+                totalCostBasis,
+                summaryFxDate,
+                summaryStatus(summaryFxUnavailable, summaryFxStale)),
+            conversion(baseCurrency, totalDayChange, summaryFxDate, summaryStatus(summaryFxUnavailable, summaryFxStale))),
+        holdings,
+        warnings);
   }
 
   private DashboardResponse.Holding withWeight(
@@ -227,6 +294,11 @@ public class PortfolioService {
         holding.dayChange(),
         holding.dayChangePct(),
         weight,
+        holding.baseCurrency(),
+        holding.costBasisConversion(),
+        holding.priceConversion(),
+        holding.marketValueConversion(),
+        holding.dayChangeConversion(),
         holding.asOf(),
         holding.fetchedAt(),
         holding.stale());
@@ -286,6 +358,7 @@ public class PortfolioService {
         scale4(transaction.fees),
         transaction.amount == null ? null : scale4(transaction.amount),
         transaction.currency,
+        transaction.currencySource,
         transaction.source);
   }
 
@@ -324,6 +397,39 @@ public class PortfolioService {
 
   private static double scale6(BigDecimal value) {
     return value.setScale(6, RoundingMode.HALF_UP).doubleValue();
+  }
+
+  private static ConversionMetadata conversion(String baseCurrency, CurrencyService.Converted converted) {
+    return new ConversionMetadata(
+        baseCurrency, scale4(converted.value()), converted.fxDate(), converted.fxStatus());
+  }
+
+  private static ConversionMetadata conversion(
+      String baseCurrency, BigDecimal value, LocalDate fxDate, String status) {
+    return new ConversionMetadata(
+        baseCurrency,
+        scale4(value),
+        fxDate,
+        com.stocktracker.dto.ConversionDtos.FxStatus.valueOf(status));
+  }
+
+  private static ConversionMetadata conversion(
+      String baseCurrency, double value, LocalDate fxDate, String status) {
+    return conversion(baseCurrency, BigDecimal.valueOf(value), fxDate, status);
+  }
+
+  private static LocalDate oldest(LocalDate left, LocalDate right) {
+    if (right == null) {
+      return left;
+    }
+    return right.isBefore(left) ? right : left;
+  }
+
+  private static String summaryStatus(boolean unavailable, boolean stale) {
+    if (unavailable) {
+      return "unavailable";
+    }
+    return stale ? "stale" : "current";
   }
 
   public record PositionSnapshot(

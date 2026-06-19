@@ -35,4 +35,13 @@ public class PerformancePage {
   public void chooseAllWindow() {
     driver.findElement(WINDOW).findElement(By.xpath(".//button[contains(., 'ALL')]")).click();
   }
+
+  public String pageText() {
+    return driver.findElement(PAGE).getText().trim();
+  }
+
+  public PerformancePage waitForPageTextContaining(String text) {
+    waits.untilTrue(d -> d.findElement(PAGE).getText().contains(text));
+    return this;
+  }
 }

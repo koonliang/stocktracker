@@ -8,6 +8,7 @@ import com.stocktracker.dto.AlertDtos.AlertRequest;
 import com.stocktracker.dto.AlertDtos.AlertView;
 import com.stocktracker.persistence.AlertRepository;
 import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.persistence.NotificationRepository;
 import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -22,6 +23,8 @@ public class AlertService {
   @Inject AlertRepository alerts;
   @Inject InstrumentRepository instruments;
   @Inject CurrentUser currentUser;
+  @Inject NotificationRepository notifications;
+  @Inject MarketDataService marketDataService;
 
   public AlertListResponse list() {
     return new AlertListResponse(
@@ -49,7 +52,9 @@ public class AlertService {
 
   @Transactional
   public void delete(Long id) {
-    alerts.delete(owned(id));
+    var alert = owned(id);
+    notifications.deleteByAlertId(alert.id);
+    alerts.delete(alert);
   }
 
   private void apply(Alert alert, AlertRequest request) {
@@ -58,10 +63,7 @@ public class AlertService {
           ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is required");
     }
     var symbol = request.symbol().trim().toUpperCase(Locale.ROOT);
-    if (!instruments.existsSymbol(symbol)) {
-      throw new ApiException(
-          ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is unknown");
-    }
+    ensureInstrumentKnown(symbol);
     alert.instrumentSymbol = symbol;
     alert.conditionType = normalizeCondition(request.conditionType());
     if (request.threshold() == null || request.threshold().compareTo(BigDecimal.ZERO) <= 0) {
@@ -78,6 +80,21 @@ public class AlertService {
     }
     throw new ApiException(
         ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "conditionType is invalid");
+  }
+
+  private void ensureInstrumentKnown(String symbol) {
+    if (instruments.existsSymbol(symbol)) {
+      return;
+    }
+    try {
+      marketDataService.addInstrument(symbol);
+    } catch (ApiException exception) {
+      if ("unknown_symbol".equals(exception.code())) {
+        throw new ApiException(
+            ApiStatuses.UNPROCESSABLE_ENTITY, "validation_error", "symbol is unknown");
+      }
+      throw exception;
+    }
   }
 
   private Alert owned(Long id) {

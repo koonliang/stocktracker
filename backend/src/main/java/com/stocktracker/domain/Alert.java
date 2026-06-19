@@ -35,8 +35,14 @@ public class Alert extends PanacheEntityBase {
   @Column(nullable = false)
   public boolean armed = true;
 
+  @Column(name = "last_condition_met")
+  public Boolean lastConditionMet;
+
   @Column(name = "last_triggered_at")
   public Instant lastTriggeredAt;
+
+  @Column(name = "last_cleared_at")
+  public Instant lastClearedAt;
 
   @Column(name = "created_at", nullable = false)
   public LocalDateTime createdAt;

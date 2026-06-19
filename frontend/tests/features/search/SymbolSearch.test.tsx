@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { renderWithProviders, screen, waitFor } from '@/test/utils';
-import { SymbolSearch } from './SymbolSearch';
+import { SymbolSearch } from '@/features/search/SymbolSearch';
 
 describe('SymbolSearch', () => {
   it('searches and adds a global symbol', async () => {

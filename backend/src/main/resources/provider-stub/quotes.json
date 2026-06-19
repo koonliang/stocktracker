@@ -15,6 +15,14 @@
       "currency": "SGD",
       "previousClose": 14.20,
       "price": 14.35
+    },
+    {
+      "symbol": "AAPL",
+      "name": "Apple Inc.",
+      "exchange": "NASDAQ",
+      "currency": "USD",
+      "previousClose": 295.00,
+      "price": 301.25
     }
   ]
 }

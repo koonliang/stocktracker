@@ -39,6 +39,19 @@ public class StubFxRateProvider implements FxRateProvider {
     return result;
   }
 
+  @Override
+  public List<ProviderFxRate> rangeRates(
+      String base, Collection<String> quotes, LocalDate from, LocalDate to) {
+    if (from == null || to == null || to.isBefore(from)) {
+      return List.of();
+    }
+    var result = new ArrayList<ProviderFxRate>();
+    for (var date = from; !date.isAfter(to); date = date.plusDays(1)) {
+      result.addAll(dailyRates(base, quotes, date));
+    }
+    return result;
+  }
+
   private BigDecimal rate(String base, String quote) {
     if (base.equalsIgnoreCase(quote)) {
       return BigDecimal.ONE;

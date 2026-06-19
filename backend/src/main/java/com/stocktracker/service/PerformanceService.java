@@ -2,6 +2,7 @@ package com.stocktracker.service;
 
 import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.PortfolioTransaction;
+import com.stocktracker.dto.ConversionDtos.ConversionMetadata;
 import com.stocktracker.dto.PerformanceResponse;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
@@ -31,6 +32,7 @@ public class PerformanceService {
   @Inject LotMatchingService lotMatchingService;
   @Inject CurrencyService currencyService;
   @Inject HistoricalBackfillService historicalBackfillService;
+  @Inject FxHistoricalBackfillService fxHistoricalBackfillService;
 
   public PerformanceResponse performance(String window, String method) {
     var user = currentUser.require();
@@ -40,6 +42,7 @@ public class PerformanceService {
     var today = LocalDate.now();
     var start = windowStart(normalizedWindow, today);
     var transactions = transactionRepository.listAscending(user.id);
+    backfillHistoricalFx(transactions, baseCurrency, start, today);
     var symbols =
         transactions.stream()
             .map(transaction -> transaction.instrumentSymbol)
@@ -61,7 +64,7 @@ public class PerformanceService {
                 lot -> {
                   var currency = currencyFor(lot.symbol(), instruments, baseCurrency);
                   var base =
-                      currencyService.convert(
+                      currencyService.convertTransaction(
                           lot.realizedPnl(), currency, baseCurrency, lot.closedOn());
                   return new PerformanceResponse.ClosedLotView(
                       lot.symbol(),
@@ -72,7 +75,8 @@ public class PerformanceService {
                       dbl(lot.costBasis(), 4),
                       dbl(lot.proceeds(), 4),
                       dbl(lot.realizedPnl(), 4),
-                      dbl(base.value(), 4));
+                      dbl(base.value(), 4),
+                      conversion(baseCurrency, base));
                 })
             .toList();
 
@@ -121,7 +125,7 @@ public class PerformanceService {
       var currency = currencyFor(lot.symbol(), instruments, baseCurrency);
       var price = closeOnOrBefore(barsBySymbol.getOrDefault(lot.symbol(), List.of()), today);
       var value = lot.quantity().multiply(price).subtract(lot.totalCost());
-      total = total.add(currencyService.convert(value, currency, baseCurrency, today).value());
+      total = total.add(currencyService.convertHolding(value, currency, baseCurrency, today).value());
     }
     return total;
   }
@@ -142,7 +146,9 @@ public class PerformanceService {
               ? currencyFor(transaction.instrumentSymbol, instruments, baseCurrency)
               : transaction.currency;
       var netAmount = amount.subtract(fees);
-      var base = currencyService.convert(netAmount, currency, baseCurrency, transaction.tradeDate);
+      var base =
+          currencyService.convertTransaction(
+              netAmount, currency, baseCurrency, transaction.tradeDate);
       events.add(
           new PerformanceResponse.IncomeEventView(
               transaction.instrumentSymbol,
@@ -150,7 +156,8 @@ public class PerformanceService {
               transaction.tradeDate.toString(),
               transaction.transactionType,
               dbl(netAmount, 4),
-              dbl(base.value(), 4)));
+              dbl(base.value(), 4),
+              conversion(baseCurrency, base)));
     }
     return events;
   }
@@ -213,7 +220,7 @@ public class PerformanceService {
       var currency = currencyFor(symbol, instruments, baseCurrency);
       var value =
           shares.multiply(closeOnOrBefore(barsBySymbol.getOrDefault(symbol, List.of()), date));
-      total = total.add(currencyService.convert(value, currency, baseCurrency, date).value());
+      total = total.add(currencyService.convertHolding(value, currency, baseCurrency, date).value());
     }
     return total;
   }
@@ -225,24 +232,44 @@ public class PerformanceService {
       String baseCurrency,
       LocalDate today,
       BigDecimal totalUnrealized) {
-    var bySymbol = new LinkedHashMap<String, BigDecimal>();
+    var bySymbol = new LinkedHashMap<String, ContributionAmount>();
     for (var lot : matched.openLots()) {
       var currency = currencyFor(lot.symbol(), instruments, baseCurrency);
       var pnl =
           lot.quantity()
               .multiply(closeOnOrBefore(barsBySymbol.getOrDefault(lot.symbol(), List.of()), today))
               .subtract(lot.totalCost());
+      var converted = currencyService.convertHolding(pnl, currency, baseCurrency, today);
       bySymbol.merge(
           lot.symbol(),
-          currencyService.convert(pnl, currency, baseCurrency, today).value(),
-          BigDecimal::add);
+          new ContributionAmount(converted.value(), converted),
+          ContributionAmount::plus);
     }
     return bySymbol.entrySet().stream()
         .map(
             entry ->
                 new PerformanceResponse.ContributionView(
-                    entry.getKey(), dbl(contributionPct(entry.getValue(), totalUnrealized), 4)))
+                    entry.getKey(),
+                    dbl(contributionPct(entry.getValue().amount(), totalUnrealized), 4),
+                    dbl(entry.getValue().amount(), 4),
+                    conversion(baseCurrency, entry.getValue().conversion())))
         .toList();
+  }
+
+  private record ContributionAmount(BigDecimal amount, CurrencyService.Converted conversion) {
+    private ContributionAmount plus(ContributionAmount other) {
+      var status =
+          conversion.fxStatus() == other.conversion().fxStatus()
+              ? conversion.fxStatus()
+              : com.stocktracker.dto.ConversionDtos.FxStatus.stale;
+      if (conversion.unavailable() || other.conversion().unavailable()) {
+        status = com.stocktracker.dto.ConversionDtos.FxStatus.unavailable;
+      }
+      var fxDate = older(conversion.fxDate(), other.conversion().fxDate());
+      return new ContributionAmount(
+          amount.add(other.amount()),
+          new CurrencyService.Converted(amount.add(other.amount()), fxDate, status));
+    }
   }
 
   static BigDecimal nextTwrFactor(
@@ -272,6 +299,36 @@ public class PerformanceService {
         || bars.get(bars.size() - 1).tradeDate.isBefore(today.minusDays(1))) {
       historicalBackfillService.backfill(symbol, start);
     }
+  }
+
+  private void backfillHistoricalFx(
+      List<PortfolioTransaction> transactions, String baseCurrency, LocalDate start, LocalDate today) {
+    if (transactions.isEmpty()) {
+      return;
+    }
+    var from =
+        transactions.stream()
+            .map(transaction -> transaction.tradeDate)
+            .filter(Objects::nonNull)
+            .min(LocalDate::compareTo)
+            .orElse(start);
+    var neededCurrencies =
+        transactions.stream()
+            .map(transaction -> transaction.currency)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var instrumentSymbols =
+        transactions.stream()
+            .map(transaction -> transaction.instrumentSymbol)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+    if (!instrumentSymbols.isEmpty()) {
+      instrumentRepository.findBySymbols(instrumentSymbols).values().stream()
+          .map(instrument -> instrument.currency)
+          .filter(Objects::nonNull)
+          .forEach(neededCurrencies::add);
+    }
+    fxHistoricalBackfillService.backfillForBase(baseCurrency, neededCurrencies, from, today);
   }
 
   private Map<String, List<InstrumentPriceBar>> groupBars(List<InstrumentPriceBar> bars) {
@@ -325,5 +382,20 @@ public class PerformanceService {
 
   private static double dbl(BigDecimal value, int scale) {
     return value.setScale(scale, RoundingMode.HALF_UP).doubleValue();
+  }
+
+  private static ConversionMetadata conversion(String baseCurrency, CurrencyService.Converted converted) {
+    return new ConversionMetadata(
+        baseCurrency, dbl(converted.value(), 4), converted.fxDate(), converted.fxStatus());
+  }
+
+  private static LocalDate older(LocalDate left, LocalDate right) {
+    if (left == null) {
+      return right;
+    }
+    if (right == null) {
+      return left;
+    }
+    return left.isBefore(right) ? left : right;
   }
 }

@@ -32,4 +32,13 @@ public class DashboardPage {
   public String summaryTilesText() {
     return driver.findElement(SUMMARY_TILES).getText().trim();
   }
+
+  public DashboardPage waitForSummaryTextContaining(String text) {
+    waits.untilTrue(d -> d.findElement(SUMMARY_TILES).getText().contains(text));
+    return this;
+  }
+
+  public String holdingsText() {
+    return driver.findElement(HOLDINGS_TABLE).getText().trim();
+  }
 }

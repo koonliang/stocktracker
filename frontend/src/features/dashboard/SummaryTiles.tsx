@@ -1,6 +1,12 @@
 import type { PortfolioSummary } from '@/lib/types';
-import { formatCurrencyCode, formatSignedCurrencyCode, formatSignedPercent } from '@/lib/format';
+import {
+  formatCurrencyCode,
+  formatFxStatus,
+  formatSignedCurrencyCode,
+  formatSignedPercent,
+} from '@/lib/format';
 import { cn } from '@/lib/cn';
+import type { ConversionMetadata } from '@/api/types';
 
 type Props = { summary: PortfolioSummary };
 
@@ -9,12 +15,14 @@ function Tile({
   value,
   delta,
   deltaPct,
+  conversion,
   tone,
 }: {
   eyebrow: string;
   value: string;
   delta?: string;
   deltaPct?: string;
+  conversion?: ConversionMetadata;
   tone?: 'positive' | 'negative' | 'neutral';
 }) {
   return (
@@ -26,8 +34,11 @@ function Tile({
     >
       <div className="eyebrow">{eyebrow}</div>
       <div className="flex min-w-0 items-end justify-end">
-        <div className="min-w-0 truncate font-display text-display-lg font-semibold leading-none tracking-tight text-text tabular">
-          {value}
+        <div className="flex min-w-0 flex-col items-end gap-1">
+          <div className="min-w-0 truncate font-display text-display-lg font-semibold leading-none tracking-tight text-text tabular">
+            {value}
+          </div>
+          <FxStatus conversion={conversion} />
         </div>
       </div>
       <div
@@ -45,6 +56,16 @@ function Tile({
   );
 }
 
+function FxStatus({ conversion }: { conversion?: ConversionMetadata }) {
+  const label = formatFxStatus(conversion?.fxStatus);
+  if (!label) return null;
+  return (
+    <span className="rounded border border-warning/40 px-1.5 py-0.5 text-[0.6875rem] uppercase leading-none text-warning">
+      {label}
+    </span>
+  );
+}
+
 function tone(n: number): 'positive' | 'negative' | 'neutral' {
   if (n > 0) return 'positive';
   if (n < 0) return 'negative';
@@ -54,27 +75,37 @@ function tone(n: number): 'positive' | 'negative' | 'neutral' {
 export function SummaryTiles({ summary }: Props) {
   const base = summary.baseCurrency;
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4" data-testid="summary-tiles">
-      <Tile
-        eyebrow="Market Value"
-        value={formatCurrencyCode(summary.totalMarketValue, base, { cents: false })}
-      />
-      <Tile
-        eyebrow="Cost Basis"
-        value={formatCurrencyCode(summary.totalCostBasis, base, { cents: false })}
-      />
-      <Tile
-        eyebrow="Unrealised P&L"
-        value={formatSignedCurrencyCode(summary.totalUnrealizedPnL, base, { cents: false })}
-        deltaPct={formatSignedPercent(summary.totalUnrealizedPnLPct)}
-        tone={tone(summary.totalUnrealizedPnL)}
-      />
-      <Tile
-        eyebrow="Today"
-        value={formatSignedCurrencyCode(summary.totalDayChange, base, { cents: false })}
-        deltaPct={formatSignedPercent(summary.totalDayChangePct)}
-        tone={tone(summary.totalDayChange)}
-      />
+    <div data-testid="summary-tiles">
+      {base ? (
+        <div className="mb-2 flex justify-end text-xs uppercase tracking-wide text-text-subtle">
+          Base currency {base}
+        </div>
+      ) : null}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <Tile
+          eyebrow="Market Value"
+          value={formatCurrencyCode(summary.totalMarketValue, base, { cents: false })}
+          conversion={summary.marketValueConversion}
+        />
+        <Tile
+          eyebrow="Cost Basis"
+          value={formatCurrencyCode(summary.totalCostBasis, base, { cents: false })}
+          conversion={summary.costBasisConversion}
+        />
+        <Tile
+          eyebrow="Unrealised P&L"
+          value={formatSignedCurrencyCode(summary.totalUnrealizedPnL, base, { cents: false })}
+          deltaPct={formatSignedPercent(summary.totalUnrealizedPnLPct)}
+          tone={tone(summary.totalUnrealizedPnL)}
+        />
+        <Tile
+          eyebrow="Today"
+          value={formatSignedCurrencyCode(summary.totalDayChange, base, { cents: false })}
+          deltaPct={formatSignedPercent(summary.totalDayChangePct)}
+          conversion={summary.dayChangeConversion}
+          tone={tone(summary.totalDayChange)}
+        />
+      </div>
     </div>
   );
 }

@@ -22,7 +22,8 @@ public record PerformanceResponse(
       double costBasisNative,
       double proceedsNative,
       double realizedPnLNative,
-      double realizedPnLBase) {}
+      double realizedPnLBase,
+      ConversionDtos.ConversionMetadata realizedPnlConversion) {}
 
   public record IncomeEventView(
       String symbol,
@@ -30,9 +31,14 @@ public record PerformanceResponse(
       String date,
       String type,
       double amountNative,
-      double amountBase) {}
+      double amountBase,
+      ConversionDtos.ConversionMetadata amountConversion) {}
 
   public record ReturnPoint(String date, double cumulativeReturnPct) {}
 
-  public record ContributionView(String symbol, double contributionPct) {}
+  public record ContributionView(
+      String symbol,
+      double contributionPct,
+      double contributionBase,
+      ConversionDtos.ConversionMetadata contributionConversion) {}
 }

@@ -10,4 +10,5 @@ public record TransactionResponse(
     double fees,
     Double amount,
     String currency,
+    String currencySource,
     String source) {}

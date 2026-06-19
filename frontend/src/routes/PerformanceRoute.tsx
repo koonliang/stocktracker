@@ -17,12 +17,14 @@ import type { PerformanceResponse } from '@/api/types';
 import {
   formatCurrencyCode,
   formatDateISO,
+  formatFxStatus,
   formatNumber,
   formatPercent,
   formatShares,
   formatSignedCurrencyCode,
 } from '@/lib/format';
 import { rgbVar } from '@/lib/colors';
+import type { ConversionMetadata } from '@/api/types';
 
 const windows: PerformanceWindow[] = ['1M', '3M', '6M', '1Y', 'YTD', 'ALL'];
 
@@ -32,6 +34,14 @@ export function PerformanceRoute() {
   const [data, setData] = useState<PerformanceResponse | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    const refresh = () => setRefreshToken((value) => value + 1);
+    globalThis.window.addEventListener('stocktracker:base-currency-changed', refresh);
+    return () =>
+      globalThis.window.removeEventListener('stocktracker:base-currency-changed', refresh);
+  }, []);
 
   useEffect(() => {
     setStatus('loading');
@@ -45,7 +55,7 @@ export function PerformanceRoute() {
         setStatus('error');
         setError(err.message);
       });
-  }, [window, method]);
+  }, [window, method, refreshToken]);
 
   return (
     <>
@@ -100,14 +110,22 @@ export function PerformanceRoute() {
           </Card>
         ) : (
           <>
+            <div className="text-right text-xs uppercase tracking-wide text-text-subtle">
+              Base currency {data.baseCurrency}
+            </div>
             <div className="grid gap-4 md:grid-cols-3">
               <Metric
                 label="Realized P&L"
                 value={formatSignedCurrencyCode(data.realizedPnL, data.baseCurrency)}
+                conversions={[
+                  ...data.closedLots.map((lot) => lot.realizedPnlConversion),
+                  ...data.incomeEvents.map((event) => event.amountConversion),
+                ]}
               />
               <Metric
                 label="Unrealized P&L"
                 value={formatSignedCurrencyCode(data.unrealizedPnL, data.baseCurrency)}
+                conversions={data.contributions.map((row) => row.contributionConversion)}
               />
               <Metric label="TWR" value={formatPercent(data.timeWeightedReturnPct / 100)} />
             </div>
@@ -148,7 +166,12 @@ export function PerformanceRoute() {
                     {data.contributions.map((row) => (
                       <tr key={row.symbol} className="border-t border-border">
                         <td className="px-5 py-3 font-medium">{row.symbol}</td>
-                        <td className="px-5 py-3">{formatNumber(row.contributionPct, 2)}%</td>
+                        <td className="px-5 py-3">
+                          <div className="inline-flex flex-col gap-1">
+                            <span>{formatNumber(row.contributionPct, 2)}%</span>
+                            <FxStatus conversion={row.contributionConversion} />
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -162,11 +185,20 @@ export function PerformanceRoute() {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({
+  label,
+  value,
+  conversions = [],
+}: {
+  label: string;
+  value: string;
+  conversions?: Array<ConversionMetadata | undefined>;
+}) {
   return (
     <Card>
       <div className="text-small uppercase text-text-subtle">{label}</div>
       <div className="mt-2 font-display text-title text-text">{value}</div>
+      <FxStatus conversion={worstConversion(conversions)} />
     </Card>
   );
 }
@@ -232,7 +264,12 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
                     {formatCurrencyCode(lot.proceedsNative, lot.currency)}
                   </td>
                   <td className="px-5 py-3">
-                    {formatSignedCurrencyCode(lot.realizedPnLBase, data.baseCurrency)}
+                    <div className="inline-flex flex-col gap-1">
+                      <span>
+                        {formatSignedCurrencyCode(lot.realizedPnLBase, data.baseCurrency)}
+                      </span>
+                      <FxStatus conversion={lot.realizedPnlConversion} />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -271,7 +308,10 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
                   <td className="px-5 py-3">{formatDateISO(event.date)}</td>
                   <td className="px-5 py-3">{formatIncomeType(event.type)}</td>
                   <td className="px-5 py-3">
-                    {formatSignedCurrencyCode(event.amountBase, data.baseCurrency)}
+                    <div className="inline-flex flex-col gap-1">
+                      <span>{formatSignedCurrencyCode(event.amountBase, data.baseCurrency)}</span>
+                      <FxStatus conversion={event.amountConversion} />
+                    </div>
                   </td>
                 </tr>
               ))
@@ -285,6 +325,26 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
 
 function formatIncomeType(type: string) {
   return type === 'dividend' ? 'Dividend' : type;
+}
+
+function FxStatus({ conversion }: { conversion?: ConversionMetadata }) {
+  const label = formatFxStatus(conversion?.fxStatus);
+  if (!label) return null;
+  return (
+    <span className="mt-1 inline-flex w-fit rounded border border-warning/40 px-1.5 py-0.5 text-[0.6875rem] uppercase leading-none text-warning">
+      {label}
+    </span>
+  );
+}
+
+function worstConversion(
+  conversions: Array<ConversionMetadata | undefined>,
+): ConversionMetadata | undefined {
+  const present = conversions.filter(Boolean) as ConversionMetadata[];
+  return (
+    present.find((conversion) => conversion.fxStatus === 'unavailable') ??
+    present.find((conversion) => conversion.fxStatus === 'stale')
+  );
 }
 
 function BreakdownRow({

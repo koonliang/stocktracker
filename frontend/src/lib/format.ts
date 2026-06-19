@@ -98,6 +98,36 @@ export function formatCompactNumber(n: number | null | undefined): string {
   return compactFmt.format(n);
 }
 
+/** Human-readable label for FX conversion status. */
+export function formatFxStatus(status: string | null | undefined): string {
+  if (!status) return '';
+  switch (status) {
+    case 'stale':
+      return 'Stale rate';
+    case 'unavailable':
+      return 'Rate unavailable';
+    default:
+      return '';
+  }
+}
+
+/** Short label for currency source. */
+export function formatCurrencySource(source: string | null | undefined): string {
+  if (!source) return '';
+  switch (source) {
+    case 'instrument':
+      return 'From instrument';
+    case 'manual':
+      return 'Manual';
+    case 'import':
+      return 'From import';
+    case 'user_base_backfill':
+      return 'Backfilled';
+    default:
+      return '';
+  }
+}
+
 const dateFmt = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',

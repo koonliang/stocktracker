@@ -47,6 +47,7 @@ export type Transaction = {
   amount?: number | null;
   currency?: string | null;
   source?: 'MANUAL' | 'CSV_IMPORT';
+  currencySource?: 'instrument' | 'manual' | 'import' | 'user_base_backfill';
 };
 
 export type Holding = {
@@ -69,6 +70,11 @@ export type Holding = {
   asOf?: string | null;
   fetchedAt?: string | null;
   stale?: boolean;
+  baseCurrency?: string;
+  costBasisConversion?: ConversionMetadata;
+  priceConversion?: ConversionMetadata;
+  marketValueConversion?: ConversionMetadata;
+  dayChangeConversion?: ConversionMetadata;
 };
 
 export type PortfolioSummary = {
@@ -79,6 +85,9 @@ export type PortfolioSummary = {
   totalDayChange: number;
   totalDayChangePct: number;
   baseCurrency?: string;
+  marketValueConversion?: ConversionMetadata;
+  costBasisConversion?: ConversionMetadata;
+  dayChangeConversion?: ConversionMetadata;
 };
 
 export type Quote = {
@@ -118,6 +127,7 @@ export type BaseCurrencyResponse = { baseCurrency: string; supported: string[] }
 export type DashboardResponse = {
   summary: PortfolioSummary;
   holdings: Holding[];
+  warnings?: string[];
 };
 
 export type Watchlist = {
@@ -216,6 +226,7 @@ export type ClosedLot = {
   proceedsNative: number;
   realizedPnLNative: number;
   realizedPnLBase: number;
+  realizedPnlConversion?: ConversionMetadata;
 };
 
 export type IncomeEvent = {
@@ -225,6 +236,7 @@ export type IncomeEvent = {
   type: 'dividend';
   amountNative: number;
   amountBase: number;
+  amountConversion?: ConversionMetadata;
 };
 
 export type ReturnPoint = {
@@ -235,6 +247,8 @@ export type ReturnPoint = {
 export type Contribution = {
   symbol: string;
   contributionPct: number;
+  contributionBase?: number;
+  contributionConversion?: ConversionMetadata;
 };
 
 export type PerformanceResponse = {
@@ -273,9 +287,33 @@ export type AlertRequest = {
 export type Notification = {
   id: string;
   alertId: string | null;
-  message: string;
+  symbol: string | null;
+  conditionType: string | null;
+  threshold: number;
+  thresholdCurrency: string | null;
+  observedValue: number;
+  observedCurrency: string | null;
+  triggeredAt: string | null;
   read: boolean;
-  createdAt: string;
+  message: string;
 };
 
-export type NotificationListResponse = { notifications: Notification[] };
+export type NotificationListResponse = {
+  unreadCount: number;
+  notifications: Notification[];
+  nextCursor: string | null;
+};
+
+export type ReadAllResponse = {
+  updated: number;
+  unreadCount: number;
+};
+
+export type FxStatus = 'current' | 'stale' | 'unavailable';
+
+export type ConversionMetadata = {
+  baseCurrency: string;
+  amountBase: number;
+  fxDate: string | null;
+  fxStatus: FxStatus;
+};

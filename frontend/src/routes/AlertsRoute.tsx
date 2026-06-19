@@ -1,19 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { createAlert, deleteAlert, listAlerts } from '@/api/alertsApi';
-import type { Alert, AlertCondition } from '@/api/types';
+import { searchInstruments } from '@/api/searchApi';
+import type { Alert, AlertCondition, SymbolSearchResult } from '@/api/types';
 import { formatDateISO, formatNumber } from '@/lib/format';
+import { cn } from '@/lib/cn';
 
 export function AlertsRoute() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [symbol, setSymbol] = useState('AAPL');
+  const [symbol, setSymbol] = useState('');
   const [conditionType, setConditionType] = useState<AlertCondition>('price_above');
   const [threshold, setThreshold] = useState('200');
   const [error, setError] = useState<string | null>(null);
+  const [tickerResults, setTickerResults] = useState<SymbolSearchResult[]>([]);
+  const [selectingTicker, setSelectingTicker] = useState<string | null>(null);
+  const tickerRequestId = useRef(0);
 
   const load = () =>
     listAlerts()
@@ -32,14 +37,18 @@ export function AlertsRoute() {
         description="Threshold alerts fire once per crossing and appear as in-app notifications."
       />
       <div className="flex flex-col gap-6" data-testid="alerts-page">
-        <Card>
+        <Card overflow="visible">
           <CardHeader eyebrow="Create" title="New alert" />
           <form
-            className="grid gap-4 md:grid-cols-[1fr_1fr_1fr_auto]"
+            className="grid gap-4 overflow-visible md:grid-cols-[1fr_1fr_1fr_auto]"
             data-testid="alert-form"
             onSubmit={(event) => {
               event.preventDefault();
-              createAlert({ symbol, conditionType, threshold: Number(threshold) })
+              createAlert({
+                symbol: symbol.toUpperCase(),
+                conditionType,
+                threshold: Number(threshold),
+              })
                 .then(() => {
                   setError(null);
                   return load();
@@ -47,14 +56,55 @@ export function AlertsRoute() {
                 .catch((err: Error) => setError(err.message));
             }}
           >
-            <div>
+            <div className="relative">
               <Label htmlFor="alert-symbol">Symbol</Label>
               <Input
                 id="alert-symbol"
                 data-testid="alert-symbol"
                 value={symbol}
-                onChange={(event) => setSymbol(event.target.value.toUpperCase())}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  setSymbol(raw);
+                  setSelectingTicker(null);
+                  if (raw.length < 1) {
+                    setTickerResults([]);
+                    return;
+                  }
+                  const id = ++tickerRequestId.current;
+                  if (raw.length >= 1) {
+                    void searchInstruments(raw).then((matches) => {
+                      if (id !== tickerRequestId.current) return;
+                      setTickerResults(matches);
+                    });
+                  } else {
+                    setTickerResults([]);
+                  }
+                }}
               />
+              {tickerResults.length > 0 && !selectingTicker ? (
+                <ul className="absolute z-10 mt-1 w-full rounded-md border border-border bg-surface text-body shadow-lg">
+                  {tickerResults.map((result) => (
+                    <li key={result.symbol}>
+                      <button
+                        type="button"
+                        className={cn(
+                          'w-full px-3 py-2 text-left hover:bg-surface-hover',
+                          selectingTicker === result.symbol && 'bg-surface-hover',
+                        )}
+                        data-testid="ticker-option"
+                        onClick={() => {
+                          setSelectingTicker(result.symbol);
+                          setSymbol(result.symbol.toUpperCase());
+                          setTickerResults([]);
+                        }}
+                      >
+                        <span className="font-medium">{result.symbol}</span>
+                        <span className="ml-2 text-text-muted">{result.name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
             </div>
             <div>
               <Label htmlFor="alert-condition">Condition</Label>

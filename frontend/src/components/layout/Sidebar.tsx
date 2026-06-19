@@ -62,10 +62,7 @@ export function Sidebar({ className }: { className?: string }) {
           ))}
         </ul>
       </nav>
-      <div className="mt-auto flex flex-col gap-2 px-3 text-small text-text-subtle">
-        <div className="rule mt-6" />
-        <div>Prototype · Seeded data</div>
-      </div>
+      <div className="mt-auto px-3" />
     </aside>
   );
 }
