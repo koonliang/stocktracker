@@ -12,6 +12,7 @@ frontend/coverage/
 .env
 .env.*
 !.env.example
+scripts/.env
 .DS_Store
 Thumbs.db
 *.log
