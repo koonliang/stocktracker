@@ -52,6 +52,22 @@ public class NonProdAuthConfig {
     return redirectUri;
   }
 
+  public String requireRedirectUri(String candidateRedirectUri) {
+    if (!isConfigured(redirectUri)) {
+      throw new ApiException(
+          Status.BAD_REQUEST,
+          "AUTH_NOT_CONFIGURED",
+          "Non-production social sign-in is not configured.");
+    }
+
+    var expected = redirectUri.trim();
+    var actual = candidateRedirectUri == null ? "" : candidateRedirectUri.trim();
+    if (!expected.equals(actual)) {
+      throw new ApiException(Status.BAD_REQUEST, "AUTH_FAILED", "Unable to complete sign-in.");
+    }
+    return expected;
+  }
+
   public boolean demoUsersEnabled() {
     return demoUsersEnabled;
   }
@@ -68,16 +84,23 @@ public class NonProdAuthConfig {
   public void validateProviderCredentials(String provider) {
     var configured =
         switch (provider.toLowerCase(Locale.ROOT)) {
-          case "google" -> !googleClientId.isBlank() && !googleClientSecret.isBlank();
-          case "facebook" -> !facebookClientId.isBlank() && !facebookClientSecret.isBlank();
+          case "google" -> isConfigured(googleClientId) && isConfigured(googleClientSecret);
+          case "facebook" -> isConfigured(facebookClientId) && isConfigured(facebookClientSecret);
           default -> false;
         };
-    if (!configured || redirectUri.isBlank()) {
+    if (!configured || !isConfigured(redirectUri)) {
       throw new ApiException(
           Status.BAD_REQUEST,
           "AUTH_NOT_CONFIGURED",
           "Non-production social sign-in is not configured.");
     }
   }
-}
 
+  private boolean isConfigured(String value) {
+    if (value == null) {
+      return false;
+    }
+    var normalized = value.trim();
+    return !normalized.isBlank() && !"default".equalsIgnoreCase(normalized);
+  }
+}

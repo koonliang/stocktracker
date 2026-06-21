@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildNonProdProviderRedirectUrl,
   decodeAuthState,
   encodeAuthState,
   encodeProviderState,
   hostedLogoutUrl,
+  nonProdAuthConfig,
 } from '@/auth/authConfig';
 
 describe('authConfig', () => {
@@ -35,5 +37,17 @@ describe('authConfig', () => {
     const state = window.btoa(JSON.stringify({ from: 'https://evil.example.com' }));
     expect(decodeAuthState(state)).toEqual({ from: '/' });
     expect(decodeAuthState('not-base64')).toEqual({ from: '/' });
+  });
+
+  it('throws a clear error when non-production social auth is not configured', () => {
+    const original = nonProdAuthConfig.googleAuthUrl;
+    nonProdAuthConfig.googleAuthUrl = '';
+    try {
+      expect(() => buildNonProdProviderRedirectUrl('google', '/watchlists')).toThrow(
+        'Google sign-in is not configured for this environment.',
+      );
+    } finally {
+      nonProdAuthConfig.googleAuthUrl = original;
+    }
   });
 });

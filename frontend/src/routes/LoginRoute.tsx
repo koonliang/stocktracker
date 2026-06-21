@@ -130,6 +130,16 @@ export function LoginRoute() {
     }
   }
 
+  function onSocialLogin(provider: 'google' | 'facebook') {
+    setFormError(null);
+    setDemoFeedback(null);
+    try {
+      loginWithProvider(provider, from);
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : ERROR_COPY.server);
+    }
+  }
+
   return (
     <div className="min-h-dvh bg-bg text-text">
       <main className="flex min-h-dvh flex-col justify-center px-5 py-4 sm:px-8 sm:py-5">
@@ -209,7 +219,7 @@ export function LoginRoute() {
                 </p>
                 <div className="h-px flex-1 bg-border" />
               </div>
-              <SocialLoginButtons onClick={(provider) => loginWithProvider(provider, from)} />
+              <SocialLoginButtons onClick={onSocialLogin} />
             </div>
 
             <div className="mt-5 flex items-center justify-between border-t border-border pt-4 text-small">

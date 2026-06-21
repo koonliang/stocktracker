@@ -120,13 +120,39 @@ export function redirectToHostedLogout(): void {
   window.location.assign(hostedLogoutUrl());
 }
 
-export function redirectToNonProdProvider(provider: 'google' | 'facebook', from: string): void {
-  const base =
-    provider === 'google' ? nonProdAuthConfig.googleAuthUrl : nonProdAuthConfig.facebookAuthUrl;
-  const url = new URL(base);
+function providerLabel(provider: 'google' | 'facebook'): string {
+  return provider === 'google' ? 'Google' : 'Facebook';
+}
+
+function providerAuthUrl(provider: 'google' | 'facebook'): string {
+  return provider === 'google'
+    ? nonProdAuthConfig.googleAuthUrl
+    : nonProdAuthConfig.facebookAuthUrl;
+}
+
+export function buildNonProdProviderRedirectUrl(
+  provider: 'google' | 'facebook',
+  from: string,
+): string {
+  const base = providerAuthUrl(provider).trim();
+  if (!base) {
+    throw new Error(`${providerLabel(provider)} sign-in is not configured for this environment.`);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(base);
+  } catch {
+    throw new Error(`${providerLabel(provider)} sign-in is configured with an invalid URL.`);
+  }
+
   if (!url.searchParams.has('redirect_uri')) {
     url.searchParams.set('redirect_uri', nonProdAuthConfig.redirectUri);
   }
   url.searchParams.set('state', encodeProviderState(from, provider));
-  window.location.assign(url.toString());
+  return url.toString();
+}
+
+export function redirectToNonProdProvider(provider: 'google' | 'facebook', from: string): void {
+  window.location.assign(buildNonProdProviderRedirectUrl(provider, from));
 }

@@ -46,6 +46,11 @@ services:
       # The regression suite makes many /api/auth/* calls from one IP within the rate-limit
       # window (every protected journey signs in); lift the limit so it never trips 429.
       STOCKTRACKER_AUTH_RATE_LIMIT_MAX: '1000'
+      NONPROD_GOOGLE_CLIENT_ID: ${NONPROD_GOOGLE_CLIENT_ID:-}
+      NONPROD_GOOGLE_CLIENT_SECRET: ${NONPROD_GOOGLE_CLIENT_SECRET:-}
+      NONPROD_FACEBOOK_CLIENT_ID: ${NONPROD_FACEBOOK_CLIENT_ID:-}
+      NONPROD_FACEBOOK_CLIENT_SECRET: ${NONPROD_FACEBOOK_CLIENT_SECRET:-}
+      NONPROD_SOCIAL_REDIRECT_URI: ${NONPROD_SOCIAL_REDIRECT_URI:-}
     ports:
       - '8080:8080'
     healthcheck:
@@ -64,6 +69,7 @@ services:
         condition: service_healthy
     environment:
       VITE_API_BASE_URL: http://localhost:8080/api
+      VITE_AUTH_MODE: ${VITE_AUTH_MODE:-dev}
     ports:
       - '5173:5173'
     healthcheck:
