@@ -100,7 +100,7 @@
 - [X] T034 [US2] Extend `frontend/src/auth/AuthProvider.tsx` with demo-user session flows
 - [X] T035 [P] [US2] Add demo-user list and create controls in `frontend/src/components/auth/DemoUserPanel.tsx`
 - [X] T036 [US2] Integrate demo-user quick access, limit messaging, and seeded-data labels into `frontend/src/routes/LoginRoute.tsx`
-- [ ] T037 [US2] Seed and refresh demo-user portfolio data in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and `backend/src/main/resources/seed/demo-transactions.json`
+- [X] T037 [US2] Seed and refresh demo-user portfolio data in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and `backend/src/main/resources/seed/demo-transactions.json`
 - [ ] T038 [US2] Extend `e2e/src/test/java/com/stocktracker/e2e/pages/LoginPage.java` for demo-user creation and selection actions
 
 **Checkpoint**: User Stories 1 and 2 both work independently in non-production.

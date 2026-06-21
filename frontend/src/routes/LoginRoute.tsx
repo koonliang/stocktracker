@@ -149,8 +149,8 @@ export function LoginRoute() {
             <p className="eyebrow">Account Access</p>
             <h1 className="mt-1.5 font-display text-display tracking-tight">Sign in</h1>
             <p className="mt-1.5 text-small text-text-muted">
-              Access your portfolio, watchlists, and analysis with your email or a connected
-              social account.
+              Access your portfolio, watchlists, and analysis with your email or a connected social
+              account.
             </p>
 
             <form className="mt-5 space-y-3" onSubmit={handleSubmit(onSubmit)} noValidate>

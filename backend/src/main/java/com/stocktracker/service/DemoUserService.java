@@ -1,6 +1,7 @@
 package com.stocktracker.service;
 
 import com.stocktracker.api.ApiException;
+import com.stocktracker.bootstrap.DevDataBootstrap;
 import com.stocktracker.config.NonProdAuthConfig;
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.dto.NonProdAuthDtos.DemoUserCatalogResponse;
@@ -18,6 +19,7 @@ import java.util.Comparator;
 public class DemoUserService {
   @Inject AppUserRepository users;
   @Inject NonProdAuthConfig config;
+  @Inject DevDataBootstrap devDataBootstrap;
 
   @Transactional
   public DemoUserCatalogResponse catalog() {
@@ -55,6 +57,11 @@ public class DemoUserService {
     user.demoSeedProfile = "seed";
     user.demoLastActivatedAt = LocalDateTime.now();
     users.persist(user);
+    try {
+      devDataBootstrap.refreshDemoUserPortfolio(user);
+    } catch (Exception exception) {
+      throw new IllegalStateException("Unable to seed demo user portfolio data.", exception);
+    }
     return user;
   }
 

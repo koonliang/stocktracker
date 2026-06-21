@@ -64,7 +64,7 @@ export function SignupRoute() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,119,6,0.08),_transparent_28%),linear-gradient(180deg,#faf7f2_0%,#f4efe6_100%)] px-4 py-10 text-text">
-      <div className="mx-auto w-full max-w-2xl">
+      <div className="mx-auto w-full max-w-md">
         <div className="mb-8 flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent/10 text-accent">
             <LineChart size={22} aria-hidden />
