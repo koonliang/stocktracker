@@ -114,6 +114,43 @@ class AuthJourneyTest extends BaseTest {
     assertThat(driver.findElements(By.cssSelector("[data-testid='holdings-table']"))).isEmpty();
   }
 
+  @Test
+  void demoUsersCanBeCreatedReusedAndEventuallyHitTheThreeUserCap() {
+    var login = new LoginPage(driver, waits, baseUrl()).open();
+    assertThat(login.hasNonProdBanner()).isTrue();
+    assertThat(login.hasSocialActions()).isTrue();
+
+    while (login.demoUserCount() < 3) {
+      login.createDemoUser();
+      waits.untilVisible(APP_SHELL);
+      new DashboardPage(driver, waits).waitLoaded();
+      signOut();
+      login = new LoginPage(driver, waits, baseUrl()).open();
+    }
+
+    login.loginAsDemoUser(1);
+    waits.untilVisible(APP_SHELL);
+    new DashboardPage(driver, waits).waitLoaded();
+
+    signOut();
+    login = new LoginPage(driver, waits, baseUrl()).open();
+
+    assertThat(login.isCreateDemoUserDisabled()).isTrue();
+    assertThat(login.createDemoUserText()).contains("All Demo Slots In Use");
+    assertThat(login.demoUserCount()).isEqualTo(3);
+  }
+
+  @Test
+  void failedSocialCallbackShowsErrorWithoutCreatingASession() {
+    var state = java.util.Base64.getEncoder().encodeToString("{\"from\":\"/\",\"provider\":\"google\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    driver.get(baseUrl() + "/auth/callback?code=invalid-social-code&state=" + state);
+
+    var login = new LoginPage(driver, waits, baseUrl());
+    assertThat(login.callbackErrorText()).contains("couldn't complete your sign-in");
+    assertThat(driver.findElements(APP_SHELL)).isEmpty();
+  }
+
   private void signOut() {
     waits.untilClickable(LOGOUT).click();
     waits.untilVisible(LOGIN_EMAIL);

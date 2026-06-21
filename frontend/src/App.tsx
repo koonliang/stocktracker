@@ -1,4 +1,6 @@
 import { Outlet, Route, Routes } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { LoginRoute } from '@/routes/LoginRoute';
@@ -61,12 +63,8 @@ export function App() {
           />
         </Route>
       </Routes>
-      {nonProdAuthConfig.enableVercelAnalytics ? (
-        <div data-testid="vercel-analytics" hidden />
-      ) : null}
-      {nonProdAuthConfig.enableVercelSpeedInsights ? (
-        <div data-testid="vercel-speed-insights" hidden />
-      ) : null}
+      {nonProdAuthConfig.enableVercelAnalytics ? <Analytics /> : null}
+      {nonProdAuthConfig.enableVercelSpeedInsights ? <SpeedInsights /> : null}
     </>
   );
 }

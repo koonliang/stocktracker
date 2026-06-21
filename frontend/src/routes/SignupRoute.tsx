@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { NonProdAuthBanner } from '@/components/auth/NonProdAuthBanner';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import { signup as signupRequest } from '@/api/authApi';
 import { Button } from '@/components/ui/Button';
@@ -70,6 +71,7 @@ export function SignupRoute() {
             <LineChart size={22} aria-hidden />
           </div>
           <span className="font-display text-title">StockTracker</span>
+          <NonProdAuthBanner />
         </div>
 
         <div className="rounded-[32px] border border-black/5 bg-white/82 p-6 shadow-[0_24px_60px_rgba(15,23,42,0.10)] backdrop-blur-sm sm:p-8">

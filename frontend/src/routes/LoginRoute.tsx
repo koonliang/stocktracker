@@ -4,6 +4,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { DemoUserPanel } from '@/components/auth/DemoUserPanel';
+import { NonProdAuthBanner } from '@/components/auth/NonProdAuthBanner';
 import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -150,6 +151,7 @@ export function LoginRoute() {
               <LineChart size={20} aria-hidden />
             </span>
             <span className="font-display text-title tracking-tight">StockTracker</span>
+            <NonProdAuthBanner />
           </div>
 
           <section

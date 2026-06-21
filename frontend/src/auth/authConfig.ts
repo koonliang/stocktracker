@@ -13,8 +13,9 @@ export const nonProdAuthConfig = {
   redirectUri:
     import.meta.env.VITE_NONPROD_SOCIAL_REDIRECT_URI ??
     (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''),
-  enableVercelAnalytics: import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true',
-  enableVercelSpeedInsights: import.meta.env.VITE_ENABLE_VERCEL_SPEED_INSIGHTS === 'true',
+  enableVercelAnalytics: isDevMode && import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true',
+  enableVercelSpeedInsights:
+    isDevMode && import.meta.env.VITE_ENABLE_VERCEL_SPEED_INSIGHTS === 'true',
 };
 
 // Hosted-UI configuration (cognito mode only). Supplied at build time from the

@@ -32,6 +32,9 @@ VITE_ENABLE_VERCEL_ANALYTICS=true
 VITE_ENABLE_VERCEL_SPEED_INSIGHTS=true
 ```
 
+Telemetry flags are only honored when `VITE_AUTH_MODE=dev`, so production-style
+`cognito` builds keep this feature disabled even if the variables are present.
+
 Example environment shape for the backend:
 
 ```bash

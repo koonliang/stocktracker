@@ -108,4 +108,26 @@ class AccountLinkingTest extends IntegrationTestSupport {
     Assertions.assertEquals(first.id, second.id);
     Assertions.assertEquals(1, SocialIdentity.count("providerSubject", "google-sub-stable"));
   }
+
+  @Test
+  void activateImmediatelyPromotesAnExistingMatchedAccount() throws Exception {
+    var existingId = new Long[1];
+    inTransaction(
+        () -> {
+          var existing = new AppUser();
+          existing.email = AppUser.normalizeEmail("pending@social.example");
+          existing.status = AppUser.Status.UNVERIFIED;
+          existing.emailVerified = false;
+          existing.persist();
+          existingId[0] = existing.id;
+        });
+
+    var user =
+        accountLinking.resolveOrLink(
+            Provider.GOOGLE, "google-sub-promote", "pending@social.example", true, true);
+
+    Assertions.assertEquals(existingId[0], user.id);
+    Assertions.assertEquals(AppUser.Status.ACTIVE, user.status);
+    Assertions.assertTrue(user.emailVerified);
+  }
 }

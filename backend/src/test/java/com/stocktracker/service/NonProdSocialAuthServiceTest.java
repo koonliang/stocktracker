@@ -136,6 +136,34 @@ class NonProdSocialAuthServiceTest extends IntegrationTestSupport {
     Assertions.assertEquals(1, AppUser.count("email", "returning.user@gmail.com"));
   }
 
+  @Test
+  void activatesPreviouslyUnverifiedAccountWhenSocialExchangeMatchesVerifiedEmail()
+      throws Exception {
+    inTransaction(
+        () -> {
+          var user = new AppUser();
+          user.email = AppUser.normalizeEmail("returning.user@gmail.com");
+          user.status = AppUser.Status.UNVERIFIED;
+          user.emailVerified = false;
+          user.persist();
+        });
+
+    var response =
+        service.exchange(
+            "google",
+            new SocialExchangeRequest(
+                "google-returning-user", "http://localhost:5173/auth/callback"));
+
+    Assertions.assertEquals("returning.user@gmail.com", response.user().email());
+    inTransaction(
+        () -> {
+          var user = (AppUser) AppUser.find("email", "returning.user@gmail.com").firstResult();
+          Assertions.assertNotNull(user);
+          Assertions.assertEquals(AppUser.Status.ACTIVE, user.status);
+          Assertions.assertTrue(user.emailVerified);
+        });
+  }
+
   private Long loadUserIdByEmail(String email) throws Exception {
     var result = new Long[1];
     inTransaction(

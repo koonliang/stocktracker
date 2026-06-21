@@ -58,10 +58,10 @@
 ### Tests for User Story 1
 
 - [X] T013 [P] [US1] Add backend social exchange endpoint coverage in `backend/src/test/java/com/stocktracker/api/AuthSocialExchangeTest.java`
-- [ ] T014 [P] [US1] Add backend account-linking and non-production provisioning coverage in `backend/src/test/java/com/stocktracker/service/AccountLinkingTest.java` and `backend/src/test/java/com/stocktracker/service/NonProdSocialAuthServiceTest.java`
+- [X] T014 [P] [US1] Add backend account-linking and non-production provisioning coverage in `backend/src/test/java/com/stocktracker/service/AccountLinkingTest.java` and `backend/src/test/java/com/stocktracker/service/NonProdSocialAuthServiceTest.java`
 - [X] T015 [P] [US1] Add frontend dev-mode auth hub coverage in `frontend/tests/routes/LoginRoute.dev-auth.test.tsx` and `frontend/tests/auth/AuthProvider.dev-auth.test.tsx`
 - [X] T016 [P] [US1] Add frontend social callback route coverage in `frontend/tests/routes/AuthCallbackRoute.dev-auth.test.tsx`
-- [ ] T017 [US1] Extend social and auto-verified signup regression coverage in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
+- [X] T017 [US1] Extend social and auto-verified signup regression coverage in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
 
 ### Implementation for User Story 1
 
@@ -73,7 +73,7 @@
 - [X] T023 [P] [US1] Add non-production social exchange helpers to `frontend/src/routes/AuthCallbackRoute.tsx` and `frontend/src/api/authApi.ts`
 - [X] T024 [US1] Rework the non-production auth hub UI in `frontend/src/routes/LoginRoute.tsx` and `frontend/src/routes/SignupRoute.tsx`
 - [X] T025 [P] [US1] Add social auth UI components and test hooks in `frontend/src/components/auth/SocialLoginButtons.tsx` and `frontend/src/components/auth/NonProdAuthBanner.tsx`
-- [ ] T026 [US1] Extend `e2e/src/test/java/com/stocktracker/e2e/pages/LoginPage.java` for social entry, callback failure, and non-production banner assertions
+- [X] T026 [US1] Extend `e2e/src/test/java/com/stocktracker/e2e/pages/LoginPage.java` for social entry, callback failure, and non-production banner assertions
 
 **Checkpoint**: User Story 1 is independently functional as the MVP.
 
@@ -88,9 +88,9 @@
 ### Tests for User Story 2
 
 - [X] T027 [P] [US2] Add backend demo-user API coverage in `backend/src/test/java/com/stocktracker/api/DemoUserAuthResourceTest.java`
-- [ ] T028 [P] [US2] Add backend demo-user service coverage in `backend/src/test/java/com/stocktracker/service/DemoUserServiceTest.java`
-- [ ] T029 [P] [US2] Add frontend demo-user auth hub coverage in `frontend/tests/routes/LoginRoute.demo-users.test.tsx`
-- [ ] T030 [US2] Extend demo-user quick-access journey coverage in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
+- [X] T028 [P] [US2] Add backend demo-user service coverage in `backend/src/test/java/com/stocktracker/service/DemoUserServiceTest.java`
+- [X] T029 [P] [US2] Add frontend demo-user auth hub coverage in `frontend/tests/routes/LoginRoute.demo-users.test.tsx`
+- [X] T030 [US2] Extend demo-user quick-access journey coverage in `e2e/src/test/java/com/stocktracker/e2e/journeys/AuthJourneyTest.java`
 
 ### Implementation for User Story 2
 
@@ -101,7 +101,7 @@
 - [X] T035 [P] [US2] Add demo-user list and create controls in `frontend/src/components/auth/DemoUserPanel.tsx`
 - [X] T036 [US2] Integrate demo-user quick access, limit messaging, and seeded-data labels into `frontend/src/routes/LoginRoute.tsx`
 - [X] T037 [US2] Seed and refresh demo-user portfolio data in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and `backend/src/main/resources/seed/demo-transactions.json`
-- [ ] T038 [US2] Extend `e2e/src/test/java/com/stocktracker/e2e/pages/LoginPage.java` for demo-user creation and selection actions
+- [X] T038 [US2] Extend `e2e/src/test/java/com/stocktracker/e2e/pages/LoginPage.java` for demo-user creation and selection actions
 
 **Checkpoint**: User Stories 1 and 2 both work independently in non-production.
 
@@ -115,14 +115,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T039 [P] [US3] Add frontend telemetry gating coverage in `frontend/tests/app/App.telemetry.test.tsx`
-- [ ] T040 [P] [US3] Add frontend runtime config coverage for telemetry flags in `frontend/tests/auth/authConfig.telemetry.test.ts`
+- [X] T039 [P] [US3] Add frontend telemetry gating coverage in `frontend/tests/app/App.telemetry.test.tsx`
+- [X] T040 [P] [US3] Add frontend runtime config coverage for telemetry flags in `frontend/tests/auth/authConfig.telemetry.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T041 [US3] Mount Vercel Analytics and Speed Insights in `frontend/src/App.tsx`
+- [X] T041 [US3] Mount Vercel Analytics and Speed Insights in `frontend/src/App.tsx`
 - [X] T042 [US3] Add non-production telemetry guards in `frontend/src/auth/authConfig.ts` and `frontend/src/main.tsx`
-- [ ] T043 [US3] Update non-production runtime documentation in `frontend/.env.example` and `specs/009-social-login-dev-auth/quickstart.md`
+- [X] T043 [US3] Update non-production runtime documentation in `frontend/.env.example` and `specs/009-social-login-dev-auth/quickstart.md`
 
 **Checkpoint**: All user stories are independently functional.
 
