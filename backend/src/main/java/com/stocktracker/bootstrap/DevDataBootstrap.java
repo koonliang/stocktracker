@@ -48,7 +48,8 @@ public class DevDataBootstrap {
     if (!enabled) {
       return;
     }
-    ensureLegacySeedCredential();
+    var seedUser = ensureLegacySeedUser();
+    ensureSeedPortfolio(seedUser);
     // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
     ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
     if (!nonProdAuthConfig.demoUsersEnabled()) {
@@ -66,38 +67,30 @@ public class DevDataBootstrap {
     }
 
     PortfolioTransaction.delete("userId", user.id);
-    for (var row : loadDemoTransactions(user.demoSeedProfile)) {
-      var symbol = row.get("ticker").toString().toUpperCase();
-      if (!instrumentRepository.existsSymbol(symbol)) {
-        throw new IllegalStateException(
-            "Missing instrument seed data for demo transaction symbol: " + symbol);
-      }
-      var transaction = new PortfolioTransaction();
-      transaction.userId = user.id;
-      transaction.tradeDate = LocalDate.parse(row.get("date").toString());
-      transaction.instrumentSymbol = symbol;
-      transaction.transactionType = row.get("type").toString();
-      transaction.quantity = new BigDecimal(row.get("quantity").toString());
-      transaction.price = new BigDecimal(row.get("price").toString());
-      transaction.fees = new BigDecimal(row.get("fees").toString());
-      transaction.source = "MANUAL";
-      transactionRepository.persist(transaction);
-    }
+    insertTransactions(user.id, user.demoSeedProfile);
   }
 
-  private void ensureLegacySeedCredential() {
+  private AppUser ensureLegacySeedUser() {
     var seedUser =
         appUserRepository
             .findByNormalizedEmail(LEGACY_SEED_USER_EMAIL)
             .orElseThrow(
                 () -> new IllegalStateException("Seed user missing; V2 migration not applied"));
     if (AuthCredential.count("userId", seedUser.id) > 0) {
-      return;
+      return seedUser;
     }
     var credential = new AuthCredential();
     credential.userId = seedUser.id;
     credential.passwordHash = BcryptUtil.bcryptHash(SEED_USER_PASSWORD);
     credential.persist();
+    return seedUser;
+  }
+
+  private void ensureSeedPortfolio(AppUser user) throws Exception {
+    if (user == null || user.id == null || PortfolioTransaction.count("userId", user.id) > 0) {
+      return;
+    }
+    insertTransactions(user.id, DEFAULT_DEMO_SEED_PROFILE);
   }
 
   /** Finds or creates a verified, sign-in-capable account with the given dev password. */
@@ -139,6 +132,26 @@ public class DevDataBootstrap {
         throw new IllegalStateException("Missing default demo transaction seed profile");
       }
       return rows;
+    }
+  }
+
+  private void insertTransactions(Long userId, String profile) throws Exception {
+    for (var row : loadDemoTransactions(profile)) {
+      var symbol = row.get("ticker").toString().toUpperCase();
+      if (!instrumentRepository.existsSymbol(symbol)) {
+        throw new IllegalStateException(
+            "Missing instrument seed data for demo transaction symbol: " + symbol);
+      }
+      var transaction = new PortfolioTransaction();
+      transaction.userId = userId;
+      transaction.tradeDate = LocalDate.parse(row.get("date").toString());
+      transaction.instrumentSymbol = symbol;
+      transaction.transactionType = row.get("type").toString();
+      transaction.quantity = new BigDecimal(row.get("quantity").toString());
+      transaction.price = new BigDecimal(row.get("price").toString());
+      transaction.fees = new BigDecimal(row.get("fees").toString());
+      transaction.source = "MANUAL";
+      transactionRepository.persist(transaction);
     }
   }
 
