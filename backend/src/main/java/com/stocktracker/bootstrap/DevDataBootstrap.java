@@ -51,7 +51,6 @@ public class DevDataBootstrap {
     ensureLegacySeedCredential();
     // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
     ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
-    deleteLegacySeedTransactions();
     if (!nonProdAuthConfig.demoUsersEnabled()) {
       return;
     }
@@ -117,12 +116,6 @@ public class DevDataBootstrap {
       credential.passwordHash = BcryptUtil.bcryptHash(password);
       credential.persist();
     }
-  }
-
-  private void deleteLegacySeedTransactions() {
-    appUserRepository
-        .findByNormalizedEmail(LEGACY_SEED_USER_EMAIL)
-        .ifPresent(user -> PortfolioTransaction.delete("userId", user.id));
   }
 
   private List<Map<String, Object>> loadDemoTransactions(String profile) throws Exception {
