@@ -7,6 +7,17 @@ export const authMode: AuthMode = import.meta.env.VITE_AUTH_MODE === 'cognito' ?
 export const isCognitoMode = authMode === 'cognito';
 export const isDevMode = authMode === 'dev';
 
+export const nonProdAuthConfig = {
+  googleAuthUrl: import.meta.env.VITE_NONPROD_GOOGLE_AUTH_URL ?? '',
+  facebookAuthUrl: import.meta.env.VITE_NONPROD_FACEBOOK_AUTH_URL ?? '',
+  redirectUri:
+    import.meta.env.VITE_NONPROD_SOCIAL_REDIRECT_URI ??
+    (typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : ''),
+  enableVercelAnalytics: isDevMode && import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true',
+  enableVercelSpeedInsights:
+    isDevMode && import.meta.env.VITE_ENABLE_VERCEL_SPEED_INSIGHTS === 'true',
+};
+
 // Hosted-UI configuration (cognito mode only). Supplied at build time from the
 // Terraform cognito module outputs (contracts/cognito.md).
 export const cognitoConfig = {
@@ -63,13 +74,26 @@ export function encodeAuthState(from: string): string {
   return window.btoa(JSON.stringify({ from: sanitizeReturnPath(from) }));
 }
 
-export function decodeAuthState(state: string | null): { from: string } {
+export function encodeProviderState(from: string, provider: 'google' | 'facebook'): string {
+  return window.btoa(JSON.stringify({ from: sanitizeReturnPath(from), provider }));
+}
+
+export function decodeAuthState(state: string | null): {
+  from: string;
+  provider?: 'google' | 'facebook';
+} {
   if (!state) {
     return { from: '/' };
   }
   try {
-    const parsed = JSON.parse(window.atob(state)) as { from?: unknown };
-    return { from: sanitizeReturnPath(typeof parsed.from === 'string' ? parsed.from : '/') };
+    const parsed = JSON.parse(window.atob(state)) as { from?: unknown; provider?: unknown };
+    return {
+      from: sanitizeReturnPath(typeof parsed.from === 'string' ? parsed.from : '/'),
+      provider:
+        parsed.provider === 'google' || parsed.provider === 'facebook'
+          ? parsed.provider
+          : undefined,
+    };
   } catch {
     return { from: '/' };
   }
@@ -95,4 +119,41 @@ export function hostedLogoutUrl(config: typeof cognitoConfig = cognitoConfig): s
 /** Clears Cognito's hosted-UI session, then returns the browser to the signed-out route. */
 export function redirectToHostedLogout(): void {
   window.location.assign(hostedLogoutUrl());
+}
+
+function providerLabel(provider: 'google' | 'facebook'): string {
+  return provider === 'google' ? 'Google' : 'Facebook';
+}
+
+function providerAuthUrl(provider: 'google' | 'facebook'): string {
+  return provider === 'google'
+    ? nonProdAuthConfig.googleAuthUrl
+    : nonProdAuthConfig.facebookAuthUrl;
+}
+
+export function buildNonProdProviderRedirectUrl(
+  provider: 'google' | 'facebook',
+  from: string,
+): string {
+  const base = providerAuthUrl(provider).trim();
+  if (!base) {
+    throw new Error(`${providerLabel(provider)} sign-in is not configured for this environment.`);
+  }
+
+  let url: URL;
+  try {
+    url = new URL(base);
+  } catch {
+    throw new Error(`${providerLabel(provider)} sign-in is configured with an invalid URL.`);
+  }
+
+  if (!url.searchParams.has('redirect_uri')) {
+    url.searchParams.set('redirect_uri', nonProdAuthConfig.redirectUri);
+  }
+  url.searchParams.set('state', encodeProviderState(from, provider));
+  return url.toString();
+}
+
+export function redirectToNonProdProvider(provider: 'google' | 'facebook', from: string): void {
+  window.location.assign(buildNonProdProviderRedirectUrl(provider, from));
 }

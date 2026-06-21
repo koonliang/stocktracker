@@ -19,8 +19,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * The dev token endpoint returns the latest token in dev mode (FR-T02) and is absent (404) in
- * cognito mode.
+ * The dev token endpoint returns the latest usable dev token in dev mode (FR-T02) and is absent
+ * (404) in cognito mode.
  */
 @QuarkusTest
 @QuarkusTestResource(MySqlTestResource.class)
@@ -49,14 +49,22 @@ class DevAuthTokenTest extends IntegrationTestSupport {
         .statusCode(202);
 
     given()
+        .contentType(ContentType.JSON)
+        .body(Map.of("email", EMAIL))
+        .when()
+        .post("/api/auth/forgot-password")
+        .then()
+        .statusCode(202);
+
+    given()
         .queryParam("email", EMAIL)
-        .queryParam("purpose", "EMAIL_VERIFICATION")
+        .queryParam("purpose", "PASSWORD_RESET")
         .when()
         .get("/api/dev/auth/latest-token")
         .then()
         .statusCode(200)
         .body("token", notNullValue())
-        .body("purpose", equalTo("EMAIL_VERIFICATION"));
+        .body("purpose", equalTo("PASSWORD_RESET"));
   }
 
   @Test

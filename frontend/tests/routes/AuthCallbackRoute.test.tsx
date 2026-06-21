@@ -11,9 +11,18 @@ describe('AuthCallbackRoute', () => {
   });
 
   it('navigates to the Cognito callback return path', async () => {
-    vi.doMock('@/auth/AuthProvider', () => ({
-      completeCognitoCallback: vi.fn().mockResolvedValue('/watchlists'),
-    }));
+    vi.doMock('@/auth/AuthProvider', async () => {
+      const actual =
+        await vi.importActual<typeof import('@/auth/AuthProvider')>('@/auth/AuthProvider');
+      return {
+        ...actual,
+        completeCognitoCallback: vi.fn().mockResolvedValue('/watchlists'),
+        shouldUseDevCallback: vi.fn(() => false),
+        useAuth: vi.fn(() => ({
+          completeDevSocialCallback: vi.fn(),
+        })),
+      };
+    });
     const { AuthCallbackRoute } = await import('@/routes/AuthCallbackRoute');
 
     render(

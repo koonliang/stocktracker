@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { decodeAuthState, encodeAuthState, hostedLogoutUrl } from '@/auth/authConfig';
+import {
+  buildNonProdProviderRedirectUrl,
+  decodeAuthState,
+  encodeAuthState,
+  encodeProviderState,
+  hostedLogoutUrl,
+  nonProdAuthConfig,
+} from '@/auth/authConfig';
 
 describe('authConfig', () => {
   it('builds the Cognito hosted logout URL', () => {
@@ -21,9 +28,26 @@ describe('authConfig', () => {
     expect(decodeAuthState(state)).toEqual({ from: '/watchlists?tab=active#top' });
   });
 
+  it('round-trips provider state for non-production social auth', () => {
+    const state = encodeProviderState('/watchlists', 'google');
+    expect(decodeAuthState(state)).toEqual({ from: '/watchlists', provider: 'google' });
+  });
+
   it('falls back when Cognito state contains an unsafe return path', () => {
     const state = window.btoa(JSON.stringify({ from: 'https://evil.example.com' }));
     expect(decodeAuthState(state)).toEqual({ from: '/' });
     expect(decodeAuthState('not-base64')).toEqual({ from: '/' });
+  });
+
+  it('throws a clear error when non-production social auth is not configured', () => {
+    const original = nonProdAuthConfig.googleAuthUrl;
+    nonProdAuthConfig.googleAuthUrl = '';
+    try {
+      expect(() => buildNonProdProviderRedirectUrl('google', '/watchlists')).toThrow(
+        'Google sign-in is not configured for this environment.',
+      );
+    } finally {
+      nonProdAuthConfig.googleAuthUrl = original;
+    }
   });
 });

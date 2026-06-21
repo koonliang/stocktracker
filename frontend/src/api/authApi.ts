@@ -1,5 +1,12 @@
 import { apiRequest } from './client';
-import type { AuthUser, LoginResponse, StatusResponse } from './types';
+import type {
+  AuthUser,
+  DemoUserCatalog,
+  DemoUserSession,
+  LoginResponse,
+  SocialExchangeRequest,
+  StatusResponse,
+} from './types';
 
 export function login(email: string, password: string) {
   return apiRequest<LoginResponse>('/auth/login', {
@@ -49,4 +56,31 @@ export function fetchMe() {
 
 export function logout() {
   return apiRequest<void>('/auth/logout', { method: 'POST' });
+}
+
+export function exchangeSocialCode(
+  provider: 'google' | 'facebook',
+  payload: SocialExchangeRequest,
+) {
+  return apiRequest<LoginResponse>(`/auth/social/${provider}/exchange`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listDemoUsers() {
+  return apiRequest<DemoUserCatalog>('/auth/demo-users');
+}
+
+export function createDemoUser(label?: string) {
+  return apiRequest<DemoUserSession>('/auth/demo-users', {
+    method: 'POST',
+    body: JSON.stringify(label ? { label } : {}),
+  });
+}
+
+export function loginDemoUser(slot: number) {
+  return apiRequest<DemoUserSession>(`/auth/demo-users/${slot}/login`, {
+    method: 'POST',
+  });
 }

@@ -3,6 +3,11 @@ package com.stocktracker.api;
 import com.stocktracker.dto.ForgotPasswordRequest;
 import com.stocktracker.dto.LoginRequest;
 import com.stocktracker.dto.LoginResponse;
+import com.stocktracker.dto.NonProdAuthDtos.DemoUserCatalogResponse;
+import com.stocktracker.dto.NonProdAuthDtos.DemoUserCreateRequest;
+import com.stocktracker.dto.NonProdAuthDtos.DemoUserLoginResponse;
+import com.stocktracker.dto.NonProdAuthDtos.DemoUserSummary;
+import com.stocktracker.dto.NonProdAuthDtos.SocialExchangeRequest;
 import com.stocktracker.dto.ResendVerificationRequest;
 import com.stocktracker.dto.ResetPasswordRequest;
 import com.stocktracker.dto.SignUpRequest;
@@ -11,6 +16,8 @@ import com.stocktracker.dto.VerifyEmailRequest;
 import com.stocktracker.security.AuthMode;
 import com.stocktracker.security.CurrentUser;
 import com.stocktracker.service.AuthService;
+import com.stocktracker.service.DemoUserService;
+import com.stocktracker.service.NonProdSocialAuthService;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -29,6 +36,8 @@ public class AuthResource {
   @Inject AuthService authService;
   @Inject CurrentUser currentUser;
   @Inject AuthMode authMode;
+  @Inject NonProdSocialAuthService nonProdSocialAuthService;
+  @Inject DemoUserService demoUserService;
 
   @POST
   @Path("/signup")
@@ -56,6 +65,48 @@ public class AuthResource {
   public LoginResponse login(LoginRequest request) {
     assertDevMode();
     return authService.login(request);
+  }
+
+  @POST
+  @Path("/social/{provider}/exchange")
+  public LoginResponse socialExchange(
+      @jakarta.ws.rs.PathParam("provider") String provider, SocialExchangeRequest request) {
+    assertDevMode();
+    return nonProdSocialAuthService.exchange(provider, request);
+  }
+
+  @GET
+  @Path("/demo-users")
+  public DemoUserCatalogResponse demoUsers() {
+    assertDevMode();
+    return demoUserService.catalog();
+  }
+
+  @POST
+  @Path("/demo-users")
+  public Response createDemoUser(DemoUserCreateRequest request) {
+    assertDevMode();
+    var user = demoUserService.create(request);
+    var token = authService.issueTokenForUser(user);
+    return Response.status(Status.CREATED)
+        .entity(
+            new DemoUserLoginResponse(
+                token,
+                new UserResponse(user.id, user.email),
+                new DemoUserSummary(user.demoSlot.intValue(), demoUserService.labelFor(user))))
+        .build();
+  }
+
+  @POST
+  @Path("/demo-users/{slot}/login")
+  public DemoUserLoginResponse loginDemoUser(@jakarta.ws.rs.PathParam("slot") int slot) {
+    assertDevMode();
+    var user = demoUserService.login(slot);
+    var token = authService.issueTokenForUser(user);
+    return new DemoUserLoginResponse(
+        token,
+        new UserResponse(user.id, user.email),
+        new DemoUserSummary(user.demoSlot.intValue(), demoUserService.labelFor(user)));
   }
 
   @POST

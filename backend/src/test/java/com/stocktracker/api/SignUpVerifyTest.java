@@ -17,9 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Sign-up creates an unverified account with a verification token; duplicate sign-up is
- * non-enumerating; unverified login is blocked; verification activates; tokens are single-use
- * (FR-009/011/012/013/014, SC-007).
+ * In enhanced dev mode, sign-up creates an active verified account immediately; duplicate sign-up
+ * stays non-enumerating; password policy still applies.
  */
 @QuarkusTest
 @QuarkusTestResource(MySqlTestResource.class)
@@ -31,7 +30,6 @@ class SignUpVerifyTest extends IntegrationTestSupport {
   void cleanAccounts() throws Exception {
     inTransaction(
         () -> {
-          VerificationToken.deleteAll();
           AuthCredential.delete(
               "userId in (select u.id from AppUser u where u.email like ?1)", "%@example.com");
           AppUser.delete("email like ?1", "%@example.com");
@@ -46,27 +44,16 @@ class SignUpVerifyTest extends IntegrationTestSupport {
         .post("/api/auth/signup")
         .then()
         .statusCode(202)
-        .body("status", equalTo("verification_sent"));
-  }
-
-  private String latestVerificationToken(String email) {
-    return given()
-        .queryParam("email", email)
-        .queryParam("purpose", "EMAIL_VERIFICATION")
-        .when()
-        .get("/api/dev/auth/latest-token")
-        .then()
-        .statusCode(200)
-        .extract()
-        .path("token");
+        .body("status", equalTo("account_created"));
   }
 
   @Test
-  void signupCreatesUnverifiedAccountWithToken() {
+  void signupCreatesVerifiedActiveAccount() {
     signup(EMAIL);
     var user = AppUser.<AppUser>find("email", EMAIL).firstResult();
-    org.junit.jupiter.api.Assertions.assertEquals(AppUser.Status.UNVERIFIED, user.status);
-    org.junit.jupiter.api.Assertions.assertEquals(1, VerificationToken.count("userId", user.id));
+    org.junit.jupiter.api.Assertions.assertEquals(AppUser.Status.ACTIVE, user.status);
+    org.junit.jupiter.api.Assertions.assertTrue(user.emailVerified);
+    org.junit.jupiter.api.Assertions.assertEquals(0, VerificationToken.count("userId", user.id));
   }
 
   @Test
@@ -78,32 +65,8 @@ class SignUpVerifyTest extends IntegrationTestSupport {
   }
 
   @Test
-  void unverifiedLoginIsBlocked() {
+  void newlyCreatedAccountCanLoginImmediately() {
     signup(EMAIL);
-    given()
-        .contentType(ContentType.JSON)
-        .body(Map.of("email", EMAIL, "password", PASSWORD))
-        .when()
-        .post("/api/auth/login")
-        .then()
-        .statusCode(403)
-        .body("code", equalTo("EMAIL_UNVERIFIED"));
-  }
-
-  @Test
-  void verificationActivatesAndEnablesLogin() {
-    signup(EMAIL);
-    var token = latestVerificationToken(EMAIL);
-
-    given()
-        .contentType(ContentType.JSON)
-        .body(Map.of("token", token))
-        .when()
-        .post("/api/auth/verify-email")
-        .then()
-        .statusCode(200)
-        .body("status", equalTo("verified"));
-
     given()
         .contentType(ContentType.JSON)
         .body(Map.of("email", EMAIL, "password", PASSWORD))
@@ -112,31 +75,6 @@ class SignUpVerifyTest extends IntegrationTestSupport {
         .then()
         .statusCode(200)
         .body("token", notNullValue());
-  }
-
-  @Test
-  void usedTokenIsRejectedOnReuse() {
-    signup(EMAIL);
-    var token = latestVerificationToken(EMAIL);
-    var body = Map.of("token", token);
-
-    given()
-        .contentType(ContentType.JSON)
-        .body(body)
-        .when()
-        .post("/api/auth/verify-email")
-        .then()
-        .statusCode(200);
-
-    // Single-use: replaying the consumed token fails.
-    given()
-        .contentType(ContentType.JSON)
-        .body(body)
-        .when()
-        .post("/api/auth/verify-email")
-        .then()
-        .statusCode(400)
-        .body("code", equalTo("TOKEN_INVALID"));
   }
 
   @Test

@@ -14,7 +14,7 @@ import org.openqa.selenium.By;
 
 /**
  * Authentication regression journey (contracts/e2e-journey.md, FR-T03/T05). Runs headlessly against
- * docker-compose in {@code STOCKTRACKER_AUTH_MODE=dev}: sign-up→verify→sign-in→sign-out, invalid
+ * docker-compose in {@code STOCKTRACKER_AUTH_MODE=dev}: sign-up→sign-in→sign-out, invalid
  * credentials, protected-route redirect, password reset, and per-user data isolation.
  */
 class AuthJourneyTest extends BaseTest {
@@ -27,7 +27,6 @@ class AuthJourneyTest extends BaseTest {
   private static final By APP_SHELL = By.cssSelector("[data-testid='app-shell-authenticated']");
   private static final By LOGOUT = By.cssSelector("[data-testid='logout-button']");
   private static final By LOGIN_EMAIL = By.cssSelector("[data-testid='login-email']");
-  private static final By VERIFY_STATUS = By.cssSelector("[data-testid='verify-status']");
   private static final By RESET_PASSWORD = By.cssSelector("[data-testid='reset-password']");
   private static final By RESET_SUBMIT = By.cssSelector("[data-testid='reset-submit']");
   private static final By RESET_CONFIRMATION = By.cssSelector("[data-testid='reset-confirmation']");
@@ -37,11 +36,10 @@ class AuthJourneyTest extends BaseTest {
   private final DevTokenClient devTokens = new DevTokenClient();
 
   @Test
-  void signUpVerifySignInSignOut() {
+  void signUpSignInSignOut() {
     var email = uniqueEmail("journey");
 
     new SignupPage(driver, waits, baseUrl()).open().signUp(email, "Passw0rd!");
-    verifyEmail(email);
 
     new LoginPage(driver, waits, baseUrl()).open().signIn(email, "Passw0rd!");
     waits.untilVisible(APP_SHELL);
@@ -73,9 +71,8 @@ class AuthJourneyTest extends BaseTest {
   void passwordResetReplacesCredential() {
     var email = uniqueEmail("reset");
 
-    // A self-contained verified account so the reset never mutates a shared seed user.
+    // A self-contained account so the reset never mutates a shared seed user.
     new SignupPage(driver, waits, baseUrl()).open().signUp(email, "Passw0rd!");
-    verifyEmail(email);
 
     new ForgotPasswordPage(driver, waits, baseUrl()).open().requestReset(email);
     var token = devTokens.latestResetToken(email);
@@ -117,16 +114,41 @@ class AuthJourneyTest extends BaseTest {
     assertThat(driver.findElements(By.cssSelector("[data-testid='holdings-table']"))).isEmpty();
   }
 
-  /** Fetches the verification token for {@code email} and drives the verify route to success. */
-  private void verifyEmail(String email) {
-    var token = devTokens.latestVerificationToken(email);
-    driver.get(baseUrl() + "/verify-email?token=" + token);
-    waits.untilTrue(
-        d -> {
-          var elements = d.findElements(VERIFY_STATUS);
-          return !elements.isEmpty()
-              && "verified".equals(elements.get(0).getAttribute("data-status"));
-        });
+  @Test
+  void demoUsersCanBeCreatedReusedAndEventuallyHitTheThreeUserCap() {
+    var login = new LoginPage(driver, waits, baseUrl()).open();
+    assertThat(login.hasNonProdBanner()).isTrue();
+    assertThat(login.hasSocialActions()).isTrue();
+
+    while (login.demoUserCount() < 3) {
+      login.createDemoUser();
+      waits.untilVisible(APP_SHELL);
+      new DashboardPage(driver, waits).waitLoaded();
+      signOut();
+      login = new LoginPage(driver, waits, baseUrl()).open();
+    }
+
+    login.loginAsDemoUser(1);
+    waits.untilVisible(APP_SHELL);
+    new DashboardPage(driver, waits).waitLoaded();
+
+    signOut();
+    login = new LoginPage(driver, waits, baseUrl()).open();
+
+    assertThat(login.isCreateDemoUserDisabled()).isTrue();
+    assertThat(login.createDemoUserText()).contains("All Demo Slots In Use");
+    assertThat(login.demoUserCount()).isEqualTo(3);
+  }
+
+  @Test
+  void failedSocialCallbackShowsErrorWithoutCreatingASession() {
+    var state = java.util.Base64.getEncoder().encodeToString("{\"from\":\"/\",\"provider\":\"google\"}".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+    driver.get(baseUrl() + "/auth/callback?code=invalid-social-code&state=" + state);
+
+    var login = new LoginPage(driver, waits, baseUrl());
+    assertThat(login.callbackErrorText()).contains("couldn't complete your sign-in");
+    assertThat(driver.findElements(APP_SHELL)).isEmpty();
   }
 
   private void signOut() {

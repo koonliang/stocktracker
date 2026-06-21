@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { LineChart } from 'lucide-react';
-import { completeCognitoCallback } from '@/auth/AuthProvider';
+import { completeCognitoCallback, shouldUseDevCallback, useAuth } from '@/auth/AuthProvider';
 import { useAuthStore } from '@/stores/authStore';
 
 type CallbackPhase = 'working' | 'done' | 'error';
@@ -18,6 +18,7 @@ const TIMEOUT_MS = 20_000;
  */
 export function AuthCallbackRoute() {
   const setSession = useAuthStore((s) => s.setSession);
+  const { completeDevSocialCallback } = useAuth();
   const [phase, setPhase] = useState<CallbackPhase>('working');
   const [returnTo, setReturnTo] = useState('/');
   // The exchange must fire exactly once even under StrictMode double-invocation.
@@ -29,17 +30,20 @@ export function AuthCallbackRoute() {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error('Sign-in timed out')), TIMEOUT_MS),
     );
-    Promise.race([completeCognitoCallback(setSession), timeout])
+    const completion = shouldUseDevCallback()
+      ? completeDevSocialCallback()
+      : completeCognitoCallback(setSession);
+    Promise.race([completion, timeout])
       .then((from) => {
         setReturnTo(from);
         setPhase('done');
       })
       .catch((error) => {
         // Surface the real cause (CORS, token exchange, /me) in the browser console.
-        console.error('Cognito sign-in failed:', error);
+        console.error('Sign-in failed:', error);
         setPhase('error');
       });
-  }, [setSession]);
+  }, [completeDevSocialCallback, setSession]);
 
   if (phase === 'done') {
     return <Navigate to={returnTo} replace />;

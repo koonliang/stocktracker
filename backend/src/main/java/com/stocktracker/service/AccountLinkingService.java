@@ -34,6 +34,16 @@ public class AccountLinkingService {
   @Transactional
   public AppUser resolveOrLink(
       SocialIdentity.Provider provider, String subject, String email, boolean emailVerified) {
+    return resolveOrLink(provider, subject, email, emailVerified, false);
+  }
+
+  @Transactional
+  public AppUser resolveOrLink(
+      SocialIdentity.Provider provider,
+      String subject,
+      String email,
+      boolean emailVerified,
+      boolean activateImmediately) {
     var existingIdentity = socialIdentities.findByProviderSubject(provider, subject).orElse(null);
     if (existingIdentity != null) {
       return users.findById(existingIdentity.userId);
@@ -46,9 +56,13 @@ public class AccountLinkingService {
       user = users.findByNormalizedEmail(normalizedEmail).orElse(null);
     }
     if (user == null) {
-      user = createAccount(provider, subject, normalizedEmail, emailVerified);
+      user = createAccount(provider, subject, normalizedEmail, emailVerified, activateImmediately);
       LOG.infof("event=social_account_created provider=%s user_id=%d", provider, user.id);
     } else {
+      if (activateImmediately) {
+        user.status = AppUser.Status.ACTIVE;
+        user.emailVerified = true;
+      }
       LOG.infof("event=social_account_linked provider=%s user_id=%d", provider, user.id);
     }
 
@@ -75,7 +89,8 @@ public class AccountLinkingService {
       SocialIdentity.Provider provider,
       String subject,
       String normalizedEmail,
-      boolean emailVerified) {
+      boolean emailVerified,
+      boolean activateImmediately) {
     var user = new AppUser();
     // Only a provider-verified email is trusted as the account's identity. An unverified email is
     // never adopted and must not collide with an existing account (FR-S04), so fall back to a
@@ -86,7 +101,7 @@ public class AccountLinkingService {
             ? normalizedEmail
             : provider.name().toLowerCase(Locale.ROOT) + "-" + subject + "@federated.local";
     user.status = AppUser.Status.ACTIVE;
-    user.emailVerified = emailVerified;
+    user.emailVerified = activateImmediately || emailVerified;
     users.persist(user);
     return user;
   }

@@ -61,6 +61,15 @@ user-owned data per user (`CurrentUser`). It runs in one of two modes via
 | `dev` (default)    | Owned by `AuthService` (`/api/auth/*`) | Self-signed RS256     | Not sent — token logged + dev endpoint |
 | `cognito` (prod)   | Owned by the Cognito user pool      | Cognito-issued, validated | Sent by Cognito                    |
 
+The non-production social identity implementation extends the existing `dev`
+mode instead of adding a separate auth mode. The backend accepts a Google or
+Facebook authorization code, exchanges it server-side, resolves the provider
+profile, links it through `AccountLinkingService`, and returns the same
+app-issued JWT used by ordinary dev login. Verified provider emails reuse an
+existing account when possible; otherwise a new active, verified account is
+created immediately. Unverified provider emails are never auto-linked to an
+existing user.
+
 Endpoints (dev mode):
 
 ```text
@@ -68,6 +77,11 @@ POST /api/auth/signup                 sign up (issues an email-verification toke
 POST /api/auth/verify-email           activate an account from a verification token
 POST /api/auth/resend-verification    re-issue verification for a pending account
 POST /api/auth/login                  sign in (returns an access token)
+POST /api/auth/social/google/exchange exchange a Google auth code for an app session
+POST /api/auth/social/facebook/exchange exchange a Facebook auth code for an app session
+GET  /api/auth/demo-users             list reusable passwordless demo users
+POST /api/auth/demo-users             create the next demo user and sign in immediately
+POST /api/auth/demo-users/{slot}/login sign in as an existing demo user
 POST /api/auth/forgot-password        request a password-reset token
 POST /api/auth/reset-password         set a new password from a reset token
 GET  /api/dev/auth/latest-token       dev-only: read the latest raw token (404 in cognito mode)
@@ -84,6 +98,11 @@ curl "http://localhost:8080/api/dev/auth/latest-token?email=you@example.com&purp
 # then open http://localhost:5173/verify-email?token=<rawToken>
 ```
 
+The same non-production profile also supports passwordless demo users.
+`DemoUserService` manages up to three demo accounts per environment, each as a
+first-class `AppUser` with seeded portfolio data. Creating or selecting a demo
+user returns a normal app JWT; there is no separate anonymous session path.
+
 In `cognito` mode the `/api/auth/*` and dev-token endpoints return 404; Cognito
 owns those flows and the backend only validates pool-issued JWTs via
 `COGNITO_ISSUER` / `COGNITO_JWKS_URL`. Verified-email linking of local and
@@ -96,6 +115,11 @@ Relevant config (`application.properties`):
 - `stocktracker.auth.access-token.ttl-seconds` (`STOCKTRACKER_AUTH_TOKEN_TTL`)
 - `stocktracker.auth.rate-limit.max-attempts` / `window-seconds` — per-IP and
   per-email sliding-window throttle on `/api/auth/*`
+- `nonprod.google.client-id` / `nonprod.google.client-secret`
+- `nonprod.facebook.client-id` / `nonprod.facebook.client-secret`
+- `nonprod.social.redirect-uri`
+- `stocktracker.demo-users.enabled` / `stocktracker.demo-user.max` /
+  `stocktracker.demo-user.prefix`
 
 Password policy: minimum 8 characters with an uppercase, lowercase, and digit
 (`PasswordPolicy`), enforced identically at sign-up and reset.

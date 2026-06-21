@@ -32,6 +32,7 @@ type MockState = {
   watchlists: Watchlist[];
   baseCurrency: string;
   notifications: NotificationItem[];
+  demoUsers: Array<{ slot: number; label: string; email: string }>;
 };
 
 const defaultState = (): MockState => ({
@@ -39,6 +40,7 @@ const defaultState = (): MockState => ({
   watchlists: [],
   baseCurrency: 'USD',
   notifications: [],
+  demoUsers: [],
 });
 
 const SUPPORTED_CURRENCIES = ['USD', 'SGD', 'EUR'];
@@ -382,7 +384,63 @@ export async function handleMockApi(
     if (!email.includes('@') || !policyOk) {
       return json({ code: 'VALIDATION', message: 'Invalid email or password' }, { status: 400 });
     }
-    return json({ status: 'verification_sent' }, { status: 202 });
+    return json({ status: 'account_created' }, { status: 202 });
+  }
+
+  if (path === '/api/auth/demo-users' && method === 'GET') {
+    return json({
+      users: state.demoUsers,
+      maxUsers: 3,
+      canCreate: state.demoUsers.length < 3,
+    });
+  }
+
+  if (path === '/api/auth/demo-users' && method === 'POST') {
+    if (state.demoUsers.length >= 3) {
+      return json(
+        {
+          code: 'DEMO_USER_LIMIT_REACHED',
+          message: 'The maximum of 3 demo users already exists.',
+        },
+        { status: 409 },
+      );
+    }
+    const slot = state.demoUsers.length + 1;
+    const demoUser = {
+      slot,
+      label: `Demo User ${slot}`,
+      email: `demo${slot}@stocktracker.local`,
+    };
+    state.demoUsers = [...state.demoUsers, demoUser];
+    return json(
+      {
+        token: `demo-jwt-${slot}`,
+        user: { id: slot + 100, email: demoUser.email },
+        demoUser: { slot: demoUser.slot, label: demoUser.label },
+      },
+      { status: 201 },
+    );
+  }
+
+  if (/^\/api\/auth\/demo-users\/\d+\/login$/.test(path) && method === 'POST') {
+    const slot = Number(path.split('/')[4] ?? '0');
+    const demoUser = state.demoUsers.find((entry) => entry.slot === slot);
+    if (!demoUser) {
+      return json({ code: 'DEMO_USER_NOT_FOUND', message: 'Unknown demo user.' }, { status: 404 });
+    }
+    return json({
+      token: `demo-jwt-${slot}`,
+      user: { id: slot + 100, email: demoUser.email },
+      demoUser: { slot: demoUser.slot, label: demoUser.label },
+    });
+  }
+
+  if (/^\/api\/auth\/social\/(google|facebook)\/exchange$/.test(path) && method === 'POST') {
+    const provider = path.includes('/google/') ? 'google' : 'facebook';
+    return json({
+      token: `${provider}-jwt`,
+      user: { id: provider === 'google' ? 201 : 202, email: `${provider}@social.local` },
+    });
   }
 
   if (path === '/api/auth/verify-email' && method === 'POST') {

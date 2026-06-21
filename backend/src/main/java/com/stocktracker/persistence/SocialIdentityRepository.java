@@ -11,4 +11,9 @@ public class SocialIdentityRepository implements PanacheRepositoryBase<SocialIde
       SocialIdentity.Provider provider, String subject) {
     return find("provider = ?1 and providerSubject = ?2", provider, subject).firstResultOptional();
   }
+
+  public Optional<SocialIdentity> findByProviderEmail(
+      SocialIdentity.Provider provider, String email) {
+    return find("provider = ?1 and providerEmail = ?2", provider, email).firstResultOptional();
+  }
 }

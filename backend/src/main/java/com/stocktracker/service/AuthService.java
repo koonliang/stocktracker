@@ -79,7 +79,7 @@ public class AuthService {
 
     user.lastLoginAt = LocalDateTime.now();
     LOG.infof("event=login_success user_id=%d", user.id);
-    return new LoginResponse(tokenIssuer.issue(user), new UserResponse(user.id, user.email));
+    return new LoginResponse(issueTokenForUser(user), new UserResponse(user.id, user.email));
   }
 
   /**
@@ -110,21 +110,17 @@ public class AuthService {
     if (existing == null) {
       var user = new AppUser();
       user.email = email;
-      user.status = AppUser.Status.UNVERIFIED;
-      user.emailVerified = false;
+      user.status = AppUser.Status.ACTIVE;
+      user.emailVerified = true;
       users.persist(user);
       var credential = new AuthCredential();
       credential.userId = user.id;
       credential.passwordHash = BcryptUtil.bcryptHash(request.password());
       credential.persist();
-      issueAndSendVerification(user);
       LOG.infof("event=signup user_id=%d", user.id);
-    } else if (existing.status == AppUser.Status.UNVERIFIED) {
-      // Pending account re-attempting sign-up: re-issue verification, stay non-enumerating.
-      issueAndSendVerification(existing);
     }
     // Already-registered active account: no-op, identical response (FR-014).
-    return new StatusResponse("verification_sent");
+    return new StatusResponse("account_created");
   }
 
   /** Activates an account from a valid verification token (FR-013). */
@@ -199,6 +195,10 @@ public class AuthService {
     user.sessionsInvalidBefore = LocalDateTime.ofInstant(invalidBefore, ZoneOffset.UTC);
     LOG.infof("event=password_reset user_id=%d", user.id);
     return new StatusResponse("reset");
+  }
+
+  public String issueTokenForUser(AppUser user) {
+    return tokenIssuer.issue(user);
   }
 
   private void issueAndSendVerification(AppUser user) {

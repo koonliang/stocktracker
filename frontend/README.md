@@ -42,6 +42,33 @@ All app routes are gated behind a session; public auth routes live under
   # VITE_COGNITO_LOGOUT_URI defaults to <origin>/signed-out
   ```
 
+The non-production social identity flow lives entirely under
+`VITE_AUTH_MODE=dev`. `/login` renders an auth hub with the email/password form,
+Google and Facebook provider entry, and passwordless demo-user access. Provider
+redirects return to `/auth/callback`, where `AuthProvider` exchanges the
+provider code with the backend social endpoint and stores the resulting app JWT
+in the normal auth store. The frontend never exchanges provider codes directly
+with Google or Facebook.
+
+Demo users share the same dev-mode session model. The login page lists existing
+demo accounts, supports creating up to three per environment, and signs in
+immediately after creation or selection. Once all three slots exist, the create
+control is disabled and the existing demo users remain reusable.
+
+Production `cognito` mode is intentionally unchanged by this feature. The app
+still redirects to the Hosted UI immediately in that mode; the non-production
+social buttons, demo-user panel, and backend-owned social callback exchange are
+all dev-mode only.
+
+Relevant non-production frontend variables:
+
+```sh
+VITE_AUTH_MODE=dev
+VITE_NONPROD_GOOGLE_AUTH_URL=<google-authorization-url>
+VITE_NONPROD_FACEBOOK_AUTH_URL=<facebook-authorization-url>
+VITE_NONPROD_SOCIAL_REDIRECT_URI=<origin>/auth/callback
+```
+
 The seed dev account is `seed@stocktracker.local` / `DevPass123!` (owns demo
 data); `empty@stocktracker.local` / `DevPass123!` is a second verified account
 with no data, used by the e2e isolation scenario.
