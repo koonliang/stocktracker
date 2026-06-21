@@ -1,11 +1,23 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { ApiError, setAuthToken } from '@/api/client';
-import { fetchMe, login as loginRequest, logout as logoutRequest } from '@/api/authApi';
+import {
+  createDemoUser,
+  exchangeSocialCode,
+  fetchMe,
+  listDemoUsers,
+  login as loginRequest,
+  loginDemoUser,
+  logout as logoutRequest,
+} from '@/api/authApi';
+import type { DemoUserCatalog } from '@/api/types';
 import { useAuthStore } from '@/stores/authStore';
 import {
   authMode,
   cognitoConfig,
   decodeAuthState,
+  isDevMode,
+  nonProdAuthConfig,
+  redirectToNonProdProvider,
   redirectToHostedLogout,
   redirectToHostedUi,
   type AuthMode,
@@ -18,7 +30,11 @@ export type SocialProvider = 'google' | 'facebook';
 type AuthContextValue = {
   mode: AuthMode;
   login: (email: string, password: string) => Promise<LoginResult>;
-  loginWithProvider: (provider: SocialProvider) => void;
+  loginWithProvider: (provider: SocialProvider, from?: string) => void;
+  completeDevSocialCallback: () => Promise<string>;
+  fetchDemoUsers: () => Promise<DemoUserCatalog>;
+  createDemoUserSession: () => Promise<void>;
+  loginAsDemoUser: (slot: number) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -64,13 +80,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function loginWithProvider(provider: SocialProvider): void {
+  function loginWithProvider(provider: SocialProvider, from = '/'): void {
     if (authMode === 'cognito') {
       redirectToHostedUi({ provider });
       return;
     }
-    // Social login is delegated to Cognito federation; it is not available in dev mode.
-    throw new Error('Social login is only available in cognito mode');
+    redirectToNonProdProvider(provider, from);
+  }
+
+  async function completeDevSocialCallback(): Promise<string> {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    const { from, provider } = decodeAuthState(url.searchParams.get('state'));
+    if (!code || !provider) {
+      throw new Error('Missing provider callback context');
+    }
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    window.history.replaceState({}, '', url.toString());
+    const { token, user } = await exchangeSocialCode(provider, {
+      code,
+      redirectUri: nonProdAuthConfig.redirectUri,
+    });
+    setSession(token, user);
+    return from;
+  }
+
+  async function fetchDemoUsers(): Promise<DemoUserCatalog> {
+    return listDemoUsers();
+  }
+
+  async function createDemoUserSession(): Promise<void> {
+    const { token, user } = await createDemoUser();
+    setSession(token, user);
+  }
+
+  async function loginAsDemoUser(slot: number): Promise<void> {
+    const { token, user } = await loginDemoUser(slot);
+    setSession(token, user);
   }
 
   async function logout(): Promise<void> {
@@ -85,7 +132,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ mode: authMode, login, loginWithProvider, logout }}>
+    <AuthContext.Provider
+      value={{
+        mode: authMode,
+        login,
+        loginWithProvider,
+        completeDevSocialCallback,
+        fetchDemoUsers,
+        createDemoUserSession,
+        loginAsDemoUser,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -138,4 +196,8 @@ export function useAuth(): AuthContextValue {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return ctx;
+}
+
+export function shouldUseDevCallback(): boolean {
+  return isDevMode;
 }

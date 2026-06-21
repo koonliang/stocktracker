@@ -30,4 +30,8 @@ public class AuthMode {
   public boolean isCognito() {
     return current() == Mode.COGNITO;
   }
+
+  public boolean isNonProduction() {
+    return isDev();
+  }
 }

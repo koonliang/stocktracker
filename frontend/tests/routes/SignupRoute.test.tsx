@@ -7,7 +7,7 @@ import { VerifyEmailRoute } from '@/routes/VerifyEmailRoute';
 import { renderWithProviders } from '@/test/utils';
 
 describe('SignupRoute', () => {
-  it('submits sign-up and shows the check-your-email state', async () => {
+  it('submits sign-up and shows the immediate-access state', async () => {
     const user = userEvent.setup();
     renderWithProviders(
       <Routes>
@@ -22,6 +22,7 @@ describe('SignupRoute', () => {
 
     expect(await screen.findByTestId('signup-success')).toBeInTheDocument();
     expect(screen.getByText('newuser@example.com')).toBeInTheDocument();
+    expect(screen.getByText(/without email verification/i)).toBeInTheDocument();
   });
 
   it('shows an error when the password fails the policy', async () => {

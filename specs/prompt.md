@@ -68,7 +68,13 @@ Let users set thresholds on a ticker (price >, price <, % change).
 - backend app server ip (this should be configurable in the deployment)
 - backend database server ip (this should be configurable in the deployment)
 
-# 009-
+# 009-social-login-dev-auth
+- social identity login for dev auth profile
+- for non-production profile, auto verify email address (skip email verification flow)
+- allow creation of demo account and auto-login using demo user (up to 3 demo users)
+- enable vercel analytics and speed-insights
+
+# 0??-stock-analysis
 - On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
 - On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)
     - General Info

@@ -16,6 +16,11 @@ import java.util.Locale;
 @Entity
 @Table(name = "app_user")
 public class AppUser extends PanacheEntityBase {
+  public enum AccountKind {
+    STANDARD,
+    DEMO
+  }
+
   public enum Status {
     UNVERIFIED,
     ACTIVE,
@@ -39,6 +44,22 @@ public class AppUser extends PanacheEntityBase {
   /** User-chosen reporting currency for combined totals/P&L (FR-031). */
   @Column(name = "base_currency", nullable = false, length = 3)
   public String baseCurrency = "USD";
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "account_kind", nullable = false, length = 16)
+  public AccountKind accountKind = AccountKind.STANDARD;
+
+  @Column(name = "display_name", length = 120)
+  public String displayName;
+
+  @Column(name = "demo_slot")
+  public Byte demoSlot;
+
+  @Column(name = "demo_last_activated_at")
+  public LocalDateTime demoLastActivatedAt;
+
+  @Column(name = "demo_seed_profile", length = 32)
+  public String demoSeedProfile;
 
   @Column(name = "created_at", nullable = false)
   public LocalDateTime createdAt;

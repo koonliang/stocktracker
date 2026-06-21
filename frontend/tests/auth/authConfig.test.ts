@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { decodeAuthState, encodeAuthState, hostedLogoutUrl } from '@/auth/authConfig';
+import {
+  decodeAuthState,
+  encodeAuthState,
+  encodeProviderState,
+  hostedLogoutUrl,
+} from '@/auth/authConfig';
 
 describe('authConfig', () => {
   it('builds the Cognito hosted logout URL', () => {
@@ -19,6 +24,11 @@ describe('authConfig', () => {
   it('round-trips safe Cognito state return paths', () => {
     const state = encodeAuthState('/watchlists?tab=active#top');
     expect(decodeAuthState(state)).toEqual({ from: '/watchlists?tab=active#top' });
+  });
+
+  it('round-trips provider state for non-production social auth', () => {
+    const state = encodeProviderState('/watchlists', 'google');
+    expect(decodeAuthState(state)).toEqual({ from: '/watchlists', provider: 'google' });
   });
 
   it('falls back when Cognito state contains an unsafe return path', () => {

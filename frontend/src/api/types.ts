@@ -212,6 +212,32 @@ export type LoginResponse = {
   user: AuthUser;
 };
 
+export type SocialExchangeRequest = {
+  code: string;
+  redirectUri: string;
+};
+
+export type DemoUserListItem = {
+  slot: number;
+  label: string;
+  email: string;
+};
+
+export type DemoUserCatalog = {
+  users: DemoUserListItem[];
+  maxUsers: number;
+  canCreate: boolean;
+};
+
+export type DemoUserSession = {
+  token: string;
+  user: AuthUser;
+  demoUser: {
+    slot: number;
+    label: string;
+  };
+};
+
 export type StatusResponse = {
   status: string;
 };
