@@ -134,7 +134,10 @@ export function PerformanceRoute() {
               <CardHeader eyebrow={data.window} title="Cumulative return" />
               <div className="h-72" data-testid="return-chart">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.returnSeries} margin={{ top: 10, right: 0, left: -5, bottom: 0 }}>
+                  <LineChart
+                    data={data.returnSeries}
+                    margin={{ top: 10, right: 0, left: -5, bottom: 0 }}
+                  >
                     <XAxis
                       dataKey="date"
                       tickFormatter={formatDateISO}
