@@ -43,6 +43,12 @@ public class InstrumentRepository implements PanacheRepository<Instrument> {
         "instrumentSymbol = ?1 order by tradeDate", symbol.toUpperCase());
   }
 
+  public Optional<InstrumentPriceBar> findPriceBar(String symbol, java.time.LocalDate tradeDate) {
+    return InstrumentPriceBar.find(
+            "instrumentSymbol = ?1 and tradeDate = ?2", symbol.toUpperCase(), tradeDate)
+        .firstResultOptional();
+  }
+
   public List<InstrumentPriceBar> listPriceBars(Collection<String> symbols) {
     if (symbols.isEmpty()) {
       return List.of();

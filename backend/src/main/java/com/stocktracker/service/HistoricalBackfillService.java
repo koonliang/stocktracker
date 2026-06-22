@@ -29,6 +29,12 @@ public class HistoricalBackfillService {
     return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
   }
 
+  @Transactional
+  public int rewriteMax(String symbol) {
+    InstrumentPriceBar.delete("instrumentSymbol", symbol.toUpperCase());
+    return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
+  }
+
   private int insertBars(
       String symbol,
       java.util.List<com.stocktracker.service.provider.MarketDataProvider.ProviderDailyBar>

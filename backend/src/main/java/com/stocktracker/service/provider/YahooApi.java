@@ -27,6 +27,14 @@ public interface YahooApi {
       @QueryParam("range") String range);
 
   @GET
+  @Path("/v8/finance/chart/{symbol}")
+  JsonNode chartPeriod(
+      @PathParam("symbol") String symbol,
+      @QueryParam("interval") String interval,
+      @QueryParam("period1") long period1,
+      @QueryParam("period2") long period2);
+
+  @GET
   @Path("/v1/finance/search")
   JsonNode search(@QueryParam("q") String query);
 }

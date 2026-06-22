@@ -68,6 +68,54 @@ public class StubMarketDataProvider implements MarketDataProvider {
     return dailyHistory(symbol, LocalDate.now(clock).minusYears(10), LocalDate.now(clock));
   }
 
+  @Override
+  public ProviderSnapshot latestSnapshot(String symbol) {
+    var bars = instruments.listPriceBars(symbol);
+    if (!bars.isEmpty()) {
+      var latestBar = bars.get(bars.size() - 1);
+      var week52Start = latestBar.tradeDate.minusYears(1);
+      var trailingYear =
+          bars.stream().filter(bar -> !bar.tradeDate.isBefore(week52Start)).toList();
+      return new ProviderSnapshot(
+          symbol.toUpperCase(),
+          latestBar.openPrice,
+          latestBar.highPrice,
+          latestBar.lowPrice,
+          bars.size() > 1 ? bars.get(bars.size() - 2).closePrice : latestBar.closePrice,
+          latestBar.volume,
+          trailingYear.stream()
+              .map(bar -> bar.highPrice)
+              .max(java.util.Comparator.naturalOrder())
+              .orElse(latestBar.highPrice),
+          trailingYear.stream()
+              .map(bar -> bar.lowPrice)
+              .min(java.util.Comparator.naturalOrder())
+              .orElse(latestBar.lowPrice),
+          0L,
+          null,
+          latestBar.tradeDate);
+    }
+
+    var fixture = fixtures().get(symbol.toUpperCase());
+    if (fixture == null) {
+      return null;
+    }
+    var today = LocalDate.now(clock);
+    var close = syntheticClose(symbol, fixture.price(), today);
+    return new ProviderSnapshot(
+        symbol.toUpperCase(),
+        fixture.previousClose(),
+        close,
+        close,
+        fixture.previousClose(),
+        0L,
+        close,
+        close,
+        0L,
+        null,
+        today);
+  }
+
   private List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from, LocalDate today) {
     var fixture = fixtures().get(symbol.toUpperCase());
     if (fixture != null) {

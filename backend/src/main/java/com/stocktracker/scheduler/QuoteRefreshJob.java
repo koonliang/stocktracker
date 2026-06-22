@@ -28,7 +28,7 @@ public class QuoteRefreshJob {
     if (symbols.isEmpty()) {
       return;
     }
-    LOG.infof("Refreshing %d tracked symbols", symbols.size());
+    LOG.debugf("Refreshing %d tracked symbols", symbols.size());
     quoteCacheService.refreshSymbols(symbols);
   }
 

@@ -1,6 +1,7 @@
 package com.stocktracker.api;
 
 import com.stocktracker.scheduler.FxRefreshJob;
+import com.stocktracker.scheduler.PriceHistoryRefreshJob;
 import com.stocktracker.scheduler.QuoteRefreshJob;
 import com.stocktracker.scheduler.TokenCleanupJob;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -20,6 +21,7 @@ public class InternalJobsResource {
   private static final String TOKEN_HEADER = "x-stocktracker-scheduler-token";
 
   @Inject QuoteRefreshJob quoteRefreshJob;
+  @Inject PriceHistoryRefreshJob priceHistoryRefreshJob;
   @Inject TokenCleanupJob tokenCleanupJob;
   @Inject FxRefreshJob fxRefreshJob;
 
@@ -39,6 +41,14 @@ public class InternalJobsResource {
   public Response tokenCleanup(@HeaderParam(TOKEN_HEADER) String token) {
     requireSchedulerToken(token);
     tokenCleanupJob.purge();
+    return Response.accepted().build();
+  }
+
+  @POST
+  @Path("/price-history-refresh")
+  public Response priceHistoryRefresh(@HeaderParam(TOKEN_HEADER) String token) {
+    requireSchedulerToken(token);
+    priceHistoryRefreshJob.refresh();
     return Response.accepted().build();
   }
 

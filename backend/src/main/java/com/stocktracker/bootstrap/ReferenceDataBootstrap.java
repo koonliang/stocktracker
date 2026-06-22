@@ -7,6 +7,7 @@ import com.stocktracker.domain.Instrument;
 import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.InstrumentStat;
 import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.service.provider.ProviderConfig;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -26,6 +27,7 @@ public class ReferenceDataBootstrap {
   @Inject InstrumentRepository instrumentRepository;
   @Inject ObjectMapper objectMapper;
   @Inject EntityManager entityManager;
+  @Inject ProviderConfig providerConfig;
 
   @Inject
   @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
@@ -51,6 +53,10 @@ public class ReferenceDataBootstrap {
         instrument.exchange = row.get("exchange").toString();
         instrument.active = true;
         instrumentRepository.persist(instrument);
+      }
+
+      if (providerConfig.isLiveMarketDataProvider()) {
+        return;
       }
 
       JsonNode prices = objectMapper.readTree(pricesStream);

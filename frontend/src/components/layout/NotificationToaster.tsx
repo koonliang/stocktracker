@@ -49,7 +49,7 @@ export function NotificationToaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed right-4 top-20 z-[80] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-2">
+    <div className="pointer-events-none fixed left-1/2 top-20 z-[80] flex w-[min(360px,calc(100vw-2rem))] -translate-x-1/2 flex-col gap-2">
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={() => dismissToast(toast.id)} />
       ))}

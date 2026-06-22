@@ -17,8 +17,8 @@
 
 **Purpose**: Establish shared feedback utilities and test support used across the feature
 
-- [ ] T001 Create shared action-feedback descriptors and toast copy helpers in `frontend/src/lib/actionFeedback.ts`
-- [ ] T002 [P] Create reusable toast assertion helpers for frontend tests in `frontend/tests/support/actionFeedback.ts`
+- [X] T001 Create shared action-feedback descriptors and toast copy helpers in `frontend/src/lib/actionFeedback.ts`
+- [X] T002 [P] Create reusable toast assertion helpers for frontend tests in `frontend/tests/support/actionFeedback.ts`
 
 ---
 
@@ -28,8 +28,8 @@
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete
 
-- [ ] T003 Refactor shared toast dispatch helpers in `frontend/src/stores/toastStore.ts` to support consistent CRUD/import/export action feedback
-- [ ] T004 [P] Normalize API error-to-feedback message mapping in `frontend/src/api/client.ts` and `frontend/src/stores/portfolioStore.ts`
+- [X] T003 Refactor shared toast dispatch helpers in `frontend/src/stores/toastStore.ts` to support consistent CRUD/import/export action feedback
+- [X] T004 [P] Normalize API error-to-feedback message mapping in `frontend/src/api/client.ts` and `frontend/src/stores/portfolioStore.ts`
 
 **Checkpoint**: Shared action-feedback infrastructure is ready for story implementation
 
@@ -43,17 +43,17 @@
 
 ### Tests for User Story 1 (REQUIRED) ⚠️
 
-- [ ] T005 [P] [US1] Extend transaction CRUD toast coverage in `frontend/tests/stores/portfolioStore.test.ts`
-- [ ] T006 [P] [US1] Add watchlist create/rename/delete and ticker add/remove toast coverage in `frontend/tests/stores/watchlistStore.test.ts`, `frontend/tests/routes/WatchlistsRoute.test.tsx`, and `frontend/tests/routes/WatchlistDetailRoute.test.tsx`
-- [ ] T007 [P] [US1] Add alert CRUD toast coverage in `frontend/tests/routes/AlertsRoute.test.tsx`
-- [ ] T008 [P] [US1] Add shared action-feedback rendering coverage in `frontend/tests/components/layout/NotificationToaster.test.tsx`
+- [X] T005 [P] [US1] Extend transaction CRUD toast coverage in `frontend/tests/stores/portfolioStore.test.ts`
+- [X] T006 [P] [US1] Add watchlist create/rename/delete and ticker add/remove toast coverage in `frontend/tests/stores/watchlistStore.test.ts`, `frontend/tests/routes/WatchlistsRoute.test.tsx`, and `frontend/tests/routes/WatchlistDetailRoute.test.tsx`
+- [X] T007 [P] [US1] Add alert CRUD toast coverage in `frontend/tests/routes/AlertsRoute.test.tsx`
+- [X] T008 [P] [US1] Add shared action-feedback rendering coverage in `frontend/tests/components/layout/NotificationToaster.test.tsx`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Wire transaction create/delete success and failure toasts in `frontend/src/stores/portfolioStore.ts` and `frontend/src/routes/TransactionsRoute.tsx`
-- [ ] T010 [US1] Wire watchlist create/rename/delete success and failure toasts in `frontend/src/stores/watchlistStore.ts`, `frontend/src/features/watchlist/NewWatchlistDialog.tsx`, and `frontend/src/features/watchlist/WatchlistHeader.tsx`
-- [ ] T011 [US1] Wire watchlist ticker add/remove success and failure toasts in `frontend/src/stores/watchlistStore.ts`, `frontend/src/routes/WatchlistDetailRoute.tsx`, and `frontend/src/features/watchlist/WatchlistRow.tsx`
-- [ ] T012 [US1] Add alert update UI and wire alert create/update/delete success and failure toasts in `frontend/src/routes/AlertsRoute.tsx` and `frontend/src/api/alertsApi.ts`
+- [X] T009 [US1] Wire transaction create/delete success and failure toasts in `frontend/src/stores/portfolioStore.ts` and `frontend/src/routes/TransactionsRoute.tsx`
+- [X] T010 [US1] Wire watchlist create/rename/delete success and failure toasts in `frontend/src/stores/watchlistStore.ts`, `frontend/src/features/watchlist/NewWatchlistDialog.tsx`, and `frontend/src/features/watchlist/WatchlistHeader.tsx`
+- [X] T011 [US1] Wire watchlist ticker add/remove success and failure toasts in `frontend/src/stores/watchlistStore.ts`, `frontend/src/routes/WatchlistDetailRoute.tsx`, and `frontend/src/features/watchlist/WatchlistRow.tsx`
+- [X] T012 [US1] Add alert update UI and wire alert create/update/delete success and failure toasts in `frontend/src/routes/AlertsRoute.tsx` and `frontend/src/api/alertsApi.ts`
 
 **Checkpoint**: User Story 1 is fully functional and independently testable
 
@@ -67,13 +67,13 @@
 
 ### Tests for User Story 2 (REQUIRED) ⚠️
 
-- [ ] T013 [P] [US2] Extend import/export toast behavior coverage in `frontend/tests/stores/portfolioStore.test.ts` and `frontend/tests/routes/TransactionsRoute.test.tsx`
-- [ ] T014 [P] [US2] Add import/export action-feedback coverage in `frontend/tests/features/transactions/ImportPreview.test.tsx` and `frontend/tests/features/transactions/ExportButton.test.tsx`
+- [X] T013 [P] [US2] Extend import/export toast behavior coverage in `frontend/tests/stores/portfolioStore.test.ts` and `frontend/tests/routes/TransactionsRoute.test.tsx`
+- [X] T014 [P] [US2] Add import/export action-feedback coverage in `frontend/tests/features/transactions/ImportPreview.test.tsx` and `frontend/tests/features/transactions/ExportButton.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Emit import commit success, partial-result, and failure toasts in `frontend/src/stores/portfolioStore.ts` and `frontend/src/features/transactions/ImportPreview.tsx`
-- [ ] T016 [US2] Emit export success and failure toasts in `frontend/src/features/transactions/ExportButton.tsx` and `frontend/src/api/transactionsApi.ts`
+- [X] T015 [US2] Emit import commit success, partial-result, and failure toasts in `frontend/src/stores/portfolioStore.ts` and `frontend/src/features/transactions/ImportPreview.tsx`
+- [X] T016 [US2] Emit export success and failure toasts in `frontend/src/features/transactions/ExportButton.tsx` and `frontend/src/api/transactionsApi.ts`
 
 **Checkpoint**: User Stories 1 and 2 both work independently, with import/export feedback now covered
 
@@ -87,14 +87,14 @@
 
 ### Tests for User Story 3 (REQUIRED) ⚠️
 
-- [ ] T017 [P] [US3] Add seeded live-provider bootstrap coverage in `backend/src/test/java/com/stocktracker/service/DemoUserServiceTest.java` and `backend/src/test/java/com/stocktracker/api/DashboardResourceTest.java`
-- [ ] T018 [P] [US3] Add stub-mode and live-fallback coverage for seeded quote refresh in `backend/src/test/java/com/stocktracker/service/QuoteRefreshJobTest.java` and `backend/src/test/java/com/stocktracker/api/DemoUserAuthResourceTest.java`
+- [X] T017 [P] [US3] Add seeded live-provider bootstrap coverage in `backend/src/test/java/com/stocktracker/service/DemoUserServiceTest.java` and `backend/src/test/java/com/stocktracker/api/DashboardResourceTest.java`
+- [X] T018 [P] [US3] Add stub-mode and live-fallback coverage for seeded quote refresh in `backend/src/test/java/com/stocktracker/service/QuoteRefreshJobTest.java` and `backend/src/test/java/com/stocktracker/api/DemoUserAuthResourceTest.java`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Collect seeded symbols and trigger provider-aware quote refresh during bootstrap in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java`
-- [ ] T020 [US3] Reuse existing market-data and quote-cache services for seeded live refresh in `backend/src/main/java/com/stocktracker/service/MarketDataService.java` and `backend/src/main/java/com/stocktracker/service/QuoteCacheService.java`
-- [ ] T021 [US3] Preserve deterministic stub-mode behavior and graceful live fallback in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and `backend/src/main/java/com/stocktracker/service/provider/ProviderConfig.java`
+- [X] T019 [US3] Collect seeded symbols and trigger provider-aware quote refresh during bootstrap in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java`
+- [X] T020 [US3] Reuse existing market-data and quote-cache services for seeded live refresh in `backend/src/main/java/com/stocktracker/service/MarketDataService.java` and `backend/src/main/java/com/stocktracker/service/QuoteCacheService.java`
+- [X] T021 [US3] Preserve deterministic stub-mode behavior and graceful live fallback in `backend/src/main/java/com/stocktracker/bootstrap/DevDataBootstrap.java` and `backend/src/main/java/com/stocktracker/service/provider/ProviderConfig.java`
 
 **Checkpoint**: All three user stories are independently functional
 

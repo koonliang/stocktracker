@@ -16,6 +16,14 @@ public interface MarketDataProvider {
   /** Latest quote per symbol, batched. Missing/unknown symbols are omitted. */
   List<ProviderQuote> latestQuotes(Collection<String> symbols);
 
+  /**
+   * Latest analysis snapshot for a symbol. Providers may omit unsupported fields by returning
+   * {@code null} values or {@code null} overall.
+   */
+  default ProviderSnapshot latestSnapshot(String symbol) {
+    return null;
+  }
+
   /** Daily closing prices for a symbol from {@code from} (inclusive) to today. */
   List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from);
 
@@ -30,4 +38,17 @@ public interface MarketDataProvider {
   record ProviderDailyBar(String symbol, LocalDate date, BigDecimal close) {}
 
   record ProviderSymbol(String symbol, String name, String exchange, String currency) {}
+
+  record ProviderSnapshot(
+      String symbol,
+      BigDecimal openPrice,
+      BigDecimal highPrice,
+      BigDecimal lowPrice,
+      BigDecimal previousClose,
+      Long volume,
+      BigDecimal week52High,
+      BigDecimal week52Low,
+      Long marketCap,
+      BigDecimal peRatio,
+      LocalDate asOfDate) {}
 }

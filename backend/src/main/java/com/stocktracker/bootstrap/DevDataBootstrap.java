@@ -2,13 +2,15 @@ package com.stocktracker.bootstrap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.stocktracker.config.NonProdAuthConfig;
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.AuthCredential;
 import com.stocktracker.domain.PortfolioTransaction;
-import com.stocktracker.config.NonProdAuthConfig;
 import com.stocktracker.persistence.AppUserRepository;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
+import com.stocktracker.service.MarketDataService;
+import com.stocktracker.service.provider.ProviderConfig;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.annotation.Priority;
@@ -19,8 +21,10 @@ import jakarta.transaction.Transactional;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -32,6 +36,8 @@ public class DevDataBootstrap {
   @Inject AppUserRepository appUserRepository;
   @Inject ObjectMapper objectMapper;
   @Inject NonProdAuthConfig nonProdAuthConfig;
+  @Inject MarketDataService marketDataService;
+  @Inject ProviderConfig providerConfig;
 
   /** Documented default dev password for the seed accounts (policy-compliant; dev-mode only). */
   private static final String SEED_USER_PASSWORD = "DevPass123!";
@@ -53,11 +59,13 @@ public class DevDataBootstrap {
     // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
     ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
     if (!nonProdAuthConfig.demoUsersEnabled()) {
+      bootstrapSeededMarketData(loadSeedSymbols(DEFAULT_DEMO_SEED_PROFILE));
       return;
     }
     for (var demoUser : appUserRepository.listDemoUsers()) {
       refreshDemoUserPortfolio(demoUser);
     }
+    bootstrapSeededMarketData(loadAllSeedSymbols());
   }
 
   @Transactional
@@ -87,7 +95,10 @@ public class DevDataBootstrap {
   }
 
   private void ensureSeedPortfolio(AppUser user) throws Exception {
-    if (user == null || user.id == null || PortfolioTransaction.count("userId", user.id) > 0) {
+    if (user == null || user.id == null) {
+      return;
+    }
+    if (PortfolioTransaction.count("userId", user.id) > 0) {
       return;
     }
     insertTransactions(user.id, DEFAULT_DEMO_SEED_PROFILE);
@@ -135,13 +146,31 @@ public class DevDataBootstrap {
     }
   }
 
-  private void insertTransactions(Long userId, String profile) throws Exception {
+  private Set<String> loadSeedSymbols(String profile) throws Exception {
+    var symbols = new LinkedHashSet<String>();
+    for (var row : loadDemoTransactions(profile)) {
+      symbols.add(row.get("ticker").toString().toUpperCase());
+    }
+    return symbols;
+  }
+
+  private Set<String> loadAllSeedSymbols() throws Exception {
+    var symbols = new LinkedHashSet<>(loadSeedSymbols(DEFAULT_DEMO_SEED_PROFILE));
+    for (var demoUser : appUserRepository.listDemoUsers()) {
+      symbols.addAll(loadSeedSymbols(demoUser.demoSeedProfile));
+    }
+    return symbols;
+  }
+
+  private Set<String> insertTransactions(Long userId, String profile) throws Exception {
+    var symbols = new LinkedHashSet<String>();
     for (var row : loadDemoTransactions(profile)) {
       var symbol = row.get("ticker").toString().toUpperCase();
       if (!instrumentRepository.existsSymbol(symbol)) {
         throw new IllegalStateException(
             "Missing instrument seed data for demo transaction symbol: " + symbol);
       }
+      symbols.add(symbol);
       var transaction = new PortfolioTransaction();
       transaction.userId = userId;
       transaction.tradeDate = LocalDate.parse(row.get("date").toString());
@@ -153,6 +182,13 @@ public class DevDataBootstrap {
       transaction.source = "MANUAL";
       transactionRepository.persist(transaction);
     }
+    return symbols;
   }
 
+  private void bootstrapSeededMarketData(Set<String> symbols) {
+    if (!providerConfig.isLiveMarketDataProvider() || symbols.isEmpty()) {
+      return;
+    }
+    marketDataService.bootstrapTrackedSymbolsAndAnalysis(symbols);
+  }
 }

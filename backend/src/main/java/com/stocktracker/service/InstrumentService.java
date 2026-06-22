@@ -75,7 +75,8 @@ public class InstrumentService {
 
   private InstrumentAnalysisResponse.StatsView statsView(
       InstrumentStat stats, QuoteResponse.QuoteView quote, List<InstrumentPriceBar> bars) {
-    if (stats != null) {
+    var latestBar = bars.isEmpty() ? null : bars.get(bars.size() - 1);
+    if (stats != null && (latestBar == null || !stats.asOfDate.isBefore(latestBar.tradeDate))) {
       return new InstrumentAnalysisResponse.StatsView(
           dbl(stats.openPrice),
           dbl(stats.highPrice),
@@ -91,7 +92,6 @@ public class InstrumentService {
       return null;
     }
 
-    var latestBar = bars.isEmpty() ? null : bars.get(bars.size() - 1);
     var previousBar = bars.size() < 2 ? null : bars.get(bars.size() - 2);
     var previousClose =
         quote != null && quote.previousClose() != null
