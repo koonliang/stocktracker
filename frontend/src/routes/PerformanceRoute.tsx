@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -142,10 +134,22 @@ export function PerformanceRoute() {
               <CardHeader eyebrow={data.window} title="Cumulative return" />
               <div className="h-72" data-testid="return-chart">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.returnSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickFormatter={formatDateISO} minTickGap={32} />
-                    <YAxis tickFormatter={(v) => `${formatNumber(v, 1)}%`} width={56} />
+                  <LineChart data={data.returnSeries} margin={{ top: 10, right: 0, left: -5, bottom: 0 }}>
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDateISO}
+                      minTickGap={32}
+                      tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
+                      tickLine={true}
+                      axisLine={true}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `${formatNumber(v, 1)}%`}
+                      width={44}
+                      tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
+                      tickLine={true}
+                      axisLine={true}
+                    />
                     <Tooltip
                       formatter={(v) => [`${formatNumber(Number(v), 2)}%`, 'Return']}
                       labelFormatter={(label) => formatDateISO(String(label))}

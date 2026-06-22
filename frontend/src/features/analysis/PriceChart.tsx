@@ -100,7 +100,7 @@ export function PriceChart({ bars, range, onRangeChange }: Props) {
       >
         {data.length > 0 ? (
           <ResponsiveContainer>
-            <AreaChart data={data} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 10, right: 0, left: -5, bottom: 0 }}>
               <defs>
                 <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={stroke} stopOpacity={0.25} />
@@ -110,16 +110,16 @@ export function PriceChart({ bars, range, onRangeChange }: Props) {
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
-                tickLine={false}
-                axisLine={false}
+                tickLine={true}
+                axisLine={true}
                 minTickGap={32}
               />
               <YAxis
                 domain={yDomain}
                 tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
-                tickLine={false}
-                axisLine={false}
-                width={56}
+                tickLine={true}
+                axisLine={true}
+                width={44}
                 tickFormatter={(v: number) => formatCurrency(v, { cents: false })}
               />
               <Tooltip content={<ChartTooltip />} />

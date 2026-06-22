@@ -26,7 +26,7 @@ class PerformanceTest extends BaseTest {
     new LiveQuotesPage(driver, waits)
         .waitLoaded()
         .search("DBS", "D05.SI")
-        .addFirstResult()
+        .addResult("D05.SI")
         .selectBaseCurrency("SGD");
     var dashboard = new DashboardPage(driver, waits).waitLoaded().waitForSummaryTextContaining("SGD");
 
