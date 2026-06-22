@@ -28,6 +28,8 @@ DB_PASSWORD=secret
 PUBLIC_BASE_URL=https://example.com
 DEPLOY_USER=tester
 SERVICE_NAME=stocktracker-backend-sit
+STOCKTRACKER_MARKETDATA_PROVIDER=yahoo
+STOCKTRACKER_FX_PROVIDER=frankfurter
 EOF
 
 success_output="$(
@@ -38,6 +40,7 @@ success_output="$(
     --skip-network-checks
 )"
 assert_contains "$success_output" "Effective config: profile=sit app_host=127.0.0.2"
+assert_contains "$success_output" "marketdata_provider=yahoo fx_provider=frankfurter"
 assert_contains "$success_output" "Validation complete"
 
 set +e
