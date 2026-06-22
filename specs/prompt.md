@@ -74,6 +74,12 @@ Let users set thresholds on a ticker (price >, price <, % change).
 - allow creation of demo account and auto-login using demo user (up to 3 demo users)
 - enable vercel analytics and speed-insights
 
+# 010-uiux-mobile-responsive
+- review each page for UI/UX consistency
+- every page must be mobile responsive and no horizontal scrolling
+- bottom menu navigation for mobile, suggest icon only or icon with text (text must not overlap each other)
+- each page must be beautifully rendered and not looked like it's vibe coded, use frontend design skill
+
 # 0??-stock-analysis
 - On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
 - On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)
