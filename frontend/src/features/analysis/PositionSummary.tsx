@@ -43,8 +43,8 @@ function Cell({
     <div className="flex flex-col gap-1 bg-surface p-4">
       <dt className="eyebrow">{label}</dt>
       <dd className={cn('font-mono tabular text-body', valueClassName ?? 'text-text')}>
-        {value}
-        {sub && <span className="ml-2 text-small opacity-80">{sub}</span>}
+        <span className="block">{value}</span>
+        {sub && <span className="block text-small opacity-80">{sub}</span>}
       </dd>
     </div>
   );

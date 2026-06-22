@@ -1,16 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { BottomTabBar } from '@/components/layout/BottomTabBar';
 import { DashboardRoute } from '@/routes/DashboardRoute';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
 import { WatchlistDetailRoute } from '@/routes/WatchlistDetailRoute';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
+import { AlertsRoute } from '@/routes/AlertsRoute';
+import { PerformanceRoute } from '@/routes/PerformanceRoute';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 import { loadTickers } from '@/lib/seed';
 
-const VIEWPORTS = [375, 768, 1280, 1920] as const;
+const VIEWPORTS = [320, 375, 768, 1280, 1920] as const;
 
 function setViewport(width: number) {
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
@@ -106,6 +109,34 @@ describe('responsive viewports (SC-007)', () => {
         );
         assertNoFixedWidthOverflow(container, width);
       });
+
+      it('alerts route renders without overflow', () => {
+        const { container } = renderRoute('/alerts', <AlertsRoute />, '/alerts');
+        assertNoFixedWidthOverflow(container, width);
+      });
+
+      it('performance route renders without overflow', () => {
+        const { container } = renderRoute('/performance', <PerformanceRoute />, '/performance');
+        assertNoFixedWidthOverflow(container, width);
+      });
     });
   }
+});
+
+describe('BottomTabBar at 320px (SC-002)', () => {
+  beforeEach(() => setViewport(320));
+  afterEach(() => setViewport(1024));
+
+  it('renders all 5 nav labels', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <BottomTabBar />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText('Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Watchlists')).toBeInTheDocument();
+    expect(screen.getByText('Trades')).toBeInTheDocument();
+    expect(screen.getByText('Returns')).toBeInTheDocument();
+    expect(screen.getByText('Alerts')).toBeInTheDocument();
+  });
 });

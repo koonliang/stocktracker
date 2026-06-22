@@ -1,13 +1,5 @@
 import { useEffect, useState } from 'react';
-import {
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-} from 'recharts';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -24,6 +16,7 @@ import {
   formatSignedCurrencyCode,
 } from '@/lib/format';
 import { rgbVar } from '@/lib/colors';
+import { cn } from '@/lib/cn';
 import type { ConversionMetadata } from '@/api/types';
 
 const windows: PerformanceWindow[] = ['1M', '3M', '6M', '1Y', 'YTD', 'ALL'];
@@ -108,6 +101,13 @@ export function PerformanceRoute() {
           <Card>
             <CardHeader eyebrow="Loading" title="Calculating performance" />
           </Card>
+        ) : data.contributions.length === 0 &&
+          data.closedLots.length === 0 &&
+          data.incomeEvents.length === 0 ? (
+          <EmptyState
+            title="No performance data yet"
+            description="Add transactions to see your portfolio returns."
+          />
         ) : (
           <>
             <div className="text-right text-xs uppercase tracking-wide text-text-subtle">
@@ -134,10 +134,25 @@ export function PerformanceRoute() {
               <CardHeader eyebrow={data.window} title="Cumulative return" />
               <div className="h-72" data-testid="return-chart">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={data.returnSeries}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" tickFormatter={formatDateISO} minTickGap={32} />
-                    <YAxis tickFormatter={(v) => `${formatNumber(v, 1)}%`} width={56} />
+                  <LineChart
+                    data={data.returnSeries}
+                    margin={{ top: 10, right: 0, left: -5, bottom: 0 }}
+                  >
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatDateISO}
+                      minTickGap={32}
+                      tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
+                      tickLine={true}
+                      axisLine={true}
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `${formatNumber(v, 1)}%`}
+                      width={44}
+                      tick={{ fontSize: 11, fill: 'var(--color-text-subtle)' }}
+                      tickLine={true}
+                      axisLine={true}
+                    />
                     <Tooltip
                       formatter={(v) => [`${formatNumber(Number(v), 2)}%`, 'Return']}
                       labelFormatter={(label) => formatDateISO(String(label))}
@@ -160,7 +175,23 @@ export function PerformanceRoute() {
               <div className="p-5 pb-0 sm:p-6 sm:pb-0">
                 <CardHeader eyebrow="Open positions" title="Contribution" />
               </div>
-              <div className="overflow-x-auto" data-testid="contribution-table">
+              {/* Mobile card list */}
+              <ul className="sm:hidden">
+                {data.contributions.map((row) => (
+                  <li
+                    key={row.symbol}
+                    className="flex items-center justify-between gap-3 border-t border-border px-5 py-3"
+                  >
+                    <span className="font-medium text-text">{row.symbol}</span>
+                    <div className="inline-flex flex-col items-end gap-1 font-mono tabular-nums">
+                      <span>{formatNumber(row.contributionPct, 2)}%</span>
+                      <FxStatus conversion={row.contributionConversion} />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              {/* Desktop table */}
+              <div className="hidden overflow-x-auto sm:block" data-testid="contribution-table">
                 <table className="min-w-full text-left text-body">
                   <tbody>
                     {data.contributions.map((row) => (
@@ -233,14 +264,51 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
       <div className="px-5 pt-5 sm:px-6">
         <div className="text-small uppercase text-text-subtle">Closed lots</div>
       </div>
-      <div className="overflow-x-auto" data-testid="realized-table">
+      {/* Mobile card list for closed lots */}
+      {data.closedLots.length === 0 ? (
+        <p className="px-5 py-4 text-body text-text-muted sm:hidden">
+          No closed lots in this period.
+        </p>
+      ) : (
+        <ul className="sm:hidden">
+          {data.closedLots.map((lot, index) => (
+            <li
+              key={`${lot.symbol}-${lot.closeDate}-${index}`}
+              className="flex items-start justify-between gap-3 border-b border-border px-5 py-3"
+            >
+              <div>
+                <div className="font-medium text-text">{lot.symbol}</div>
+                <div className="mt-0.5 text-small text-text-muted">
+                  {formatDateISO(lot.closeDate)} · {formatShares(lot.quantity)} ×{' '}
+                  {formatCurrencyCode(lot.proceedsNative, lot.currency)}
+                </div>
+              </div>
+              <div
+                className={cn(
+                  'flex-shrink-0 text-right font-mono tabular-nums',
+                  lot.realizedPnLBase > 0
+                    ? 'text-positive'
+                    : lot.realizedPnLBase < 0
+                      ? 'text-negative'
+                      : 'text-text',
+                )}
+              >
+                {formatSignedCurrencyCode(lot.realizedPnLBase, data.baseCurrency)}
+                <FxStatus conversion={lot.realizedPnlConversion} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* Desktop table for closed lots */}
+      <div className="hidden overflow-x-auto sm:block" data-testid="realized-table">
         <table className="min-w-full text-left text-body">
           <thead className="text-small uppercase text-text-subtle">
             <tr>
               <th className="px-5 py-3">Symbol</th>
               <th className="px-5 py-3">Closed</th>
-              <th className="px-5 py-3">Qty</th>
-              <th className="px-5 py-3">Proceeds</th>
+              <th className="hidden px-5 py-3 sm:table-cell">Qty</th>
+              <th className="hidden px-5 py-3 sm:table-cell">Proceeds</th>
               <th className="px-5 py-3">P&L</th>
             </tr>
           </thead>
@@ -259,8 +327,8 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
                 >
                   <td className="px-5 py-3 font-medium">{lot.symbol}</td>
                   <td className="px-5 py-3">{formatDateISO(lot.closeDate)}</td>
-                  <td className="px-5 py-3">{formatShares(lot.quantity)}</td>
-                  <td className="px-5 py-3">
+                  <td className="hidden px-5 py-3 sm:table-cell">{formatShares(lot.quantity)}</td>
+                  <td className="hidden px-5 py-3 sm:table-cell">
                     {formatCurrencyCode(lot.proceedsNative, lot.currency)}
                   </td>
                   <td className="px-5 py-3">
@@ -281,7 +349,34 @@ function RealizedDetails({ data }: { data: PerformanceResponse }) {
       <div className="px-5 pt-5 sm:px-6">
         <div className="text-small uppercase text-text-subtle">Income events</div>
       </div>
-      <div className="overflow-x-auto" data-testid="income-events-table">
+      {/* Mobile card list for income events */}
+      {incomeEvents.length === 0 ? (
+        <p className="px-5 py-4 text-body text-text-muted sm:hidden">
+          No income events in this period.
+        </p>
+      ) : (
+        <ul className="sm:hidden">
+          {incomeEvents.map((event, index) => (
+            <li
+              key={`${event.symbol}-${event.date}-${index}`}
+              className="flex items-start justify-between gap-3 border-b border-border px-5 py-3"
+            >
+              <div>
+                <div className="font-medium text-text">{event.symbol}</div>
+                <div className="mt-0.5 text-small text-text-muted">
+                  {formatDateISO(event.date)} · {formatIncomeType(event.type)}
+                </div>
+              </div>
+              <div className="flex-shrink-0 text-right font-mono tabular-nums">
+                <div>{formatSignedCurrencyCode(event.amountBase, data.baseCurrency)}</div>
+                <FxStatus conversion={event.amountConversion} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {/* Desktop table for income events */}
+      <div className="hidden overflow-x-auto sm:block" data-testid="income-events-table">
         <table className="min-w-full text-left text-body">
           <thead className="text-small uppercase text-text-subtle">
             <tr>

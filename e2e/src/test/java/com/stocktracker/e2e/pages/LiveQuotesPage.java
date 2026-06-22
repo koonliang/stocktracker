@@ -3,6 +3,7 @@ package com.stocktracker.e2e.pages;
 import com.stocktracker.e2e.support.Waits;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
 
 /** Dashboard live-data surfaces: last-updated indicator, symbol search/add, base-currency select. */
@@ -58,9 +59,18 @@ public class LiveQuotesPage {
     return this;
   }
 
-  /** Click the Add button on the first search result and wait until the results clear. */
-  public LiveQuotesPage addFirstResult() {
-    waits.untilClickable(SYMBOL_ADD).click();
+  /** Click the Add button on the result row containing {@code expectedSymbol}. */
+  public LiveQuotesPage addResult(String expectedSymbol) {
+    waits.untilTrue(
+        d ->
+            d.findElements(SYMBOL_RESULT).stream()
+                .anyMatch(result -> result.getText().contains(expectedSymbol)));
+    WebElement row =
+        driver.findElements(SYMBOL_RESULT).stream()
+            .filter(result -> result.getText().contains(expectedSymbol))
+            .findFirst()
+            .orElseThrow();
+    row.findElement(SYMBOL_ADD).click();
     waits.untilTrue(d -> d.findElements(SYMBOL_RESULT).isEmpty());
     return this;
   }

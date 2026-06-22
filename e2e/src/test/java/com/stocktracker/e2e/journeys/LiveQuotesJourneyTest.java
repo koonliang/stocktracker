@@ -29,6 +29,6 @@ class LiveQuotesJourneyTest extends BaseTest {
     LiveQuotesPage page = new LiveQuotesPage(driver, waits).waitLoaded();
 
     // Search a global (SGX .SI) symbol and add it to the tracked universe; it must add cleanly.
-    page.search("DBS", "D05.SI").addFirstResult();
+    page.search("DBS", "D05.SI").addResult("D05.SI");
   }
 }

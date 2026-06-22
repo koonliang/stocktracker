@@ -39,7 +39,7 @@ export function ImportDropzone({ onFile, loading = false }: Props) {
       </div>
       <div>
         <p className="font-medium text-text">Drop a CSV file to import</p>
-        <p className="mt-1 text-small text-text-muted">
+        <p className="mt-1 px-4 text-small leading-6 text-text-muted sm:px-0">
           Header: <code className="font-mono">date,ticker,type,quantity,price,fees</code>
         </p>
       </div>
