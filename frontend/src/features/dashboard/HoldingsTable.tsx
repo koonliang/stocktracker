@@ -137,6 +137,7 @@ function buildColumns(baseCurrency?: string): Column[] {
       align: 'right',
       sortable: true,
       mono: true,
+      hideClass: 'hidden sm:table-cell',
       render: (h) => (
         <div
           className={cn(
@@ -213,83 +214,128 @@ export function HoldingsTable({
   }
 
   return (
-    <Table data-testid="holdings-table">
-      <THead>
-        <TR className="hover:bg-transparent">
-          {columns.map((col) => (
-            <TH
-              key={col.key}
-              align={col.align}
-              scope="col"
-              className={col.hideClass}
-              aria-sort={
-                sortKey === col.key
-                  ? direction === 'asc'
-                    ? 'ascending'
-                    : 'descending'
-                  : col.sortable
-                    ? 'none'
-                    : undefined
-              }
-            >
-              {col.sortable ? (
-                <button
-                  type="button"
-                  onClick={() => toggleSort(col.key)}
-                  className={cn(
-                    'inline-flex items-center gap-1 transition-colors hover:text-text',
-                    col.align === 'right' && 'flex-row-reverse',
-                    sortKey === col.key ? 'text-text' : 'text-text-muted',
-                  )}
-                >
-                  <span>{col.label}</span>
-                  {sortKey === col.key ? (
-                    direction === 'asc' ? (
-                      <ArrowUp size={10} aria-hidden />
-                    ) : (
-                      <ArrowDown size={10} aria-hidden />
-                    )
-                  ) : (
-                    <ArrowUpDown size={10} aria-hidden className="opacity-40" />
-                  )}
-                </button>
-              ) : (
-                col.label
-              )}
-            </TH>
-          ))}
-        </TR>
-      </THead>
-      <TBody>
+    <>
+      {/* Mobile card list — shown below sm, no horizontal scroll */}
+      <ul className="sm:hidden">
         {sorted.map((h) => (
-          <TR
-            key={h.ticker}
-            onClick={() =>
-              navigate(`/analysis/${h.ticker}`, {
-                state: { backTo: '/', backLabel: 'Back to dashboard' },
-              })
-            }
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
+          <li key={h.ticker}>
+            <button
+              type="button"
+              onClick={() =>
                 navigate(`/analysis/${h.ticker}`, {
                   state: { backTo: '/', backLabel: 'Back to dashboard' },
-                });
+                })
               }
-            }}
-            tabIndex={0}
-            role="link"
-            aria-label={`Open analysis for ${h.ticker}`}
-            className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring"
-          >
-            {columns.map((col) => (
-              <TD key={col.key} align={col.align} mono={col.mono} className={col.hideClass}>
-                {col.render(h)}
-              </TD>
-            ))}
-          </TR>
+              aria-label={`Open analysis for ${h.ticker}`}
+              className="flex w-full items-center justify-between gap-3 border-b border-border px-4 py-3 text-left hover:bg-surface-alt/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-mono font-semibold leading-none text-text">{h.ticker}</div>
+                <div className="truncate text-small text-text-muted">{h.name}</div>
+              </div>
+              <div className="flex-shrink-0 text-right font-mono tabular-nums">
+                <div className="text-text">
+                  {formatConvertedValue(h.marketValue, baseCurrency, h.marketValueConversion, {
+                    cents: false,
+                  })}
+                </div>
+                <div
+                  className={cn(
+                    'text-small',
+                    h.unrealizedPnL > 0 && 'text-positive',
+                    h.unrealizedPnL < 0 && 'text-negative',
+                  )}
+                >
+                  {formatSignedCurrencyCode(h.unrealizedPnL, baseCurrency)}{' '}
+                  <span className="opacity-80">{formatSignedPercent(h.unrealizedPnLPct)}</span>
+                </div>
+              </div>
+            </button>
+          </li>
         ))}
-      </TBody>
-    </Table>
+      </ul>
+
+      {/* Desktop table — shown from sm upward */}
+      <div className="hidden sm:block">
+        <Table data-testid="holdings-table">
+          <THead>
+            <TR className="hover:bg-transparent">
+              {columns.map((col) => (
+                <TH
+                  key={col.key}
+                  align={col.align}
+                  scope="col"
+                  className={col.hideClass}
+                  aria-sort={
+                    sortKey === col.key
+                      ? direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : col.sortable
+                        ? 'none'
+                        : undefined
+                  }
+                >
+                  {col.sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className={cn(
+                        'inline-flex items-center gap-1 transition-colors hover:text-text',
+                        col.align === 'right' && 'flex-row-reverse',
+                        sortKey === col.key ? 'text-text' : 'text-text-muted',
+                      )}
+                    >
+                      <span>{col.label}</span>
+                      {sortKey === col.key ? (
+                        direction === 'asc' ? (
+                          <ArrowUp size={10} aria-hidden />
+                        ) : (
+                          <ArrowDown size={10} aria-hidden />
+                        )
+                      ) : (
+                        <ArrowUpDown size={10} aria-hidden className="opacity-40" />
+                      )}
+                    </button>
+                  ) : (
+                    col.label
+                  )}
+                </TH>
+              ))}
+            </TR>
+          </THead>
+          <TBody>
+            {sorted.map((h) => (
+              <TR
+                key={h.ticker}
+                onClick={() =>
+                  navigate(`/analysis/${h.ticker}`, {
+                    state: { backTo: '/', backLabel: 'Back to dashboard' },
+                  })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate(`/analysis/${h.ticker}`, {
+                      state: { backTo: '/', backLabel: 'Back to dashboard' },
+                    });
+                  }
+                }}
+                tabIndex={0}
+                role="link"
+                aria-label={`Open analysis for ${h.ticker}`}
+                className="cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring"
+              >
+                {columns.map((col) => (
+                  <TD key={col.key} align={col.align} mono={col.mono} className={col.hideClass}>
+                    {col.render(h)}
+                  </TD>
+                ))}
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      </div>
+    </>
   );
 }

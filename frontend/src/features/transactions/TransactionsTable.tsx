@@ -39,39 +39,13 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
 
   return (
     <>
-      <Table data-testid="transactions-table">
-        <THead>
-          <TR className="hover:bg-transparent">
-            <TH>
-              <button
-                type="button"
-                onClick={() => setDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
-                className="inline-flex items-center gap-1 text-text-muted hover:text-text"
-                aria-label={`Sort by date ${direction === 'asc' ? 'descending' : 'ascending'}`}
-              >
-                Date {direction === 'asc' ? '↑' : '↓'}
-              </button>
-            </TH>
-            <TH>Ticker</TH>
-            <TH>Type</TH>
-            <TH align="right">Qty</TH>
-            <TH align="right">Price</TH>
-            <TH align="right">Fees</TH>
-            <TH align="right">Amount</TH>
-            <TH>Currency</TH>
-            <TH align="right">
-              <span className="sr-only">Actions</span>
-            </TH>
-          </TR>
-        </THead>
-        <TBody>
-          {sorted.map((tx) => (
-            <TR key={tx.id}>
-              <TD mono>{formatDateISO(tx.date)}</TD>
-              <TD mono>
-                <span className="font-mono font-semibold text-text">{tx.ticker}</span>
-              </TD>
-              <TD>
+      {/* Mobile card list — shown below sm, no horizontal scroll */}
+      <ul className="sm:hidden">
+        {sorted.map((tx) => (
+          <li key={tx.id} className="flex items-start gap-3 border-b border-border px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-semibold text-text">{tx.ticker ?? '—'}</span>
                 <span
                   className={cn(
                     'inline-flex items-center rounded px-2 py-0.5 text-small font-medium uppercase',
@@ -82,34 +56,109 @@ export function TransactionsTable({ transactions, onDelete }: Props) {
                 >
                   {tx.type}
                 </span>
-              </TD>
-              <TD align="right" mono>
-                {tx.quantity ? formatShares(tx.quantity) : '—'}
-              </TD>
-              <TD align="right" mono>
-                {tx.price ? formatCurrency(tx.price) : '—'}
-              </TD>
-              <TD align="right" mono>
-                {formatCurrency(tx.fees)}
-              </TD>
-              <TD align="right" mono>
-                {formatCurrencyCode(displayAmount(tx), tx.currency)}
-              </TD>
-              <TD mono>{tx.currency ?? '—'}</TD>
-              <TD align="right">
+              </div>
+              <div className="mt-0.5 whitespace-nowrap text-small text-text-muted">
+                {formatDateISO(tx.date)}
+                {tx.quantity ? ` · ${formatShares(tx.quantity)} @ ${formatCurrency(tx.price)}` : ''}
+              </div>
+            </div>
+            <div className="flex-shrink-0 text-right font-mono tabular-nums text-text">
+              {formatCurrencyCode(displayAmount(tx), tx.currency)}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPendingDelete(tx)}
+              aria-label={`Delete transaction ${tx.id}`}
+              className="rounded p-1.5 text-text-muted hover:bg-negative/10 hover:text-negative focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
+            >
+              <Trash2 size={14} aria-hidden />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      {/* Desktop table — shown from sm upward */}
+      <div className="hidden sm:block">
+        <Table data-testid="transactions-table">
+          <THead>
+            <TR className="hover:bg-transparent">
+              <TH>
                 <button
                   type="button"
-                  onClick={() => setPendingDelete(tx)}
-                  aria-label={`Delete transaction ${tx.id}`}
-                  className="rounded p-1.5 text-text-muted hover:bg-negative/10 hover:text-negative focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
+                  onClick={() => setDirection((d) => (d === 'asc' ? 'desc' : 'asc'))}
+                  className="inline-flex items-center gap-1 text-text-muted hover:text-text"
+                  aria-label={`Sort by date ${direction === 'asc' ? 'descending' : 'ascending'}`}
                 >
-                  <Trash2 size={14} aria-hidden />
+                  Date {direction === 'asc' ? '↑' : '↓'}
                 </button>
-              </TD>
+              </TH>
+              <TH>Ticker</TH>
+              <TH>Type</TH>
+              <TH align="right" className="hidden sm:table-cell">
+                Qty
+              </TH>
+              <TH align="right" className="hidden sm:table-cell">
+                Price
+              </TH>
+              <TH align="right" className="hidden md:table-cell">
+                Fees
+              </TH>
+              <TH align="right">Amount</TH>
+              <TH className="hidden sm:table-cell">Currency</TH>
+              <TH align="right">
+                <span className="sr-only">Actions</span>
+              </TH>
             </TR>
-          ))}
-        </TBody>
-      </Table>
+          </THead>
+          <TBody>
+            {sorted.map((tx) => (
+              <TR key={tx.id}>
+                <TD mono>{formatDateISO(tx.date)}</TD>
+                <TD mono>
+                  <span className="font-mono font-semibold text-text">{tx.ticker}</span>
+                </TD>
+                <TD>
+                  <span
+                    className={cn(
+                      'inline-flex items-center rounded px-2 py-0.5 text-small font-medium uppercase',
+                      tx.type === 'buy' || tx.type === 'deposit' || tx.type === 'dividend'
+                        ? 'bg-positive/10 text-positive'
+                        : 'bg-negative/10 text-negative',
+                    )}
+                  >
+                    {tx.type}
+                  </span>
+                </TD>
+                <TD align="right" mono className="hidden sm:table-cell">
+                  {tx.quantity ? formatShares(tx.quantity) : '—'}
+                </TD>
+                <TD align="right" mono className="hidden sm:table-cell">
+                  {tx.price ? formatCurrency(tx.price) : '—'}
+                </TD>
+                <TD align="right" mono className="hidden md:table-cell">
+                  {formatCurrency(tx.fees)}
+                </TD>
+                <TD align="right" mono>
+                  {formatCurrencyCode(displayAmount(tx), tx.currency)}
+                </TD>
+                <TD mono className="hidden sm:table-cell">
+                  {tx.currency ?? '—'}
+                </TD>
+                <TD align="right">
+                  <button
+                    type="button"
+                    onClick={() => setPendingDelete(tx)}
+                    aria-label={`Delete transaction ${tx.id}`}
+                    className="rounded p-1.5 text-text-muted hover:bg-negative/10 hover:text-negative focus-visible:outline focus-visible:outline-2 focus-visible:outline-focus-ring"
+                  >
+                    <Trash2 size={14} aria-hidden />
+                  </button>
+                </TD>
+              </TR>
+            ))}
+          </TBody>
+        </Table>
+      </div>
 
       <Dialog
         open={pendingDelete !== null}

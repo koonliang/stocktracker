@@ -73,6 +73,28 @@ describe('PerformanceRoute', () => {
     });
   });
 
+  it('renders the Returns page heading', async () => {
+    render(<PerformanceRoute />);
+    expect(await screen.findByRole('heading', { name: /Returns/i, level: 1 })).toBeInTheDocument();
+  });
+
+  it('renders the empty state when no positions exist', async () => {
+    getPerformanceMock.mockResolvedValue({
+      window: '1Y',
+      method: 'fifo',
+      baseCurrency: 'USD',
+      realizedPnL: 0,
+      unrealizedPnL: 0,
+      timeWeightedReturnPct: 0,
+      closedLots: [],
+      incomeEvents: [],
+      returnSeries: [],
+      contributions: [],
+    });
+    render(<PerformanceRoute />);
+    expect(await screen.findByText(/No performance data yet/i)).toBeInTheDocument();
+  });
+
   it('reconciles realized P&L across closed lots and income events', async () => {
     render(<PerformanceRoute />);
 
@@ -84,7 +106,7 @@ describe('PerformanceRoute', () => {
     expect(screen.getAllByText('+$188.65').length).toBeGreaterThan(0);
     expect(screen.getAllByText('+$200.00').length).toBeGreaterThan(0);
     expect(screen.getAllByText('+$388.65').length).toBeGreaterThan(0);
-    expect(screen.getByText('Dividend')).toBeInTheDocument();
+    expect(screen.getAllByText('Dividend')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Stale rate').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Rate unavailable').length).toBeGreaterThan(0);
   });

@@ -42,8 +42,9 @@ describe('TransactionsRoute', () => {
   it('lists committed transactions', async () => {
     setMockApiState({ transactions: seeded });
     renderWithProviders(<TransactionsRoute />);
-    expect(await screen.findByText('AAPL')).toBeInTheDocument();
-    expect(screen.getByText('MSFT')).toBeInTheDocument();
+    expect((await screen.findAllByText('AAPL'))[0]).toBeInTheDocument();
+    expect(screen.getAllByText('MSFT')[0]).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
   });
 
   it('shows computed trade amount when a buy row has no stored amount', async () => {
@@ -65,7 +66,7 @@ describe('TransactionsRoute', () => {
 
     renderWithProviders(<TransactionsRoute />);
 
-    expect(await screen.findByText('$641.40')).toBeInTheDocument();
+    expect((await screen.findAllByText('$641.40'))[0]).toBeInTheDocument();
   });
 
   it('keeps the ticker smart-search dropdown closed after selecting a result', async () => {
@@ -88,7 +89,7 @@ describe('TransactionsRoute', () => {
   it('has no critical accessibility violations', async () => {
     setMockApiState({ transactions: seeded });
     const { container } = renderWithProviders(<TransactionsRoute />);
-    await screen.findByText('AAPL');
+    await screen.findAllByText('AAPL');
     const results = await axe(container);
     expect(results).toHaveNoViolations();
   });

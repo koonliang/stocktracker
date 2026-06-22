@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import { createAlert, deleteAlert, listAlerts } from '@/api/alertsApi';
@@ -146,6 +147,14 @@ export function AlertsRoute() {
               title={`${alerts.length} alert${alerts.length === 1 ? '' : 's'}`}
             />
           </div>
+          {alerts.length === 0 ? (
+            <div className="p-5 sm:p-6">
+              <EmptyState
+                title="No alerts yet"
+                description="Set a price alert to get notified when a stock moves."
+              />
+            </div>
+          ) : null}
           <div className="divide-y divide-border">
             {alerts.map((alert) => (
               <div

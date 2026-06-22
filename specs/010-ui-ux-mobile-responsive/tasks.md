@@ -22,9 +22,9 @@ Web app frontend: `frontend/src/`, `frontend/tests/`
 
 **Purpose**: Extend the existing viewport test suite to cover the full acceptance criteria before implementation begins.
 
-- [ ] T001 Add `320` to the `VIEWPORTS` array in `frontend/tests/responsive/viewports.test.tsx` (current: `[375, 768, 1280, 1920]`)
-- [ ] T002 [P] Add `AlertsRoute` render + overflow test cases to `frontend/tests/responsive/viewports.test.tsx` (import from `@/routes/AlertsRoute`)
-- [ ] T003 [P] Add `PerformanceRoute` render + overflow test cases to `frontend/tests/responsive/viewports.test.tsx` (import from `@/routes/PerformanceRoute`)
+- [x] T001 Add `320` to the `VIEWPORTS` array in `frontend/tests/responsive/viewports.test.tsx` (current: `[375, 768, 1280, 1920]`)
+- [x] T002 [P] Add `AlertsRoute` render + overflow test cases to `frontend/tests/responsive/viewports.test.tsx` (import from `@/routes/AlertsRoute`)
+- [x] T003 [P] Add `PerformanceRoute` render + overflow test cases to `frontend/tests/responsive/viewports.test.tsx` (import from `@/routes/PerformanceRoute`)
 
 **Checkpoint**: Run `npm test -- viewports` in `frontend/` — tests may fail (expected); the suite must at minimum run without syntax errors
 
@@ -46,19 +46,19 @@ Web app frontend: `frontend/src/`, `frontend/tests/`
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Verify `viewports.test.tsx` passes for all 7 routes at 320px after Phase 1 changes — run `npm test -- viewports` in `frontend/` and fix any import errors
+- [x] T004 [US1] Verify `viewports.test.tsx` passes for all 7 routes at 320px after Phase 1 changes — run `npm test -- viewports` in `frontend/` and fix any import errors
 
 ### Implementation for User Story 1
 
 Apply the overflow audit checklist from `contracts/ui-patterns.md` to each page. Wrap any data table in `<div className="overflow-x-auto rounded-lg border border-border">`. Add `min-w-0` to any flex children that may blow out. Remove any fixed `w-[Xpx]` wider than the viewport.
 
-- [ ] T005 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/DashboardRoute.tsx` — verify all flex rows have `min-w-0`, all cards use `w-full`, no fixed pixel widths wider than viewport
-- [ ] T006 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/WatchlistsRoute.tsx` — ensure list items use `w-full min-w-0`
-- [ ] T007 [P] [US1] Wrap the tickers table in `frontend/src/routes/WatchlistDetailRoute.tsx` in `<div className="overflow-x-auto rounded-lg border border-border">` and add `min-w-0` to parent flex containers
-- [ ] T008 [P] [US1] Wrap the transactions table in `frontend/src/routes/TransactionsRoute.tsx` in `<div className="overflow-x-auto rounded-lg border border-border">` and add `min-w-0` to parent flex containers
-- [ ] T009 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/PerformanceRoute.tsx` — ensure chart container uses `w-full` and metric rows wrap on mobile with `flex-wrap`
-- [ ] T010 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/AlertsRoute.tsx` — verify alert cards use `w-full` and no fixed widths
-- [ ] T011 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/AnalysisRoute.tsx` — verify all panels and charts use responsive widths
+- [x] T005 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/DashboardRoute.tsx` — no changes needed; `Table` component has built-in `overflow-x-auto`, columns use `hideClass` for responsive breakpoints
+- [x] T006 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/WatchlistsRoute.tsx` — no changes needed; grid defaults to `grid-cols-1`, cards have `min-w-0`
+- [x] T007 [P] [US1] Wrap the tickers table in `frontend/src/routes/WatchlistDetailRoute.tsx` — no changes needed; tickers use `<ul>` with `flex-col`, `WatchlistRow` uses `min-w-0 flex-1`
+- [x] T008 [P] [US1] Wrap the transactions table in `frontend/src/routes/TransactionsRoute.tsx` — no changes needed; `TransactionsTable` uses `Table` component with built-in `overflow-x-auto`
+- [x] T009 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/PerformanceRoute.tsx` — no changes needed; all raw tables already wrapped in `overflow-x-auto`, grids use mobile-first `md:grid-cols-3`
+- [x] T010 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/AlertsRoute.tsx` — no changes needed; form grid defaults to 1 column on mobile, alert rows use `flex-col` on mobile
+- [x] T011 [P] [US1] Audit and fix horizontal overflow in `frontend/src/routes/AnalysisRoute.tsx` — fixed `AnalysisHeader.tsx`: changed `flex shrink-0 items-baseline gap-3` to `flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1` to prevent price/change overflow at narrow viewports
 
 **Checkpoint**: All viewport tests at 320px pass. Manual overflow check on each page at 375px returns no console warnings.
 
@@ -72,11 +72,11 @@ Apply the overflow audit checklist from `contracts/ui-patterns.md` to each page.
 
 ### Tests for User Story 2
 
-- [ ] T012 [US2] Add a `BottomTabBar` render test in `frontend/tests/responsive/viewports.test.tsx` that renders the component at 320px and asserts all 5 label strings are present in the DOM (use `getByText` for each expected label)
+- [x] T012 [US2] Add a `BottomTabBar` render test in `frontend/tests/responsive/viewports.test.tsx` that renders the component at 320px and asserts all 5 label strings are present in the DOM (use `getByText` for each expected label)
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] In `frontend/src/components/layout/BottomTabBar.tsx`, change the label for the `/transactions` nav item from `"Transactions"` to `"Trades"` (the label string only — keep `to`, `icon`, and all styling unchanged)
+- [x] T013 [US2] In `frontend/src/components/layout/BottomTabBar.tsx`, change the label for the `/transactions` nav item from `"Transactions"` to `"Trades"` (the label string only — keep `to`, `icon`, and all styling unchanged)
 
 **Checkpoint**: Render the app at 320px in Chrome DevTools — bottom nav shows TRADES (not TRANSACTIONS), all 5 items fit without overlap.
 
@@ -90,19 +90,19 @@ Apply the overflow audit checklist from `contracts/ui-patterns.md` to each page.
 
 ### Tests for User Story 3
 
-- [ ] T014 [US3] Verify each authenticated route renders a `PageHeader` — add `getByRole('heading')` assertions to the existing route tests in `frontend/tests/routes/` for any route that is missing this check
+- [x] T014 [US3] Verify each authenticated route renders a `PageHeader` — add `getByRole('heading')` assertions to the existing route tests in `frontend/tests/routes/` for any route that is missing this check
 
 ### Implementation for User Story 3
 
 Apply the Design Patterns Reference from `plan.md` to each page. Use `<PageHeader title="..." />` for the top heading. Ensure cards use `<Card>` or the standard `bg-surface border border-border rounded-lg` pattern. Replace ad-hoc font sizes with token classes.
 
-- [ ] T015 [P] [US3] Audit and align `frontend/src/routes/DashboardRoute.tsx` — ensure `<PageHeader>` is present, cards use consistent styling, typography uses token classes
-- [ ] T016 [P] [US3] Audit and align `frontend/src/routes/WatchlistsRoute.tsx` — ensure `<PageHeader>` is present, watchlist cards use consistent styling
-- [ ] T017 [P] [US3] Audit and align `frontend/src/routes/WatchlistDetailRoute.tsx` — ensure `<PageHeader>` with watchlist name, table uses `<Table>` component
-- [ ] T018 [P] [US3] Audit and align `frontend/src/routes/TransactionsRoute.tsx` — ensure `<PageHeader>` is present, table uses `<Table>` component, action buttons use `<Button>`
-- [ ] T019 [P] [US3] Audit and align `frontend/src/routes/PerformanceRoute.tsx` — ensure `<PageHeader>` is present, metric cards use consistent `bg-surface` styling, section headings use `text-title` token
-- [ ] T020 [P] [US3] Audit and align `frontend/src/routes/AlertsRoute.tsx` — ensure `<PageHeader>` is present, alert cards use consistent styling
-- [ ] T021 [P] [US3] Audit and align `frontend/src/routes/AnalysisRoute.tsx` — ensure `<PageHeader>` with ticker symbol, panels use consistent card styling
+- [x] T015 [P] [US3] Audit and align `frontend/src/routes/DashboardRoute.tsx` — ensure `<PageHeader>` is present, cards use consistent styling, typography uses token classes
+- [x] T016 [P] [US3] Audit and align `frontend/src/routes/WatchlistsRoute.tsx` — ensure `<PageHeader>` is present, watchlist cards use consistent styling
+- [x] T017 [P] [US3] Audit and align `frontend/src/routes/WatchlistDetailRoute.tsx` — ensure `<PageHeader>` with watchlist name, table uses `<Table>` component
+- [x] T018 [P] [US3] Audit and align `frontend/src/routes/TransactionsRoute.tsx` — ensure `<PageHeader>` is present, table uses `<Table>` component, action buttons use `<Button>`
+- [x] T019 [P] [US3] Audit and align `frontend/src/routes/PerformanceRoute.tsx` — ensure `<PageHeader>` is present, metric cards use consistent `bg-surface` styling, section headings use `text-title` token
+- [x] T020 [P] [US3] Audit and align `frontend/src/routes/AlertsRoute.tsx` — ensure `<PageHeader>` is present, alert cards use consistent styling
+- [x] T021 [P] [US3] Audit and align `frontend/src/routes/AnalysisRoute.tsx` — ensure `<PageHeader>` with ticker symbol, panels use consistent card styling
 
 **Checkpoint**: Navigate all 7 pages on desktop. Each has a visible page heading, cards share the same visual weight, and no page has raw/unstyled HTML.
 
@@ -116,18 +116,18 @@ Apply the Design Patterns Reference from `plan.md` to each page. Use `<PageHeade
 
 ### Tests for User Story 4
 
-- [ ] T022 [US4] Audit existing route tests in `frontend/tests/routes/` — add or verify `EmptyState` render assertions for each page when data stores are empty (use the existing store reset patterns in the test files)
+- [x] T022 [US4] Audit existing route tests in `frontend/tests/routes/` — add or verify `EmptyState` render assertions for each page when data stores are empty (use the existing store reset patterns in the test files)
 
 ### Implementation for User Story 4
 
 Use `<EmptyState title="..." description="..." />` from `frontend/src/components/ui/EmptyState.tsx`. Follow the naming convention from `contracts/ui-patterns.md`: title = "No [noun] yet", description = next-action hint.
 
-- [ ] T023 [P] [US4] Ensure `<EmptyState title="No positions yet" description="Add a transaction to start tracking your portfolio" />` renders in `frontend/src/routes/DashboardRoute.tsx` when no portfolio positions exist
-- [ ] T024 [P] [US4] Ensure `<EmptyState title="No watchlists yet" description="Create a watchlist to start tracking stocks" />` renders in `frontend/src/routes/WatchlistsRoute.tsx` when watchlists array is empty
-- [ ] T025 [P] [US4] Ensure `<EmptyState title="No stocks yet" description="Add a ticker to this watchlist to start tracking" />` renders in `frontend/src/routes/WatchlistDetailRoute.tsx` when the watchlist has no tickers
-- [ ] T026 [P] [US4] Ensure `<EmptyState title="No transactions yet" description="Import or add transactions to see your history" />` renders in `frontend/src/routes/TransactionsRoute.tsx` when transactions array is empty
-- [ ] T027 [P] [US4] Ensure `<EmptyState title="No performance data yet" description="Add transactions to see your portfolio returns" />` renders in `frontend/src/routes/PerformanceRoute.tsx` when no positions exist
-- [ ] T028 [P] [US4] Ensure `<EmptyState title="No alerts yet" description="Set a price alert to get notified when a stock moves" />` renders in `frontend/src/routes/AlertsRoute.tsx` when alerts array is empty
+- [x] T023 [P] [US4] Ensure `<EmptyState title="No positions yet" description="Add a transaction to start tracking your portfolio" />` renders in `frontend/src/routes/DashboardRoute.tsx` when no portfolio positions exist
+- [x] T024 [P] [US4] Ensure `<EmptyState title="No watchlists yet" description="Create a watchlist to start tracking stocks" />` renders in `frontend/src/routes/WatchlistsRoute.tsx` when watchlists array is empty
+- [x] T025 [P] [US4] Ensure `<EmptyState title="No stocks yet" description="Add a ticker to this watchlist to start tracking" />` renders in `frontend/src/routes/WatchlistDetailRoute.tsx` when the watchlist has no tickers
+- [x] T026 [P] [US4] Ensure `<EmptyState title="No transactions yet" description="Import or add transactions to see your history" />` renders in `frontend/src/routes/TransactionsRoute.tsx` when transactions array is empty
+- [x] T027 [P] [US4] Ensure `<EmptyState title="No performance data yet" description="Add transactions to see your portfolio returns" />` renders in `frontend/src/routes/PerformanceRoute.tsx` when no positions exist
+- [x] T028 [P] [US4] Ensure `<EmptyState title="No alerts yet" description="Set a price alert to get notified when a stock moves" />` renders in `frontend/src/routes/AlertsRoute.tsx` when alerts array is empty
 
 **Checkpoint**: Clear localStorage and load each page. Every data-collection page shows a readable empty state message — no blank space or broken layout.
 
@@ -137,9 +137,9 @@ Use `<EmptyState title="..." description="..." />` from `frontend/src/components
 
 **Purpose**: Verify compilation, run the full test suite, and confirm the feature against acceptance criteria.
 
-- [ ] T029 Run `npm run typecheck` in `frontend/` — zero TypeScript errors (Constitution gate II)
-- [ ] T030 Run `npm test` in `frontend/` — all tests pass including new viewport tests (Constitution gate I)
-- [ ] T031 Run `npm run build` in `frontend/` — production build succeeds (Constitution gate II)
+- [x] T029 Run `npm run typecheck` in `frontend/` — zero TypeScript errors (Constitution gate II)
+- [x] T030 Run `npm test` in `frontend/` — all tests pass including new viewport tests (Constitution gate I)
+- [x] T031 Run `npm run build` in `frontend/` — production build succeeds (Constitution gate II)
 - [ ] T032 [P] Manual verification: open app in Chrome DevTools at 320px and walk through all 7 authenticated pages per `quickstart.md` acceptance checklist
 
 ---

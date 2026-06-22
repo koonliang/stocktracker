@@ -36,7 +36,7 @@ export function AnalysisHeader({
         </div>
         <div className="page-title-rule" aria-hidden />
       </div>
-      <div className="flex shrink-0 items-baseline gap-3">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono tabular text-display-lg text-text">
           {formatCurrency(currentPrice)}
         </span>

@@ -60,6 +60,7 @@ describe('WatchlistsRoute', () => {
     renderWithProviders(<WatchlistsRoute />);
     expect(await screen.findByText('One')).toBeInTheDocument();
     expect(screen.getByText('Two')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Watchlists/i, level: 1 })).toBeInTheDocument();
   });
 
   it('has no critical accessibility violations', async () => {

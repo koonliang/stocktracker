@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 const items = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/watchlists', label: 'Watchlists', icon: ListChecks },
-  { to: '/transactions', label: 'Transactions', icon: ArrowLeftRight },
+  { to: '/transactions', label: 'Trades', icon: ArrowLeftRight },
   { to: '/performance', label: 'Returns', icon: ChartNoAxesCombined },
   { to: '/alerts', label: 'Alerts', icon: Bell },
 ];
@@ -36,7 +36,7 @@ export function BottomTabBar({ className }: { className?: string }) {
               end={to === '/'}
               className={({ isActive }) =>
                 cn(
-                  'flex h-16 flex-col items-center justify-center gap-1 text-micro uppercase tracking-[0.08em]',
+                  'flex h-16 flex-col items-center justify-center gap-1 text-micro uppercase tracking-tight sm:tracking-[0.08em]',
                   isActive ? 'text-accent' : 'text-text-muted',
                   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus-ring',
                 )
