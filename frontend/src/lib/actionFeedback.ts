@@ -17,9 +17,8 @@ type ActionFeedbackDescriptor = {
   failure: string;
 };
 
-const DESCRIPTORS: Record<
-  `${ActionFeedbackScope}:${ActionFeedbackOperation}`,
-  ActionFeedbackDescriptor
+const DESCRIPTORS: Partial<
+  Record<`${ActionFeedbackScope}:${ActionFeedbackOperation}`, ActionFeedbackDescriptor>
 > = {
   'transaction:add': {
     success: 'Transaction created',
@@ -77,7 +76,7 @@ export function notifyActionFeedback({
   message,
   id,
 }: NotifyOptions) {
-  const descriptor = DESCRIPTORS[`${scope}:${operation}`];
+  const descriptor = DESCRIPTORS[`${scope}:${operation}`]!;
   const tone: ToastTone = outcome === 'success' ? 'success' : 'error';
   return useToastStore.getState().pushToast({
     id,
