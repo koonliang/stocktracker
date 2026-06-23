@@ -7,22 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.persistence.QuoteRepository;
 import com.stocktracker.scheduler.QuoteRefreshJob;
-import com.stocktracker.service.provider.MarketDataProvider;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
-import jakarta.transaction.Transactional;
-import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest

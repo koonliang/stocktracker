@@ -74,8 +74,7 @@ public class StubMarketDataProvider implements MarketDataProvider {
     if (!bars.isEmpty()) {
       var latestBar = bars.get(bars.size() - 1);
       var week52Start = latestBar.tradeDate.minusYears(1);
-      var trailingYear =
-          bars.stream().filter(bar -> !bar.tradeDate.isBefore(week52Start)).toList();
+      var trailingYear = bars.stream().filter(bar -> !bar.tradeDate.isBefore(week52Start)).toList();
       return new ProviderSnapshot(
           symbol.toUpperCase(),
           latestBar.openPrice,
@@ -154,7 +153,8 @@ public class StubMarketDataProvider implements MarketDataProvider {
   private BigDecimal syntheticClose(String symbol, BigDecimal base, LocalDate date) {
     var days = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.of(2020, 1, 1), date);
     var trend = BigDecimal.valueOf(days).multiply(new BigDecimal("0.00018"));
-    var wave = BigDecimal.valueOf(Math.sin((days + Math.abs(symbol.hashCode() % 31)) / 17.0) * 0.05);
+    var wave =
+        BigDecimal.valueOf(Math.sin((days + Math.abs(symbol.hashCode() % 31)) / 17.0) * 0.05);
     return base.add(trend).add(wave).max(new BigDecimal("0.01")).setScale(4, RoundingMode.HALF_UP);
   }
 

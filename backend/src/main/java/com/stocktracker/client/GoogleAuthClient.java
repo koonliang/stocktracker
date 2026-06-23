@@ -23,7 +23,8 @@ import org.jboss.logging.Logger;
 public class GoogleAuthClient {
   private static final Logger LOG = Logger.getLogger(GoogleAuthClient.class);
   private static final URI TOKEN_URI = URI.create("https://oauth2.googleapis.com/token");
-  private static final URI USERINFO_URI = URI.create("https://openidconnect.googleapis.com/v1/userinfo");
+  private static final URI USERINFO_URI =
+      URI.create("https://openidconnect.googleapis.com/v1/userinfo");
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
   @Inject NonProdAuthConfig config;
@@ -96,7 +97,8 @@ public class GoogleAuthClient {
       throw new ApiException(Status.UNAUTHORIZED, "AUTH_FAILED", "Unable to complete sign-in.");
     }
 
-    return new ProviderProfile(subject, blankToNull(text(json, "email")), json.path("email_verified").asBoolean(false));
+    return new ProviderProfile(
+        subject, blankToNull(text(json, "email")), json.path("email_verified").asBoolean(false));
   }
 
   private HttpResponse<String> send(HttpRequest request, String event) {
@@ -140,6 +142,5 @@ public class GoogleAuthClient {
     return value == null || value.isBlank() ? null : value;
   }
 
-  public record ProviderProfile(String subject, String email, boolean emailVerified) {
-  }
+  public record ProviderProfile(String subject, String email, boolean emailVerified) {}
 }

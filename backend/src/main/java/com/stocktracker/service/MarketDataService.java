@@ -12,6 +12,7 @@ import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.QuoteRepository;
 import com.stocktracker.scheduler.FxRefreshJob;
 import com.stocktracker.service.provider.MarketDataProvider;
+import com.stocktracker.service.provider.ProviderConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -35,6 +36,7 @@ public class MarketDataService {
   @Inject QuoteCacheService quoteCacheService;
   @Inject HistoricalBackfillService historicalBackfillService;
   @Inject FxRefreshJob fxRefreshJob;
+  @Inject ProviderConfig providerConfig;
   @Inject Clock clock;
 
   public InstrumentSearchResponse search(String query) {
@@ -82,7 +84,11 @@ public class MarketDataService {
 
     // Immediate quote + history so price/value appear at once; tolerate provider failure (stale).
     quoteCacheService.refreshSymbols(List.of(symbol));
-    historicalBackfillService.backfillMax(symbol);
+    if (providerConfig.isLiveMarketDataProvider()) {
+      historicalBackfillService.backfillTrailingYear(symbol);
+    } else {
+      historicalBackfillService.backfillMax(symbol);
+    }
     fxRefreshJob.refresh(); // pick up a newly-introduced currency
 
     return buildResponse(instrument);
@@ -99,12 +105,23 @@ public class MarketDataService {
     if (wanted.isEmpty()) {
       return;
     }
-    quoteCacheService.refreshSymbols(wanted);
     var today = LocalDate.now(clock);
     for (var symbol : wanted) {
       var bars = instrumentRepository.listPriceBars(symbol);
-      var from = bars.isEmpty() ? today.minusYears(5) : bars.get(bars.size() - 1).tradeDate;
-      historicalBackfillService.backfill(symbol, from);
+      if (providerConfig.isLiveMarketDataProvider()) {
+        if (bars.isEmpty()) {
+          historicalBackfillService.backfillTrailingYear(symbol);
+        } else if (bars.get(0).tradeDate.isAfter(today.minusYears(5))) {
+          historicalBackfillService.backfillMax(symbol);
+        } else {
+          historicalBackfillService.backfill(symbol, bars.get(bars.size() - 1).tradeDate);
+        }
+      } else {
+        var from = bars.isEmpty() ? today.minusYears(5) : bars.get(bars.size() - 1).tradeDate;
+        historicalBackfillService.backfill(symbol, from);
+      }
+      // QuoteRefreshJob owns instrument_quote updates; reusing the cached row here avoids
+      // deadlocks when the history job overlaps the quote-refresh cadence.
       refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null));
     }
   }
@@ -118,7 +135,11 @@ public class MarketDataService {
     quoteCacheService.refreshSymbols(wanted);
     for (var symbol : wanted) {
       if (instrumentRepository.listPriceBars(symbol).isEmpty()) {
-        historicalBackfillService.backfillMax(symbol);
+        if (providerConfig.isLiveMarketDataProvider()) {
+          historicalBackfillService.backfillTrailingYear(symbol);
+        } else {
+          historicalBackfillService.backfillMax(symbol);
+        }
       }
       refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null));
     }
@@ -146,17 +167,18 @@ public class MarketDataService {
   }
 
   private void upsertPriceBar(
-      String symbol,
-      InstrumentQuote quote,
-      MarketDataProvider.ProviderSnapshot snapshot) {
+      String symbol, InstrumentQuote quote, MarketDataProvider.ProviderSnapshot snapshot) {
     if (quote == null || quote.price == null) {
       return;
     }
     var tradeDate =
         snapshot != null && snapshot.asOfDate() != null
             ? snapshot.asOfDate()
-            : quote.asOf == null ? LocalDate.now(clock) : quote.asOf.atZone(ZoneOffset.UTC).toLocalDate();
-    var bar = instrumentRepository.findPriceBar(symbol, tradeDate).orElseGet(InstrumentPriceBar::new);
+            : quote.asOf == null
+                ? LocalDate.now(clock)
+                : quote.asOf.atZone(ZoneOffset.UTC).toLocalDate();
+    var bar =
+        instrumentRepository.findPriceBar(symbol, tradeDate).orElseGet(InstrumentPriceBar::new);
     bar.instrumentSymbol = symbol;
     bar.tradeDate = tradeDate;
     bar.openPrice =
@@ -172,9 +194,7 @@ public class MarketDataService {
   }
 
   private void upsertInstrumentStat(
-      String symbol,
-      InstrumentQuote quote,
-      MarketDataProvider.ProviderSnapshot snapshot) {
+      String symbol, InstrumentQuote quote, MarketDataProvider.ProviderSnapshot snapshot) {
     var bars = instrumentRepository.listPriceBars(symbol);
     var latestBar = bars.isEmpty() ? null : bars.get(bars.size() - 1);
     if (snapshot == null && latestBar == null && quote == null) {
@@ -224,7 +244,8 @@ public class MarketDataService {
         snapshot != null && snapshot.marketCap() != null
             ? snapshot.marketCap()
             : stat.marketCap == null ? 0L : stat.marketCap;
-    stat.peRatio = snapshot != null && snapshot.peRatio() != null ? snapshot.peRatio() : stat.peRatio;
+    stat.peRatio =
+        snapshot != null && snapshot.peRatio() != null ? snapshot.peRatio() : stat.peRatio;
     stat.asOfDate =
         snapshot != null && snapshot.asOfDate() != null
             ? snapshot.asOfDate()

@@ -59,8 +59,7 @@ public class AlertEvaluationService {
     alert.lastTriggeredAt = clock.instant();
     alerts.persist(alert);
 
-    var crossingKey =
-        alert.id + "-" + clock.instant().toEpochMilli();
+    var crossingKey = alert.id + "-" + clock.instant().toEpochMilli();
 
     var notification = new Notification();
     notification.userId = alert.userId;

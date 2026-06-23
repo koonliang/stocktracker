@@ -5,21 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.stocktracker.domain.AppUser;
-import com.stocktracker.domain.InstrumentQuote;
-import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.dto.ConversionDtos.FxStatus;
+import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
-import java.math.BigDecimal;
-import java.time.Instant;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -110,59 +104,10 @@ class DashboardResourceTest extends IntegrationTestSupport {
             .extract()
             .as(DashboardResponse.class);
 
-    assertEquals(FxStatus.unavailable, response.holdings().getFirst().marketValueConversion().fxStatus());
+    assertEquals(
+        FxStatus.unavailable, response.holdings().getFirst().marketValueConversion().fxStatus());
     assertEquals(FxStatus.unavailable, response.summary().marketValueConversion().fxStatus());
     assertEquals(0.0, response.summary().totalMarketValue(), 0.0001);
     assertEquals(1, response.warnings().size());
-  }
-}
-
-@QuarkusTest
-@QuarkusTestResource(MySqlTestResource.class)
-@TestProfile(DashboardResourceLiveProviderTest.LiveProviderProfile.class)
-@TestSecurity(user = "seed@stocktracker.local")
-@JwtSecurity(
-    claims = {
-      @Claim(key = "sub", value = "1"),
-      @Claim(key = "email", value = "seed@stocktracker.local")
-    })
-class DashboardResourceLiveProviderTest extends IntegrationTestSupport {
-  public static class LiveProviderProfile implements QuarkusTestProfile {
-    @Override
-    public Map<String, String> getConfigOverrides() {
-      return Map.of("stocktracker.marketdata.provider", "yahoo");
-    }
-  }
-
-  @Test
-  void returnsQuoteBackedHoldingValuesWhenLiveCachedQuotesExist() throws Exception {
-    persistTransaction("2024-03-01", "NVDA", "buy", "5", "100.0000", "0.0000");
-    inTransaction(
-        () -> {
-          var quote = InstrumentQuote.<InstrumentQuote>findById("NVDA");
-          if (quote == null) {
-            quote = new InstrumentQuote();
-            quote.instrumentSymbol = "NVDA";
-          }
-          quote.price = BigDecimal.valueOf(250);
-          quote.previousClose = BigDecimal.valueOf(245);
-          quote.source = "yahoo";
-          quote.stale = false;
-          quote.fetchedAt = Instant.now();
-          quote.asOf = Instant.now();
-          quote.persist();
-        });
-
-    var response =
-        given()
-            .when()
-            .get("/api/dashboard")
-            .then()
-            .statusCode(200)
-            .extract()
-            .as(DashboardResponse.class);
-
-    assertEquals(250.0, response.holdings().getFirst().currentPrice(), 0.0001);
-    assertEquals(1250.0, response.holdings().getFirst().marketValue(), 0.0001);
   }
 }

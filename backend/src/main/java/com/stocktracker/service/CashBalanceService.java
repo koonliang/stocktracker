@@ -40,7 +40,8 @@ public class CashBalanceService {
     var total = BigDecimal.ZERO;
     var stale = false;
     for (var entry : balances.entrySet()) {
-      var converted = currencyService.convert(entry.getValue(), entry.getKey(), baseCurrency, onDate);
+      var converted =
+          currencyService.convert(entry.getValue(), entry.getKey(), baseCurrency, onDate);
       total = total.add(converted.value());
       stale = stale || converted.stale();
     }

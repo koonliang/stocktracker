@@ -52,7 +52,8 @@ public class CurrencyService {
     return convert(amount, from, to, date);
   }
 
-  public Converted convertHolding(BigDecimal amount, String from, String to, LocalDate valuationDate) {
+  public Converted convertHolding(
+      BigDecimal amount, String from, String to, LocalDate valuationDate) {
     return convert(amount, from, to, valuationDate);
   }
 

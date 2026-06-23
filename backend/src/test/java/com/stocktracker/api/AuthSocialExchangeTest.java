@@ -11,8 +11,8 @@ import com.stocktracker.domain.SocialIdentity;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusMock;
+import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,9 +28,13 @@ class AuthSocialExchangeTest extends IntegrationTestSupport {
           @Override
           public ProviderProfile exchange(String code, String redirectUri) {
             if ("social-google-user".equals(code)) {
-              return new ProviderProfile("google-sub-social-user", "social-google-user@gmail.com", true);
+              return new ProviderProfile(
+                  "google-sub-social-user", "social-google-user@gmail.com", true);
             }
-            throw new ApiException(jakarta.ws.rs.core.Response.Status.UNAUTHORIZED, "AUTH_FAILED", "Unable to complete sign-in.");
+            throw new ApiException(
+                jakarta.ws.rs.core.Response.Status.UNAUTHORIZED,
+                "AUTH_FAILED",
+                "Unable to complete sign-in.");
           }
         },
         GoogleAuthClient.class);
@@ -42,7 +46,10 @@ class AuthSocialExchangeTest extends IntegrationTestSupport {
               return new GoogleAuthClient.ProviderProfile(
                   "facebook-sub-social-user", "social-facebook-user@example.com", true);
             }
-            throw new ApiException(jakarta.ws.rs.core.Response.Status.UNAUTHORIZED, "AUTH_FAILED", "Unable to complete sign-in.");
+            throw new ApiException(
+                jakarta.ws.rs.core.Response.Status.UNAUTHORIZED,
+                "AUTH_FAILED",
+                "Unable to complete sign-in.");
           }
         },
         FacebookAuthClient.class);
@@ -58,7 +65,9 @@ class AuthSocialExchangeTest extends IntegrationTestSupport {
   void exchangesGoogleCodeIntoLocalSession() {
     given()
         .contentType(ContentType.JSON)
-        .body(Map.of("code", "social-google-user", "redirectUri", "http://localhost:5173/auth/callback"))
+        .body(
+            Map.of(
+                "code", "social-google-user", "redirectUri", "http://localhost:5173/auth/callback"))
         .when()
         .post("/api/auth/social/google/exchange")
         .then()
@@ -71,7 +80,12 @@ class AuthSocialExchangeTest extends IntegrationTestSupport {
   void exchangesFacebookCodeIntoLocalSession() {
     given()
         .contentType(ContentType.JSON)
-        .body(Map.of("code", "social-facebook-user", "redirectUri", "http://localhost:5173/auth/callback"))
+        .body(
+            Map.of(
+                "code",
+                "social-facebook-user",
+                "redirectUri",
+                "http://localhost:5173/auth/callback"))
         .when()
         .post("/api/auth/social/facebook/exchange")
         .then()

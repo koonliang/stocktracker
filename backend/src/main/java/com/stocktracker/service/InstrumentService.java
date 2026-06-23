@@ -6,6 +6,7 @@ import com.stocktracker.domain.InstrumentStat;
 import com.stocktracker.dto.InstrumentAnalysisResponse;
 import com.stocktracker.dto.QuoteResponse;
 import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.service.provider.ProviderConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response.Status;
@@ -22,6 +23,7 @@ public class InstrumentService {
   @Inject PortfolioService portfolioService;
   @Inject QuoteCacheService quoteCacheService;
   @Inject HistoricalBackfillService historicalBackfillService;
+  @Inject ProviderConfig providerConfig;
   @Inject Clock clock;
 
   public InstrumentAnalysisResponse getAnalysis(String rawTicker) {
@@ -124,6 +126,16 @@ public class InstrumentService {
   private void ensureHistory(String symbol, String range) {
     var today = LocalDate.now(clock);
     var bars = instrumentRepository.listPriceBars(symbol);
+    if (providerConfig.isLiveMarketDataProvider()) {
+      if (bars.isEmpty()) {
+        historicalBackfillService.backfillTrailingYear(symbol);
+        return;
+      }
+      if (bars.get(bars.size() - 1).tradeDate.isBefore(today.minusDays(1))) {
+        historicalBackfillService.backfill(symbol, bars.get(bars.size() - 1).tradeDate);
+      }
+      return;
+    }
     if ("ALL".equals(range)) {
       if (bars.isEmpty() || bars.get(0).tradeDate.isAfter(today.minusYears(5))) {
         historicalBackfillService.backfillMax(symbol);

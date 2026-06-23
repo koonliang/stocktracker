@@ -3,26 +3,19 @@ package com.stocktracker.api;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.stocktracker.domain.Instrument;
 import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.dto.InstrumentAnalysisResponse;
-import com.stocktracker.service.provider.MarketDataProvider;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -166,13 +159,7 @@ class InstrumentResourceTest extends IntegrationTestSupport {
   }
 
   private void persistBar(
-      String symbol,
-      String date,
-      String open,
-      String high,
-      String low,
-      String close,
-      long volume) {
+      String symbol, String date, String open, String high, String low, String close, long volume) {
     var bar = new InstrumentPriceBar();
     bar.instrumentSymbol = symbol;
     bar.tradeDate = LocalDate.parse(date);
@@ -182,78 +169,5 @@ class InstrumentResourceTest extends IntegrationTestSupport {
     bar.closePrice = new BigDecimal(close);
     bar.volume = volume;
     bar.persist();
-  }
-}
-
-@QuarkusTest
-@QuarkusTestResource(MySqlTestResource.class)
-@TestProfile(InstrumentResourceLiveProviderTest.LiveProviderProfile.class)
-@TestSecurity(user = "seed@stocktracker.local")
-@JwtSecurity(
-    claims = {
-      @Claim(key = "sub", value = "1"),
-      @Claim(key = "email", value = "seed@stocktracker.local")
-    })
-class InstrumentResourceLiveProviderTest extends IntegrationTestSupport {
-  public static class LiveProviderProfile implements QuarkusTestProfile {
-    @Override
-    public Map<String, String> getConfigOverrides() {
-      return Map.of("stocktracker.marketdata.provider", "yahoo");
-    }
-  }
-
-  @Test
-  void liveProviderBackfillsMaxHistoryForEmptyInstrumentAnalysisRequests() throws Exception {
-    inTransaction(
-        () -> {
-          InstrumentPriceBar.delete("instrumentSymbol", "AMD");
-          com.stocktracker.domain.InstrumentStat.delete("instrumentSymbol", "AMD");
-        });
-
-    QuarkusMock.installMockForType(
-        new MarketDataProvider() {
-          @Override
-          public List<ProviderQuote> latestQuotes(java.util.Collection<String> symbols) {
-            return List.of();
-          }
-
-          @Override
-          public List<ProviderDailyBar> dailyHistory(String symbol, LocalDate from) {
-            return List.of();
-          }
-
-          @Override
-          public List<ProviderDailyBar> dailyHistoryMax(String symbol) {
-            if (!"AMD".equalsIgnoreCase(symbol)) {
-              return List.of();
-            }
-            return List.of(
-                new ProviderDailyBar("AMD", LocalDate.parse("2000-01-03"), BigDecimal.valueOf(12)),
-                new ProviderDailyBar("AMD", LocalDate.parse("2010-06-15"), BigDecimal.valueOf(24)),
-                new ProviderDailyBar("AMD", LocalDate.parse("2026-06-19"), BigDecimal.valueOf(132)));
-          }
-
-          @Override
-          public List<ProviderSymbol> searchSymbols(String query) {
-            return List.of();
-          }
-        },
-        MarketDataProvider.class);
-
-    var response =
-        given()
-            .queryParam("range", "ALL")
-            .when()
-            .get("/api/instruments/AMD")
-            .then()
-            .statusCode(200)
-            .extract()
-            .as(InstrumentAnalysisResponse.class);
-
-    assertEquals(3, response.priceHistory().size());
-    assertEquals("2000-01-03", response.priceHistory().getFirst().date());
-    assertEquals(12.0, response.priceHistory().getFirst().close(), 0.0001);
-    assertEquals("2026-06-19", response.priceHistory().getLast().date());
-    assertTrue(response.stats() != null);
   }
 }

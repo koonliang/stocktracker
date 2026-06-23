@@ -1,5 +1,6 @@
 package com.stocktracker.scheduler;
 
+import com.stocktracker.bootstrap.DevDataBootstrap;
 import com.stocktracker.service.MarketDataService;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -15,11 +16,16 @@ import org.jboss.logging.Logger;
 public class PriceHistoryRefreshJob {
   private static final Logger LOG = Logger.getLogger(PriceHistoryRefreshJob.class);
 
+  @Inject DevDataBootstrap devDataBootstrap;
   @Inject QuoteRefreshJob quoteRefreshJob;
   @Inject MarketDataService marketDataService;
 
   @Scheduled(every = "{stocktracker.marketdata.history-refresh-interval}")
   public void refresh() {
+    if (devDataBootstrap.isBootstrappingMarketData()) {
+      LOG.debug("Skipping price history refresh while dev bootstrap is hydrating market data");
+      return;
+    }
     var symbols = quoteRefreshJob.trackedSymbols();
     if (symbols.isEmpty()) {
       return;

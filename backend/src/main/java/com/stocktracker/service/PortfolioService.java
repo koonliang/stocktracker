@@ -4,8 +4,8 @@ import com.stocktracker.api.ApiException;
 import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.domain.PortfolioTransaction;
-import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.dto.ConversionDtos.ConversionMetadata;
+import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.dto.TransactionResponse;
 import com.stocktracker.persistence.InstrumentRepository;
@@ -265,7 +265,11 @@ public class PortfolioService {
                 totalCostBasis,
                 summaryFxDate,
                 summaryStatus(summaryFxUnavailable, summaryFxStale)),
-            conversion(baseCurrency, totalDayChange, summaryFxDate, summaryStatus(summaryFxUnavailable, summaryFxStale))),
+            conversion(
+                baseCurrency,
+                totalDayChange,
+                summaryFxDate,
+                summaryStatus(summaryFxUnavailable, summaryFxStale))),
         holdings,
         warnings);
   }
@@ -399,7 +403,8 @@ public class PortfolioService {
     return value.setScale(6, RoundingMode.HALF_UP).doubleValue();
   }
 
-  private static ConversionMetadata conversion(String baseCurrency, CurrencyService.Converted converted) {
+  private static ConversionMetadata conversion(
+      String baseCurrency, CurrencyService.Converted converted) {
     return new ConversionMetadata(
         baseCurrency, scale4(converted.value()), converted.fxDate(), converted.fxStatus());
   }

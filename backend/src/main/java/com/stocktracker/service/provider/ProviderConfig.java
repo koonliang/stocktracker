@@ -39,6 +39,8 @@ public class ProviderConfig {
   }
 
   public String marketDataProviderId() {
-    return marketDataProviderId == null || marketDataProviderId.isBlank() ? "stub" : marketDataProviderId;
+    return marketDataProviderId == null || marketDataProviderId.isBlank()
+        ? "stub"
+        : marketDataProviderId;
   }
 }

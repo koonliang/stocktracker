@@ -14,7 +14,6 @@ import io.quarkus.test.security.TestSecurity;
 import io.quarkus.test.security.jwt.Claim;
 import io.quarkus.test.security.jwt.JwtSecurity;
 import io.restassured.http.ContentType;
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -115,26 +114,14 @@ class NotificationsResourceTest extends IntegrationTestSupport {
 
     var id = ((Notification) Notification.findAll().firstResult()).id.toString();
 
-    given()
-        .when()
-        .post("/api/notifications/{id}/read", id)
-        .then()
-        .statusCode(204);
+    given().when().post("/api/notifications/{id}/read", id).then().statusCode(204);
 
-    given()
-        .when()
-        .get("/api/notifications")
-        .then()
-        .body("unreadCount", equalTo(0));
+    given().when().get("/api/notifications").then().body("unreadCount", equalTo(0));
   }
 
   @Test
   void markReadReturns404ForUnknownId() {
-    given()
-        .when()
-        .post("/api/notifications/{id}/read", 99999)
-        .then()
-        .statusCode(404);
+    given().when().post("/api/notifications/{id}/read", 99999).then().statusCode(404);
   }
 
   @Test
@@ -153,11 +140,7 @@ class NotificationsResourceTest extends IntegrationTestSupport {
         .body("updated", greaterThanOrEqualTo(2))
         .body("unreadCount", equalTo(0));
 
-    given()
-        .when()
-        .get("/api/notifications")
-        .then()
-        .body("unreadCount", equalTo(0));
+    given().when().get("/api/notifications").then().body("unreadCount", equalTo(0));
   }
 
   @Test
@@ -169,25 +152,13 @@ class NotificationsResourceTest extends IntegrationTestSupport {
     var notification = (Notification) Notification.find("read = ?1", false).firstResult();
     var id = notification.id.toString();
 
-    given()
-        .when()
-        .delete("/api/notifications/{id}", id)
-        .then()
-        .statusCode(204);
+    given().when().delete("/api/notifications/{id}", id).then().statusCode(204);
 
-    given()
-        .when()
-        .get("/api/notifications")
-        .then()
-        .body("notifications", hasSize(1));
+    given().when().get("/api/notifications").then().body("notifications", hasSize(1));
   }
 
   @Test
   void deleteReturns404ForUnknownId() {
-    given()
-        .when()
-        .delete("/api/notifications/{id}", 99999)
-        .then()
-        .statusCode(404);
+    given().when().delete("/api/notifications/{id}", 99999).then().statusCode(404);
   }
 }

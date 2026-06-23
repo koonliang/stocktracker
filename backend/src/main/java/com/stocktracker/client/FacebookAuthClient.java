@@ -22,8 +22,10 @@ import org.jboss.logging.Logger;
 @ApplicationScoped
 public class FacebookAuthClient {
   private static final Logger LOG = Logger.getLogger(FacebookAuthClient.class);
-  private static final URI TOKEN_URI = URI.create("https://graph.facebook.com/v23.0/oauth/access_token");
-  private static final URI USERINFO_URI = URI.create("https://graph.facebook.com/v23.0/me?fields=id,email");
+  private static final URI TOKEN_URI =
+      URI.create("https://graph.facebook.com/v23.0/oauth/access_token");
+  private static final URI USERINFO_URI =
+      URI.create("https://graph.facebook.com/v23.0/me?fields=id,email");
   private static final Duration TIMEOUT = Duration.ofSeconds(10);
 
   @Inject NonProdAuthConfig config;

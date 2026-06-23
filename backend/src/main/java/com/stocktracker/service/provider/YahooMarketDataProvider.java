@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.common.annotation.Identifier;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.WebApplicationException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -160,8 +161,19 @@ public class YahooMarketDataProvider implements MarketDataProvider {
         bars.add(new ProviderDailyBar(symbol, date, new BigDecimal(closes.get(i).asText())));
       }
       return bars;
+    } catch (WebApplicationException exception) {
+      var response = exception.getResponse();
+      var status = response == null ? -1 : response.getStatus();
+      if (status == 400) {
+        LOG.debugf("Yahoo dailyHistory boundary for %s %s..%s", symbol, from, to);
+        return List.of();
+      }
+      LOG.warnf(
+          "Yahoo dailyHistory failed for %s %s..%s: %s", symbol, from, to, exception.getMessage());
+      return List.of();
     } catch (RuntimeException exception) {
-      LOG.warnf("Yahoo dailyHistory failed for %s %s..%s: %s", symbol, from, to, exception.getMessage());
+      LOG.warnf(
+          "Yahoo dailyHistory failed for %s %s..%s: %s", symbol, from, to, exception.getMessage());
       return List.of();
     }
   }
@@ -193,7 +205,8 @@ public class YahooMarketDataProvider implements MarketDataProvider {
                 symbol,
                 node.path("longname").asText(node.path("shortname").asText(symbol)),
                 node.path("exchDisp").asText(node.path("exchange").asText("")),
-                // Search omits currency; the chart meta supplies it (quote endpoint now needs auth).
+                // Search omits currency; the chart meta supplies it (quote endpoint now needs
+                // auth).
                 chartCurrency(symbol)));
       }
       return results;

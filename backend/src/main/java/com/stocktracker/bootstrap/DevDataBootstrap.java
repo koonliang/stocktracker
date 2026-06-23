@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @ApplicationScoped
@@ -41,10 +42,12 @@ public class DevDataBootstrap {
 
   /** Documented default dev password for the seed accounts (policy-compliant; dev-mode only). */
   private static final String SEED_USER_PASSWORD = "DevPass123!";
+
   // A second verified account with no data, used by the e2e per-user isolation scenario (FR-006).
   private static final String EMPTY_USER_EMAIL = "empty@stocktracker.local";
   private static final String EMPTY_USER_PASSWORD = "DevPass123!";
   private static final String DEFAULT_DEMO_SEED_PROFILE = "seed";
+  private final AtomicBoolean bootstrappingMarketData = new AtomicBoolean(false);
 
   @ConfigProperty(name = "stocktracker.dev-bootstrap.enabled", defaultValue = "true")
   boolean enabled;
@@ -54,18 +57,27 @@ public class DevDataBootstrap {
     if (!enabled) {
       return;
     }
-    var seedUser = ensureLegacySeedUser();
-    ensureSeedPortfolio(seedUser);
-    // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
-    ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
-    if (!nonProdAuthConfig.demoUsersEnabled()) {
-      bootstrapSeededMarketData(loadSeedSymbols(DEFAULT_DEMO_SEED_PROFILE));
-      return;
+    bootstrappingMarketData.set(true);
+    try {
+      var seedUser = ensureLegacySeedUser();
+      ensureSeedPortfolio(seedUser);
+      // A second verified, sign-in-capable account that owns no data (e2e isolation scenario).
+      ensureVerifiedUser(EMPTY_USER_EMAIL, EMPTY_USER_PASSWORD);
+      if (!nonProdAuthConfig.demoUsersEnabled()) {
+        bootstrapSeededMarketData(loadSeedSymbols(DEFAULT_DEMO_SEED_PROFILE));
+        return;
+      }
+      for (var demoUser : appUserRepository.listDemoUsers()) {
+        refreshDemoUserPortfolio(demoUser);
+      }
+      bootstrapSeededMarketData(loadAllSeedSymbols());
+    } finally {
+      bootstrappingMarketData.set(false);
     }
-    for (var demoUser : appUserRepository.listDemoUsers()) {
-      refreshDemoUserPortfolio(demoUser);
-    }
-    bootstrapSeededMarketData(loadAllSeedSymbols());
+  }
+
+  public boolean isBootstrappingMarketData() {
+    return bootstrappingMarketData.get();
   }
 
   @Transactional
