@@ -26,8 +26,10 @@ import org.jboss.logging.Logger;
 public class YahooMarketDataProvider implements MarketDataProvider {
   private static final Logger LOG = Logger.getLogger(YahooMarketDataProvider.class);
   private static final List<String> SUPPORTED_SEARCH_QUOTE_TYPES = List.of("EQUITY", "ETF");
-  private static final java.util.regex.Pattern YAHOO_CLASS_SHARE_SYMBOL =
-      java.util.regex.Pattern.compile("^[A-Z]+\\.[A-Z]$");
+  private static final java.util.Map<String, String> YAHOO_SYMBOL_OVERRIDES =
+      java.util.Map.of(
+          "BRK.B", "BRK-B",
+          "BF.B", "BF-B");
 
   @Inject @RestClient YahooApi api;
 
@@ -235,10 +237,7 @@ public class YahooMarketDataProvider implements MarketDataProvider {
       return symbol;
     }
     var normalized = symbol.trim().toUpperCase();
-    if (YAHOO_CLASS_SHARE_SYMBOL.matcher(normalized).matches()) {
-      return normalized.replace('.', '-');
-    }
-    return normalized;
+    return YAHOO_SYMBOL_OVERRIDES.getOrDefault(normalized, normalized);
   }
 
   private static BigDecimal decimal(JsonNode node, String field) {

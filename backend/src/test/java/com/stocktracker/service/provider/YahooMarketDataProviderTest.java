@@ -15,5 +15,8 @@ class YahooMarketDataProviderTest {
   void keepsExchangeSuffixSymbolsUnchanged() {
     assertEquals("ES3.SI", YahooMarketDataProvider.yahooSymbol("ES3.SI"));
     assertEquals("D05.SI", YahooMarketDataProvider.yahooSymbol("D05.SI"));
+    assertEquals("VWRD.L", YahooMarketDataProvider.yahooSymbol("VWRD.L"));
+    assertEquals("IWDA.L", YahooMarketDataProvider.yahooSymbol("IWDA.L"));
+    assertEquals("VWRA.L", YahooMarketDataProvider.yahooSymbol("VWRA.L"));
   }
 }
