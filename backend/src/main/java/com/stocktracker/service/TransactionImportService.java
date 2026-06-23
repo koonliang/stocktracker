@@ -52,7 +52,8 @@ public class TransactionImportService {
         // optional
       }
       if (!headerErrors.isEmpty()) {
-        return new TransactionImportPreviewResponse(validRows, invalidRows, headerErrors, "unknown");
+        return new TransactionImportPreviewResponse(
+            validRows, invalidRows, headerErrors, "unknown");
       }
 
       var records = parser.getRecords();

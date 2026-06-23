@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { Pencil } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
-import { createAlert, deleteAlert, listAlerts } from '@/api/alertsApi';
+import { createAlert, deleteAlert, listAlerts, updateAlert } from '@/api/alertsApi';
 import { searchInstruments } from '@/api/searchApi';
 import type { Alert, AlertCondition, SymbolSearchResult } from '@/api/types';
+import { messageFromError, notifyActionFeedback } from '@/lib/actionFeedback';
 import { formatDateISO, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
@@ -16,6 +18,7 @@ export function AlertsRoute() {
   const [symbol, setSymbol] = useState('');
   const [conditionType, setConditionType] = useState<AlertCondition>('price_above');
   const [threshold, setThreshold] = useState('200');
+  const [editingAlertId, setEditingAlertId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tickerResults, setTickerResults] = useState<SymbolSearchResult[]>([]);
   const [selectingTicker, setSelectingTicker] = useState<string | null>(null);
@@ -25,6 +28,43 @@ export function AlertsRoute() {
     listAlerts()
       .then((response) => setAlerts(response.alerts))
       .catch((err: Error) => setError(err.message));
+
+  function resetForm() {
+    setEditingAlertId(null);
+    setSymbol('');
+    setConditionType('price_above');
+    setThreshold('200');
+    setTickerResults([]);
+    setSelectingTicker(null);
+  }
+
+  async function handleSubmit() {
+    const request = {
+      symbol: symbol.toUpperCase(),
+      conditionType,
+      threshold: Number(threshold),
+    };
+    try {
+      if (editingAlertId) {
+        await updateAlert(editingAlertId, request);
+        notifyActionFeedback({ scope: 'alert', operation: 'update', outcome: 'success' });
+      } else {
+        await createAlert(request);
+        notifyActionFeedback({ scope: 'alert', operation: 'add', outcome: 'success' });
+      }
+      setError(null);
+      resetForm();
+      await load();
+    } catch (err) {
+      setError(messageFromError(err));
+      notifyActionFeedback({
+        scope: 'alert',
+        operation: editingAlertId ? 'update' : 'add',
+        outcome: 'failure',
+        message: messageFromError(err),
+      });
+    }
+  }
 
   useEffect(() => {
     void load();
@@ -45,16 +85,7 @@ export function AlertsRoute() {
             data-testid="alert-form"
             onSubmit={(event) => {
               event.preventDefault();
-              createAlert({
-                symbol: symbol.toUpperCase(),
-                conditionType,
-                threshold: Number(threshold),
-              })
-                .then(() => {
-                  setError(null);
-                  return load();
-                })
-                .catch((err: Error) => setError(err.message));
+              void handleSubmit();
             }}
           >
             <div className="relative">
@@ -133,8 +164,13 @@ export function AlertsRoute() {
             </div>
             <div className="flex items-end">
               <Button type="submit" data-testid="alert-submit">
-                Save
+                {editingAlertId ? 'Update' : 'Save'}
               </Button>
+              {editingAlertId ? (
+                <Button type="button" variant="ghost" onClick={resetForm}>
+                  Cancel
+                </Button>
+              ) : null}
             </div>
           </form>
           {error ? <p className="mt-3 text-small text-danger">{error}</p> : null}
@@ -171,9 +207,45 @@ export function AlertsRoute() {
                   </div>
                 </div>
                 <Button
+                  variant="ghost"
+                  data-testid="alert-edit"
+                  onClick={() => {
+                    setEditingAlertId(alert.id);
+                    setSymbol(alert.symbol);
+                    setConditionType(alert.conditionType);
+                    setThreshold(String(alert.threshold));
+                    setError(null);
+                  }}
+                >
+                  <Pencil size={14} aria-hidden />
+                  Edit
+                </Button>
+                <Button
                   variant="secondary"
                   data-testid="alert-delete"
-                  onClick={() => deleteAlert(alert.id).then(load)}
+                  onClick={() =>
+                    deleteAlert(alert.id)
+                      .then(async () => {
+                        notifyActionFeedback({
+                          scope: 'alert',
+                          operation: 'delete',
+                          outcome: 'success',
+                        });
+                        if (editingAlertId === alert.id) {
+                          resetForm();
+                        }
+                        await load();
+                      })
+                      .catch((err: Error) => {
+                        setError(messageFromError(err));
+                        notifyActionFeedback({
+                          scope: 'alert',
+                          operation: 'delete',
+                          outcome: 'failure',
+                          message: messageFromError(err),
+                        });
+                      })
+                  }
                 >
                   Delete
                 </Button>

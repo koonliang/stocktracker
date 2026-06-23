@@ -117,9 +117,13 @@ class PerformanceResourceTest extends IntegrationTestSupport {
 
     assertEquals("SGD", response.baseCurrency());
     assertEquals(420.0, response.closedLots().getFirst().realizedPnLBase(), 0.01);
-    assertEquals(FxStatus.current, response.closedLots().getFirst().realizedPnlConversion().fxStatus());
-    assertEquals("2024-02-01", response.closedLots().getFirst().realizedPnlConversion().fxDate().toString());
-    assertEquals(FxStatus.current, response.incomeEvents().getFirst().amountConversion().fxStatus());
-    assertEquals("2024-03-01", response.incomeEvents().getFirst().amountConversion().fxDate().toString());
+    assertEquals(
+        FxStatus.current, response.closedLots().getFirst().realizedPnlConversion().fxStatus());
+    assertEquals(
+        "2024-02-01", response.closedLots().getFirst().realizedPnlConversion().fxDate().toString());
+    assertEquals(
+        FxStatus.current, response.incomeEvents().getFirst().amountConversion().fxStatus());
+    assertEquals(
+        "2024-03-01", response.incomeEvents().getFirst().amountConversion().fxDate().toString());
   }
 }

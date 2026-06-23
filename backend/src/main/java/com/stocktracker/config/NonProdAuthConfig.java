@@ -77,7 +77,8 @@ public class NonProdAuthConfig {
   }
 
   public String demoUserPrefix() {
-    var normalized = demoUserPrefix == null ? "demo" : demoUserPrefix.trim().toLowerCase(Locale.ROOT);
+    var normalized =
+        demoUserPrefix == null ? "demo" : demoUserPrefix.trim().toLowerCase(Locale.ROOT);
     return normalized.isBlank() ? "demo" : normalized;
   }
 

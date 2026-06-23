@@ -2,8 +2,8 @@ package com.stocktracker.api;
 
 import com.stocktracker.dto.ApiErrorResponse;
 import jakarta.validation.ConstraintViolationException;
-import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -41,8 +41,7 @@ public class ApiExceptionMapper implements ExceptionMapper<Throwable> {
     if (exception instanceof NotFoundException) {
       LOG.debugf(
           "code=not_found exception=%s message=%s",
-          exception.getClass().getName(),
-          exception.getMessage());
+          exception.getClass().getName(), exception.getMessage());
       return Response.status(Response.Status.NOT_FOUND)
           .type(MediaType.APPLICATION_JSON)
           .entity(new ApiErrorResponse("not_found", "Resource not found", null))

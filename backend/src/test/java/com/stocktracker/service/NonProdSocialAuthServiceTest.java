@@ -31,7 +31,8 @@ class NonProdSocialAuthServiceTest extends IntegrationTestSupport {
               case "google-new-user" ->
                   new ProviderProfile("google-sub-new-user", "new.user@gmail.com", true);
               case "google-returning-user" ->
-                  new ProviderProfile("google-sub-returning-user", "returning.user@gmail.com", true);
+                  new ProviderProfile(
+                      "google-sub-returning-user", "returning.user@gmail.com", true);
               default ->
                   throw new com.stocktracker.api.ApiException(
                       Status.UNAUTHORIZED, "AUTH_FAILED", "Unable to complete sign-in.");

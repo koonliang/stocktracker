@@ -13,6 +13,7 @@ function reset() {
   localStorage.clear();
   usePortfolioStore.setState({ transactions: [], initialized: true });
   useToastStore.getState().clearToasts();
+  vi.unstubAllGlobals();
 }
 
 describe('portfolioStore', () => {
@@ -155,8 +156,129 @@ describe('portfolioStore', () => {
     expect(useToastStore.getState().toasts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          title: 'Transaction not saved',
+          title: 'Transaction could not be created',
           message: 'sell quantity exceeds held shares',
+          tone: 'error',
+        }),
+      ]),
+    );
+  });
+
+  it('pushes a success toast when manual transaction creation succeeds', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              holdings: [],
+              summary: {
+                totalMarketValue: 0,
+                totalCostBasis: 0,
+                totalUnrealizedPnL: 0,
+                totalUnrealizedPnLPct: 0,
+                totalDayChange: 0,
+                totalDayChangePct: 0,
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ),
+    );
+
+    await usePortfolioStore.getState().createManualTransaction({
+      date: '2026-06-14',
+      ticker: 'V',
+      type: 'buy',
+      quantity: 1,
+      price: 348,
+      fees: 2,
+      amount: null,
+      currency: 'USD',
+    });
+
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Transaction created',
+          tone: 'success',
+        }),
+      ]),
+    );
+  });
+
+  it('pushes a partial-result toast when imported rows still need attention', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              holdings: [],
+              summary: {
+                totalMarketValue: 0,
+                totalCostBasis: 0,
+                totalUnrealizedPnL: 0,
+                totalUnrealizedPnLPct: 0,
+                totalDayChange: 0,
+                totalDayChangePct: 0,
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        ),
+    );
+
+    usePortfolioStore.getState().hydrateForTests({
+      preview: {
+        validRows: [
+          {
+            row: 2,
+            normalized: {
+              date: '2026-06-14',
+              ticker: 'V',
+              type: 'buy',
+              quantity: 1,
+              price: 348,
+              fees: 2,
+              amount: null,
+              currency: 'USD',
+            },
+          },
+        ],
+        invalidRows: [
+          {
+            row: 3,
+            reason: 'unknown ticker',
+            raw: { ticker: 'ZZZZ' },
+          },
+        ],
+        headerErrors: [],
+        detectedVersion: 'v2',
+      },
+    });
+
+    await usePortfolioStore.getState().commitPreview();
+
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: 'Import needs attention',
+          message: '1 imported, 1 row still need attention',
           tone: 'error',
         }),
       ]),

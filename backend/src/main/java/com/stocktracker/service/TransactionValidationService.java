@@ -135,13 +135,15 @@ public class TransactionValidationService {
       return "currency must match the instrument currency (" + instrumentCurrency + ")";
     }
     if (!supportedCurrency(request.currency() == null ? instrumentCurrency : request.currency())) {
-      return "unsupported currency: " + (request.currency() == null ? instrumentCurrency : request.currency());
+      return "unsupported currency: "
+          + (request.currency() == null ? instrumentCurrency : request.currency());
     }
     return null;
   }
 
   private boolean supportedCurrency(String currency) {
-    return currency != null && List.of(defaultBaseCurrency.toUpperCase(), "USD", "SGD", "EUR").contains(currency);
+    return currency != null
+        && List.of(defaultBaseCurrency.toUpperCase(), "USD", "SGD", "EUR").contains(currency);
   }
 
   public void applyToBalances(TransactionRequest request, Map<String, BigDecimal> shareBalances) {

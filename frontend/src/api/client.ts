@@ -18,6 +18,12 @@ export class ApiError extends Error {
   }
 }
 
+export function getApiErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof Error) return error.message;
+  return 'Request failed';
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api';
 const RETRYABLE_METHODS = new Set(['GET', 'HEAD']);
 const RETRYABLE_STATUSES = new Set([502, 503, 504]);

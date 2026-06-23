@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { ApiError } from '@/api/client';
 import { getDashboard } from '@/api/dashboardApi';
 import {
   commitTransactionImport,
@@ -16,9 +15,9 @@ import type {
   TransactionImportPreviewResponse,
   TransactionImportNormalizedRow,
 } from '@/lib/types';
+import { messageFromError, notifyActionFeedback } from '@/lib/actionFeedback';
 import { computeHoldings, computePortfolio, buildPriceLookup } from '@/lib/portfolio';
 import { loadPrices, loadSeedPortfolio, loadTickers } from '@/lib/seed';
-import { useToastStore } from '@/stores/toastStore';
 
 type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -64,20 +63,6 @@ const EMPTY_SUMMARY: PortfolioSummary = {
   totalDayChange: 0,
   totalDayChangePct: 0,
 };
-
-function messageFromError(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error) return error.message;
-  return 'Request failed';
-}
-
-function notifyError(error: unknown, title = 'Request failed') {
-  useToastStore.getState().pushToast({
-    tone: 'error',
-    title,
-    message: messageFromError(error),
-  });
-}
 
 function applyDashboard(response: DashboardResponse) {
   // Guard against a malformed body (e.g. an HTML SPA-fallback page served with
@@ -149,9 +134,15 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
         transactionsStatus: 'success',
         commitStatus: 'success',
       });
+      notifyActionFeedback({ scope: 'transaction', operation: 'delete', outcome: 'success' });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
-      notifyError(error, 'Delete failed');
+      notifyActionFeedback({
+        scope: 'transaction',
+        operation: 'delete',
+        outcome: 'failure',
+        message: messageFromError(error),
+      });
     }
   },
 
@@ -162,7 +153,13 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
       set({ preview, previewStatus: 'success' });
     } catch (error) {
       set({ previewStatus: 'error', error: messageFromError(error) });
-      notifyError(error, 'Import preview failed');
+      notifyActionFeedback({
+        scope: 'transaction_import',
+        operation: 'import',
+        outcome: 'failure',
+        title: 'Import preview failed',
+        message: messageFromError(error),
+      });
     }
   },
 
@@ -188,9 +185,28 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
         previewStatus: 'idle',
         commitStatus: 'success',
       });
+      const invalidCount = preview.invalidRows.length;
+      notifyActionFeedback({
+        scope: 'transaction_import',
+        operation: 'import',
+        outcome: invalidCount > 0 ? 'failure' : 'success',
+        title:
+          invalidCount > 0
+            ? 'Import needs attention'
+            : `${preview.validRows.length} transaction${preview.validRows.length === 1 ? '' : 's'} imported`,
+        message:
+          invalidCount > 0
+            ? `${preview.validRows.length} imported, ${invalidCount} row${invalidCount === 1 ? '' : 's'} still need attention`
+            : undefined,
+      });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
-      notifyError(error, 'Import failed');
+      notifyActionFeedback({
+        scope: 'transaction_import',
+        operation: 'import',
+        outcome: 'failure',
+        message: messageFromError(error),
+      });
     }
   },
 
@@ -205,9 +221,15 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
         transactionsStatus: 'success',
         commitStatus: 'success',
       });
+      notifyActionFeedback({ scope: 'transaction', operation: 'add', outcome: 'success' });
     } catch (error) {
       set({ commitStatus: 'error', error: messageFromError(error) });
-      notifyError(error, 'Transaction not saved');
+      notifyActionFeedback({
+        scope: 'transaction',
+        operation: 'add',
+        outcome: 'failure',
+        message: messageFromError(error),
+      });
     }
   },
 

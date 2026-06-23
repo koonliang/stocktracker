@@ -108,8 +108,7 @@ class CurrencyServiceTest extends IntegrationTestSupport {
     persistRate("USD", "SGD", TODAY, "1.35");
 
     var result =
-        currencyService.convertTransaction(
-            new BigDecimal("100"), "USD", "SGD", transactionDate);
+        currencyService.convertTransaction(new BigDecimal("100"), "USD", "SGD", transactionDate);
 
     assertEquals(0, result.value().compareTo(new BigDecimal("140.0000")));
     assertEquals(transactionDate, result.fxDate());

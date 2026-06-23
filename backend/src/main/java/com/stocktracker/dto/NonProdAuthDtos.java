@@ -11,10 +11,10 @@ public final class NonProdAuthDtos {
 
   public record DemoUserSummary(int slot, String label) {}
 
-  public record DemoUserCatalogResponse(List<DemoUserListItem> users, int maxUsers, boolean canCreate) {}
+  public record DemoUserCatalogResponse(
+      List<DemoUserListItem> users, int maxUsers, boolean canCreate) {}
 
   public record DemoUserCreateRequest(String label) {}
 
   public record DemoUserLoginResponse(String token, UserResponse user, DemoUserSummary demoUser) {}
 }
-

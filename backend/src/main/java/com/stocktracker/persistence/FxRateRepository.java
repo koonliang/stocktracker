@@ -3,8 +3,8 @@ package com.stocktracker.persistence;
 import com.stocktracker.domain.FxRate;
 import io.quarkus.hibernate.orm.panache.PanacheRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.persistence.EntityManager;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import java.time.LocalDate;
 import java.util.Optional;
 
@@ -47,7 +47,12 @@ public class FxRateRepository implements PanacheRepository<FxRate> {
 
   /** Insert the rate row if it does not already exist for the unique pair/date key. */
   public int insertIgnore(
-      String base, String quote, LocalDate rateDate, java.math.BigDecimal rate, String source, boolean stale) {
+      String base,
+      String quote,
+      LocalDate rateDate,
+      java.math.BigDecimal rate,
+      String source,
+      boolean stale) {
     return entityManager
         .createNativeQuery(
             """

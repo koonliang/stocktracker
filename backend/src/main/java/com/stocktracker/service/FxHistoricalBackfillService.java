@@ -1,6 +1,5 @@
 package com.stocktracker.service;
 
-import com.stocktracker.domain.FxRate;
 import com.stocktracker.persistence.FxRateRepository;
 import com.stocktracker.service.provider.FxRateProvider;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -23,7 +22,8 @@ public class FxHistoricalBackfillService {
 
   @Inject FxHistoricalBackfillService self;
 
-  public int backfillForBase(String baseCurrency, Set<String> quoteCurrencies, LocalDate from, LocalDate to) {
+  public int backfillForBase(
+      String baseCurrency, Set<String> quoteCurrencies, LocalDate from, LocalDate to) {
     if (baseCurrency == null || quoteCurrencies == null || quoteCurrencies.isEmpty()) {
       return 0;
     }

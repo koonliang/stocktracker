@@ -28,7 +28,8 @@ public class DemoUserService {
             .sorted(Comparator.comparingInt(user -> user.demoSlot.intValue()))
             .map(user -> new DemoUserListItem(user.demoSlot.intValue(), labelFor(user), user.email))
             .toList();
-    return new DemoUserCatalogResponse(entries, config.demoUserMax(), entries.size() < config.demoUserMax());
+    return new DemoUserCatalogResponse(
+        entries, config.demoUserMax(), entries.size() < config.demoUserMax());
   }
 
   @Transactional
@@ -69,9 +70,12 @@ public class DemoUserService {
   public AppUser login(int slot) {
     ensureEnabled();
     var user =
-        users.findDemoUserBySlot(slot)
+        users
+            .findDemoUserBySlot(slot)
             .orElseThrow(
-                () -> new ApiException(Status.NOT_FOUND, "DEMO_USER_NOT_FOUND", "Unknown demo user."));
+                () ->
+                    new ApiException(
+                        Status.NOT_FOUND, "DEMO_USER_NOT_FOUND", "Unknown demo user."));
     user.lastLoginAt = LocalDateTime.now();
     user.demoLastActivatedAt = LocalDateTime.now();
     return user;

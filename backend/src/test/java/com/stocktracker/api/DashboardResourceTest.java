@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.stocktracker.domain.AppUser;
-import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.dto.ConversionDtos.FxStatus;
+import com.stocktracker.dto.DashboardResponse;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -104,7 +104,8 @@ class DashboardResourceTest extends IntegrationTestSupport {
             .extract()
             .as(DashboardResponse.class);
 
-    assertEquals(FxStatus.unavailable, response.holdings().getFirst().marketValueConversion().fxStatus());
+    assertEquals(
+        FxStatus.unavailable, response.holdings().getFirst().marketValueConversion().fxStatus());
     assertEquals(FxStatus.unavailable, response.summary().marketValueConversion().fxStatus());
     assertEquals(0.0, response.summary().totalMarketValue(), 0.0001);
     assertEquals(1, response.warnings().size());

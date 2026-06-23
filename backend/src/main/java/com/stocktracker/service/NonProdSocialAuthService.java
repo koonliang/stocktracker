@@ -36,7 +36,9 @@ public class NonProdSocialAuthService {
 
     var user =
         accountLinkingService.resolveOrLink(
-            "google".equals(normalizedProvider) ? SocialIdentity.Provider.GOOGLE : SocialIdentity.Provider.FACEBOOK,
+            "google".equals(normalizedProvider)
+                ? SocialIdentity.Provider.GOOGLE
+                : SocialIdentity.Provider.FACEBOOK,
             profile.subject(),
             profile.email(),
             profile.emailVerified(),
@@ -46,4 +48,3 @@ public class NonProdSocialAuthService {
     return new LoginResponse(tokenIssuer.issue(user), new UserResponse(user.id, user.email));
   }
 }
-

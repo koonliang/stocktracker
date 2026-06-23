@@ -6,6 +6,7 @@ import com.stocktracker.service.provider.MarketDataProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.stream.Collectors;
 
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class HistoricalBackfillService {
   @Inject MarketDataProvider marketDataProvider;
   @Inject InstrumentRepository instrumentRepository;
+  @Inject Clock clock;
 
   @Transactional
   public int backfill(String symbol, LocalDate from) {
@@ -25,7 +27,18 @@ public class HistoricalBackfillService {
   }
 
   @Transactional
+  public int backfillTrailingYear(String symbol) {
+    return backfill(symbol, LocalDate.now(clock).minusYears(1));
+  }
+
+  @Transactional
   public int backfillMax(String symbol) {
+    return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
+  }
+
+  @Transactional
+  public int rewriteMax(String symbol) {
+    InstrumentPriceBar.delete("instrumentSymbol", symbol.toUpperCase());
     return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
   }
 

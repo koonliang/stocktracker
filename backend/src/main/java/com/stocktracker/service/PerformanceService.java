@@ -125,7 +125,8 @@ public class PerformanceService {
       var currency = currencyFor(lot.symbol(), instruments, baseCurrency);
       var price = closeOnOrBefore(barsBySymbol.getOrDefault(lot.symbol(), List.of()), today);
       var value = lot.quantity().multiply(price).subtract(lot.totalCost());
-      total = total.add(currencyService.convertHolding(value, currency, baseCurrency, today).value());
+      total =
+          total.add(currencyService.convertHolding(value, currency, baseCurrency, today).value());
     }
     return total;
   }
@@ -220,7 +221,8 @@ public class PerformanceService {
       var currency = currencyFor(symbol, instruments, baseCurrency);
       var value =
           shares.multiply(closeOnOrBefore(barsBySymbol.getOrDefault(symbol, List.of()), date));
-      total = total.add(currencyService.convertHolding(value, currency, baseCurrency, date).value());
+      total =
+          total.add(currencyService.convertHolding(value, currency, baseCurrency, date).value());
     }
     return total;
   }
@@ -302,7 +304,10 @@ public class PerformanceService {
   }
 
   private void backfillHistoricalFx(
-      List<PortfolioTransaction> transactions, String baseCurrency, LocalDate start, LocalDate today) {
+      List<PortfolioTransaction> transactions,
+      String baseCurrency,
+      LocalDate start,
+      LocalDate today) {
     if (transactions.isEmpty()) {
       return;
     }
@@ -384,7 +389,8 @@ public class PerformanceService {
     return value.setScale(scale, RoundingMode.HALF_UP).doubleValue();
   }
 
-  private static ConversionMetadata conversion(String baseCurrency, CurrencyService.Converted converted) {
+  private static ConversionMetadata conversion(
+      String baseCurrency, CurrencyService.Converted converted) {
     return new ConversionMetadata(
         baseCurrency, dbl(converted.value(), 4), converted.fxDate(), converted.fxStatus());
   }

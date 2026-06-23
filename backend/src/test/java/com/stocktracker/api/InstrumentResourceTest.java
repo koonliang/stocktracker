@@ -159,13 +159,7 @@ class InstrumentResourceTest extends IntegrationTestSupport {
   }
 
   private void persistBar(
-      String symbol,
-      String date,
-      String open,
-      String high,
-      String low,
-      String close,
-      long volume) {
+      String symbol, String date, String open, String high, String low, String close, long volume) {
     var bar = new InstrumentPriceBar();
     bar.instrumentSymbol = symbol;
     bar.tradeDate = LocalDate.parse(date);

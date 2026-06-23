@@ -1,7 +1,6 @@
 package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.support.IntegrationTestSupport;
@@ -25,7 +24,14 @@ class TransactionValidationServiceTest extends IntegrationTestSupport {
   void securityBuyRequiresInstrumentCurrency() {
     var request =
         new TransactionRequest(
-            TODAY, "AAPL", "buy", new BigDecimal("10"), new BigDecimal("100"), BigDecimal.ZERO, null, "SGD");
+            TODAY,
+            "AAPL",
+            "buy",
+            new BigDecimal("10"),
+            new BigDecimal("100"),
+            BigDecimal.ZERO,
+            null,
+            "SGD");
     var issue = transactionValidationService.validate(request, Map.of());
     assertEquals("currency must match the instrument currency (USD)", issue);
   }
@@ -34,7 +40,14 @@ class TransactionValidationServiceTest extends IntegrationTestSupport {
   void securityBuyWithNullCurrencyDefaultsToInstrument() {
     var request =
         new TransactionRequest(
-            TODAY, "AAPL", "buy", new BigDecimal("10"), new BigDecimal("100"), BigDecimal.ZERO, null, null);
+            TODAY,
+            "AAPL",
+            "buy",
+            new BigDecimal("10"),
+            new BigDecimal("100"),
+            BigDecimal.ZERO,
+            null,
+            null);
     var issue = transactionValidationService.validate(request, Map.of());
     assertEquals(null, issue);
   }
@@ -72,24 +85,33 @@ class TransactionValidationServiceTest extends IntegrationTestSupport {
     // For security types the instrument currency match is checked first
     var request =
         new TransactionRequest(
-            TODAY, "AAPL", "buy", new BigDecimal("10"), new BigDecimal("100"), BigDecimal.ZERO, null, "XYZ");
+            TODAY,
+            "AAPL",
+            "buy",
+            new BigDecimal("10"),
+            new BigDecimal("100"),
+            BigDecimal.ZERO,
+            null,
+            "XYZ");
     var issue = transactionValidationService.validate(request, Map.of());
     assertEquals("currency must match the instrument currency (USD)", issue);
   }
 
   @Test
   void normalizeTrimsAndUppercasesCurrency() {
-    var normalized = transactionValidationService.normalize(
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("100"), " sgd "));
+    var normalized =
+        transactionValidationService.normalize(
+            new TransactionRequest(
+                TODAY, null, "deposit", null, null, null, new BigDecimal("100"), " sgd "));
     assertEquals("SGD", normalized.currency());
   }
 
   @Test
   void normalizeSetsNullCurrencyToNull() {
-    var normalized = transactionValidationService.normalize(
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("100"), null));
+    var normalized =
+        transactionValidationService.normalize(
+            new TransactionRequest(
+                TODAY, null, "deposit", null, null, null, new BigDecimal("100"), null));
     assertEquals(null, normalized.currency());
   }
 }

@@ -1,9 +1,9 @@
 package com.stocktracker.support;
 
 import com.stocktracker.domain.Alert;
+import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.FxRate;
 import com.stocktracker.domain.Notification;
-import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.domain.Watchlist;
 import com.stocktracker.domain.WatchlistItem;
@@ -104,8 +104,8 @@ public abstract class IntegrationTestSupport {
     return persistTransaction(date, ticker, type, quantity, price, fees, amount, null);
   }
 
-  protected Long persistAlert(
-      String symbol, String conditionType, String threshold, boolean armed) throws Exception {
+  protected Long persistAlert(String symbol, String conditionType, String threshold, boolean armed)
+      throws Exception {
     var holder = new Long[1];
     inTransaction(
         () -> {
@@ -142,8 +142,14 @@ public abstract class IntegrationTestSupport {
           notification.observedCurrency = "USD";
           notification.triggeredAt = LocalDateTime.now();
           notification.read = read;
-          notification.message = String.format("%s %s %s", symbol, conditionType.equals("price_above") ? "crossed above" : "crossed below", threshold);
-          notification.crossingKey = String.format("%d-%s-%s", alertId, symbol, Instant.now().toEpochMilli());
+          notification.message =
+              String.format(
+                  "%s %s %s",
+                  symbol,
+                  conditionType.equals("price_above") ? "crossed above" : "crossed below",
+                  threshold);
+          notification.crossingKey =
+              String.format("%d-%s-%s", alertId, symbol, Instant.now().toEpochMilli());
           notificationRepository.persist(notification);
           holder[0] = notification.id;
         });

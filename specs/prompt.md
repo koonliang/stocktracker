@@ -80,6 +80,10 @@ Let users set thresholds on a ticker (price >, price <, % change).
 - bottom menu navigation for mobile, suggest icon only or icon with text (text must not overlap each other)
 - each page must be beautifully rendered and not looked like it's vibe coded, use frontend design skill
 
+# 011-transaction-toasts-live-seed
+- every transaction should have a toast message
+- seed data is showing inaccurate data. if live provider is enabled, seed data should use from live provider 
+
 # 0??-stock-analysis
 - On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
 - On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)

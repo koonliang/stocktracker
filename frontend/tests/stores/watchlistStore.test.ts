@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { useWatchlistStore } from '@/stores/watchlistStore';
+import { useToastStore } from '@/stores/toastStore';
 import { loadTickers } from '@/lib/seed';
 
 function reset() {
   localStorage.clear();
   useWatchlistStore.setState({ watchlists: [], status: 'idle', error: null });
+  useToastStore.getState().clearToasts();
 }
 
 const knownTickers = loadTickers().map((ticker) => ticker.symbol);
@@ -23,6 +25,11 @@ describe('watchlistStore', () => {
     expect(lists).toHaveLength(1);
     expect(lists[0]!.name).toBe('Tech Majors');
     expect(lists[0]!.tickers).toEqual([]);
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Watchlist created', tone: 'success' }),
+      ]),
+    );
   });
 
   it('create rejects empty names', async () => {
@@ -87,6 +94,11 @@ describe('watchlistStore', () => {
     await useWatchlistStore.getState().addTicker(created.id, known2);
     await useWatchlistStore.getState().removeTicker(created.id, known1);
     expect(useWatchlistStore.getState().watchlists[0]!.tickers).toEqual([known2]);
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ title: 'Ticker removed from watchlist', tone: 'success' }),
+      ]),
+    );
   });
 
   it('reorderTickers moves a ticker from one index to another', async () => {

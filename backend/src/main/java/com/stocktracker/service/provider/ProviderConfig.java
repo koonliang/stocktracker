@@ -33,4 +33,14 @@ public class ProviderConfig {
       @Identifier("frankfurter") FxRateProvider frankfurter) {
     return "frankfurter".equalsIgnoreCase(fxProviderId) ? frankfurter : stub;
   }
+
+  public boolean isLiveMarketDataProvider() {
+    return "yahoo".equalsIgnoreCase(marketDataProviderId);
+  }
+
+  public String marketDataProviderId() {
+    return marketDataProviderId == null || marketDataProviderId.isBlank()
+        ? "stub"
+        : marketDataProviderId;
+  }
 }

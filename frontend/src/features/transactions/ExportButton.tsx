@@ -2,6 +2,7 @@ import { Download } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { exportTransactionsCsv } from '@/api/transactionsApi';
+import { messageFromError, notifyActionFeedback } from '@/lib/actionFeedback';
 
 type Props = {
   disabled: boolean;
@@ -27,17 +28,29 @@ export function ExportButton({ disabled, onExport }: Props) {
       const csv = await exportTransactionsCsv();
       if (onExport) {
         onExport(csv, filename);
-        return;
+      } else {
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
       }
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      notifyActionFeedback({
+        scope: 'transaction_export',
+        operation: 'export',
+        outcome: 'success',
+      });
+    } catch (error) {
+      notifyActionFeedback({
+        scope: 'transaction_export',
+        operation: 'export',
+        outcome: 'failure',
+        message: messageFromError(error),
+      });
     } finally {
       setPending(false);
     }

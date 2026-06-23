@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { ApiError } from '@/api/client';
+import { ApiError, getApiErrorMessage } from '@/api/client';
 import {
   addTickerToWatchlist,
   createWatchlist,
@@ -9,6 +9,7 @@ import {
   renameWatchlist,
   reorderWatchlistTickers,
 } from '@/api/watchlistsApi';
+import { notifyActionFeedback } from '@/lib/actionFeedback';
 import type { Watchlist } from '@/lib/types';
 
 type LoadStatus = 'idle' | 'loading' | 'success' | 'error';
@@ -43,9 +44,7 @@ type Actions = {
 };
 
 function errorReason(error: unknown): string {
-  if (error instanceof ApiError) return error.message;
-  if (error instanceof Error) return error.message;
-  return 'Request failed';
+  return getApiErrorMessage(error);
 }
 
 function createFailure(error: unknown): CreateResult {
@@ -95,9 +94,16 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
     try {
       const watchlist = await createWatchlist(name);
       set({ watchlists: [watchlist, ...get().watchlists], error: null });
+      notifyActionFeedback({ scope: 'watchlist', operation: 'add', outcome: 'success' });
       return { ok: true, id: watchlist.id };
     } catch (error) {
       set({ error: errorReason(error) });
+      notifyActionFeedback({
+        scope: 'watchlist',
+        operation: 'add',
+        outcome: 'failure',
+        message: errorReason(error),
+      });
       return createFailure(error);
     }
   },
@@ -111,9 +117,16 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
         ),
         error: null,
       });
+      notifyActionFeedback({ scope: 'watchlist', operation: 'update', outcome: 'success' });
       return { ok: true };
     } catch (error) {
       set({ error: errorReason(error) });
+      notifyActionFeedback({
+        scope: 'watchlist',
+        operation: 'update',
+        outcome: 'failure',
+        message: errorReason(error),
+      });
       return renameFailure(error);
     }
   },
@@ -125,8 +138,15 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
         watchlists: get().watchlists.filter((watchlist) => watchlist.id !== id),
         error: null,
       });
+      notifyActionFeedback({ scope: 'watchlist', operation: 'delete', outcome: 'success' });
     } catch (error) {
       set({ error: errorReason(error) });
+      notifyActionFeedback({
+        scope: 'watchlist',
+        operation: 'delete',
+        outcome: 'failure',
+        message: errorReason(error),
+      });
     }
   },
 
@@ -139,9 +159,16 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
         ),
         error: null,
       });
+      notifyActionFeedback({ scope: 'watchlist_ticker', operation: 'add', outcome: 'success' });
       return { ok: true };
     } catch (error) {
       set({ error: errorReason(error) });
+      notifyActionFeedback({
+        scope: 'watchlist_ticker',
+        operation: 'add',
+        outcome: 'failure',
+        message: errorReason(error),
+      });
       return addTickerFailure(error);
     }
   },
@@ -155,8 +182,15 @@ export const useWatchlistStore = create<State & Actions>()((set, get) => ({
         ),
         error: null,
       });
+      notifyActionFeedback({ scope: 'watchlist_ticker', operation: 'delete', outcome: 'success' });
     } catch (error) {
       set({ error: errorReason(error) });
+      notifyActionFeedback({
+        scope: 'watchlist_ticker',
+        operation: 'delete',
+        outcome: 'failure',
+        message: errorReason(error),
+      });
     }
   },
 

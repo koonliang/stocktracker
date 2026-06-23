@@ -2,7 +2,6 @@ package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
 import com.stocktracker.support.IntegrationTestSupport;
 import com.stocktracker.support.MySqlTestResource;
@@ -23,8 +22,7 @@ class TransactionCurrencyBackfillTest extends IntegrationTestSupport {
 
     inTransaction(
         () -> {
-          var tx =
-              transactionRepository.findMissingCurrency(SEED_USER_ID).stream().findFirst();
+          var tx = transactionRepository.findMissingCurrency(SEED_USER_ID).stream().findFirst();
           backfillService.backfill(tx.get(), "USD");
         });
 
@@ -42,15 +40,13 @@ class TransactionCurrencyBackfillTest extends IntegrationTestSupport {
 
     inTransaction(
         () -> {
-          var tx =
-              transactionRepository.findMissingCurrency(SEED_USER_ID).stream().findFirst();
+          var tx = transactionRepository.findMissingCurrency(SEED_USER_ID).stream().findFirst();
           backfillService.backfill(tx.get(), "USD");
         });
 
     inTransaction(
         () -> {
-          var tx =
-              transactionRepository.listAscending(SEED_USER_ID).stream().findFirst();
+          var tx = transactionRepository.listAscending(SEED_USER_ID).stream().findFirst();
           assertEquals("USD", tx.get().currency);
           assertEquals("user_base_backfill", tx.get().currencySource);
         });
@@ -62,8 +58,7 @@ class TransactionCurrencyBackfillTest extends IntegrationTestSupport {
 
     inTransaction(
         () -> {
-          var tx =
-              transactionRepository.listAscending(SEED_USER_ID).stream().findFirst();
+          var tx = transactionRepository.listAscending(SEED_USER_ID).stream().findFirst();
           backfillService.backfill(tx.get(), "USD");
           assertEquals("SGD", tx.get().currency);
         });
