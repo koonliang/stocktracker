@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.stocktracker.domain.Instrument;
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.persistence.QuoteRepository;
 import com.stocktracker.scheduler.QuoteRefreshJob;
@@ -36,6 +37,24 @@ class QuoteRefreshJobTest extends IntegrationTestSupport {
     assertNotNull(quote.fetchedAt);
     assertFalse(quote.stale);
     assertFalse(quoteCacheService.effectiveStale(quote));
+  }
+
+  @Test
+  void trackedSymbolsIncludesInstrumentRowsWithoutPortfolioOrWatchlistReferences() throws Exception {
+    var symbol = "TRACKONLY";
+    inTransaction(
+        () -> {
+          var instrument = new Instrument();
+          instrument.symbol = symbol;
+          instrument.name = "Tracked Only";
+          instrument.sector = "Unknown";
+          instrument.exchange = "TEST";
+          instrument.currency = "USD";
+          instrument.active = true;
+          instrument.persist();
+        });
+
+    assertTrue(quoteRefreshJob.trackedSymbols().contains(symbol));
   }
 
   @Test

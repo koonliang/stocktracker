@@ -1,6 +1,8 @@
 package com.stocktracker.e2e.support;
 
 import java.time.Duration;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -57,7 +59,17 @@ public final class Waits {
   }
 
   public boolean untilTrue(java.util.function.Function<WebDriver, Boolean> condition) {
-    return wait.until(condition);
+    boolean matched =
+        wait.until(
+            driver -> {
+              try {
+                return Boolean.TRUE.equals(condition.apply(driver));
+              } catch (StaleElementReferenceException | NoSuchElementException ignored) {
+                return false;
+              }
+            });
+    slowMo();
+    return matched;
   }
 
   /**
