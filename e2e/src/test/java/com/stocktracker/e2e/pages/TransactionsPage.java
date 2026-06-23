@@ -16,6 +16,8 @@ public class TransactionsPage {
   private static final By EXPORT_BUTTON = By.cssSelector("[data-testid='csv-export']");
   private static final By TRANSACTIONS_TABLE = By.cssSelector("[data-testid='transactions-table']");
   private static final By TRANSACTION_FORM = By.cssSelector("[data-testid='transaction-form']");
+  private static final By TICKER_SEARCH = By.cssSelector("[data-testid='transaction-ticker-search']");
+  private static final By TICKER_RESULTS = By.cssSelector("[data-testid='transaction-ticker-result']");
   private static final By CONFIRM_IMPORT =
       By.xpath("//button[contains(normalize-space(.), 'Confirm import')]");
 
@@ -47,21 +49,21 @@ public class TransactionsPage {
   public TransactionsPage recordBuy(String ticker, String quantity, String price) {
     waitForForm();
     new Select(driver.findElement(By.id("transaction-type"))).selectByValue("buy");
-    set(By.id("transaction-ticker"), ticker);
+    selectTicker(ticker);
     set(By.id("transaction-quantity"), quantity);
     set(By.id("transaction-price"), price);
     driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
-    waitForTicker(ticker);
+    waitForTransactionRow(ticker, "buy");
     return this;
   }
 
   public TransactionsPage recordSplit(String ticker, String ratio) {
     waitForForm();
     new Select(driver.findElement(By.id("transaction-type"))).selectByValue("split");
-    set(By.id("transaction-ticker"), ticker);
+    selectTicker(ticker);
     set(By.id("transaction-quantity"), ratio);
     driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
-    waitForType("split");
+    waitForTransactionRow(ticker, "split");
     return this;
   }
 
@@ -71,6 +73,16 @@ public class TransactionsPage {
             "//*[@data-testid='transactions-table']//tbody//td//*[normalize-space(.)='"
                 + type
                 + "']"));
+  }
+
+  public void waitForTransactionRow(String ticker, String type) {
+    waits.untilVisible(
+        By.xpath(
+            "//*[@data-testid='transactions-table']//tbody//tr[.//td[normalize-space(.)='"
+                + ticker
+                + "'] and .//td//*[normalize-space(.)='"
+                + type
+                + "']]"));
   }
 
   public TransactionsPage export() {
@@ -101,6 +113,17 @@ public class TransactionsPage {
 
   private void waitForForm() {
     waits.untilVisible(TRANSACTION_FORM);
+  }
+
+  private void selectTicker(String ticker) {
+    set(TICKER_SEARCH, ticker);
+    waits.untilClickable(
+            By.xpath(
+                "//*[@data-testid='transaction-ticker-result'][.//*[normalize-space(.)='"
+                    + ticker
+                    + "']]"))
+        .click();
+    waits.untilInvisible(TICKER_RESULTS);
   }
 
   private void set(By locator, String value) {
