@@ -21,7 +21,7 @@ describe('NotificationToaster', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('sell quantity exceeds held shares');
   });
 
-  it('positions toasts at the top center below the top bar controls', () => {
+  it('positions toasts at the bottom right', () => {
     useToastStore.getState().pushToast({
       tone: 'info',
       title: 'Alert triggered',
@@ -30,8 +30,7 @@ describe('NotificationToaster', () => {
 
     const { container } = render(<NotificationToaster />);
 
-    expect(container.firstChild).toHaveClass('top-20');
-    expect(container.firstChild).toHaveClass('left-1/2');
-    expect(container.firstChild).toHaveClass('-translate-x-1/2');
+    expect(container.firstChild).toHaveClass('bottom-4');
+    expect(container.firstChild).toHaveClass('right-4');
   });
 });
