@@ -6,6 +6,7 @@ import com.stocktracker.service.provider.MarketDataProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.stream.Collectors;
@@ -20,29 +21,38 @@ public class HistoricalBackfillService {
   @Inject MarketDataProvider marketDataProvider;
   @Inject InstrumentRepository instrumentRepository;
   @Inject Clock clock;
+  @Inject HistoricalBackfillService self;
 
-  @Transactional
+  @Transactional(TxType.NOT_SUPPORTED)
   public int backfill(String symbol, LocalDate from) {
-    return insertBars(symbol, marketDataProvider.dailyHistory(symbol, from));
+    return self.insertBars(symbol, marketDataProvider.dailyHistory(symbol, from));
   }
 
-  @Transactional
   public int backfillTrailingYear(String symbol) {
     return backfill(symbol, LocalDate.now(clock).minusYears(1));
   }
 
-  @Transactional
+  @Transactional(TxType.NOT_SUPPORTED)
   public int backfillMax(String symbol) {
-    return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
+    return self.insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
   }
 
-  @Transactional
+  @Transactional(TxType.NOT_SUPPORTED)
   public int rewriteMax(String symbol) {
-    InstrumentPriceBar.delete("instrumentSymbol", symbol.toUpperCase());
-    return insertBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
+    return self.rewriteBars(symbol, marketDataProvider.dailyHistoryMax(symbol));
   }
 
-  private int insertBars(
+  @Transactional(TxType.REQUIRES_NEW)
+  int rewriteBars(
+      String symbol,
+      java.util.List<com.stocktracker.service.provider.MarketDataProvider.ProviderDailyBar>
+          providerBars) {
+    InstrumentPriceBar.delete("instrumentSymbol", symbol.toUpperCase());
+    return insertBars(symbol, providerBars);
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  int insertBars(
       String symbol,
       java.util.List<com.stocktracker.service.provider.MarketDataProvider.ProviderDailyBar>
           providerBars) {

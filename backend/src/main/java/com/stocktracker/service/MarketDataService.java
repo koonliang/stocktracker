@@ -16,6 +16,7 @@ import com.stocktracker.service.provider.ProviderConfig;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -38,6 +39,7 @@ public class MarketDataService {
   @Inject FxRefreshJob fxRefreshJob;
   @Inject ProviderConfig providerConfig;
   @Inject Clock clock;
+  @Inject MarketDataService self;
 
   public InstrumentSearchResponse search(String query) {
     if (query == null || query.isBlank()) {
@@ -53,7 +55,6 @@ public class MarketDataService {
     return new InstrumentSearchResponse(results);
   }
 
-  @Transactional
   public AddInstrumentResponse addInstrument(String rawSymbol) {
     var symbol = rawSymbol.trim().toUpperCase();
     var existing = instrumentRepository.findBySymbol(symbol).orElse(null);
@@ -73,14 +74,7 @@ public class MarketDataService {
                         "unknown_symbol",
                         "Symbol not recognized: " + symbol));
 
-    var instrument = new Instrument();
-    instrument.symbol = match.symbol().toUpperCase();
-    instrument.name = match.name();
-    instrument.sector = "Unknown";
-    instrument.exchange = match.exchange() == null ? "" : match.exchange();
-    instrument.currency = match.currency() == null ? "USD" : match.currency().toUpperCase();
-    instrument.active = true;
-    instrumentRepository.persist(instrument);
+    var instrument = self.persistInstrument(match);
 
     // Immediate quote + history so price/value appear at once; tolerate provider failure (stale).
     quoteCacheService.refreshSymbols(List.of(symbol));
@@ -94,12 +88,28 @@ public class MarketDataService {
     return buildResponse(instrument);
   }
 
-  @Transactional
+  @Transactional(TxType.REQUIRES_NEW)
+  Instrument persistInstrument(MarketDataProvider.ProviderSymbol match) {
+    var symbol = match.symbol().toUpperCase();
+    var existing = instrumentRepository.findBySymbol(symbol).orElse(null);
+    if (existing != null) {
+      return existing;
+    }
+    var instrument = new Instrument();
+    instrument.symbol = symbol;
+    instrument.name = match.name();
+    instrument.sector = "Unknown";
+    instrument.exchange = match.exchange() == null ? "" : match.exchange();
+    instrument.currency = match.currency() == null ? "USD" : match.currency().toUpperCase();
+    instrument.active = true;
+    instrumentRepository.persist(instrument);
+    return instrument;
+  }
+
   public void refreshTrackedSymbols(Collection<String> symbols) {
     quoteCacheService.refreshSymbols(symbols);
   }
 
-  @Transactional
   public void refreshTrackedSymbolsAndAnalysis(Collection<String> symbols) {
     var wanted = symbols.stream().map(String::toUpperCase).distinct().toList();
     if (wanted.isEmpty()) {
@@ -107,26 +117,13 @@ public class MarketDataService {
     }
     var today = LocalDate.now(clock);
     for (var symbol : wanted) {
-      var bars = instrumentRepository.listPriceBars(symbol);
-      if (providerConfig.isLiveMarketDataProvider()) {
-        if (bars.isEmpty()) {
-          historicalBackfillService.backfillTrailingYear(symbol);
-        } else if (bars.get(0).tradeDate.isAfter(today.minusYears(5))) {
-          historicalBackfillService.backfillMax(symbol);
-        } else {
-          historicalBackfillService.backfill(symbol, bars.get(bars.size() - 1).tradeDate);
-        }
-      } else {
-        var from = bars.isEmpty() ? today.minusYears(5) : bars.get(bars.size() - 1).tradeDate;
-        historicalBackfillService.backfill(symbol, from);
-      }
+      applyHistoryRefresh(self.buildHistoryRefreshPlan(symbol, today, providerConfig.isLiveMarketDataProvider()));
       // QuoteRefreshJob owns instrument_quote updates; reusing the cached row here avoids
       // deadlocks when the history job overlaps the quote-refresh cadence.
-      refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null));
+      self.persistSnapshotArtifacts(symbol, marketDataProvider.latestSnapshot(symbol));
     }
   }
 
-  @Transactional
   public void bootstrapTrackedSymbolsAndAnalysis(Collection<String> symbols) {
     var wanted = symbols.stream().map(String::toUpperCase).distinct().toList();
     if (wanted.isEmpty()) {
@@ -134,34 +131,75 @@ public class MarketDataService {
     }
     quoteCacheService.refreshSymbols(wanted);
     for (var symbol : wanted) {
-      if (instrumentRepository.listPriceBars(symbol).isEmpty()) {
+      if (self.hasNoPriceBars(symbol)) {
         if (providerConfig.isLiveMarketDataProvider()) {
           historicalBackfillService.backfillTrailingYear(symbol);
         } else {
           historicalBackfillService.backfillMax(symbol);
         }
       }
-      refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null));
+      self.persistSnapshotArtifacts(symbol, marketDataProvider.latestSnapshot(symbol));
     }
   }
 
-  @Transactional
   public void rewriteTrackedSymbolsAndAnalysis(Collection<String> symbols) {
     var wanted = symbols.stream().map(String::toUpperCase).distinct().toList();
     if (wanted.isEmpty()) {
       return;
     }
-    InstrumentPriceBar.delete("instrumentSymbol in ?1", wanted);
-    InstrumentStat.delete("instrumentSymbol in ?1", wanted);
+    self.deleteTrackedAnalysisArtifacts(wanted);
     quoteCacheService.refreshSymbols(wanted);
     for (var symbol : wanted) {
       historicalBackfillService.rewriteMax(symbol);
-      refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null));
+      self.persistSnapshotArtifacts(symbol, marketDataProvider.latestSnapshot(symbol));
     }
   }
 
-  private void refreshSnapshotArtifacts(String symbol, InstrumentQuote quote) {
-    var snapshot = marketDataProvider.latestSnapshot(symbol);
+  @Transactional(TxType.REQUIRES_NEW)
+  HistoryRefreshPlan buildHistoryRefreshPlan(String symbol, LocalDate today, boolean liveProvider) {
+    var bars = instrumentRepository.listPriceBars(symbol);
+    if (liveProvider) {
+      if (bars.isEmpty()) {
+        return new HistoryRefreshPlan(symbol, HistoryRefreshAction.TRAILING_YEAR, null);
+      }
+      if (bars.get(0).tradeDate.isAfter(today.minusYears(5))) {
+        return new HistoryRefreshPlan(symbol, HistoryRefreshAction.MAX, null);
+      }
+      return new HistoryRefreshPlan(
+          symbol, HistoryRefreshAction.FROM_DATE, bars.get(bars.size() - 1).tradeDate);
+    }
+    return new HistoryRefreshPlan(
+        symbol,
+        HistoryRefreshAction.FROM_DATE,
+        bars.isEmpty() ? today.minusYears(5) : bars.get(bars.size() - 1).tradeDate);
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  boolean hasNoPriceBars(String symbol) {
+    return instrumentRepository.listPriceBars(symbol).isEmpty();
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  void deleteTrackedAnalysisArtifacts(List<String> symbols) {
+    InstrumentPriceBar.delete("instrumentSymbol in ?1", symbols);
+    InstrumentStat.delete("instrumentSymbol in ?1", symbols);
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  void persistSnapshotArtifacts(String symbol, MarketDataProvider.ProviderSnapshot snapshot) {
+    refreshSnapshotArtifacts(symbol, quoteRepository.findBySymbol(symbol).orElse(null), snapshot);
+  }
+
+  private void applyHistoryRefresh(HistoryRefreshPlan plan) {
+    switch (plan.action()) {
+      case TRAILING_YEAR -> historicalBackfillService.backfillTrailingYear(plan.symbol());
+      case MAX -> historicalBackfillService.backfillMax(plan.symbol());
+      case FROM_DATE -> historicalBackfillService.backfill(plan.symbol(), plan.from());
+    }
+  }
+
+  private void refreshSnapshotArtifacts(
+      String symbol, InstrumentQuote quote, MarketDataProvider.ProviderSnapshot snapshot) {
     upsertPriceBar(symbol, quote, snapshot);
     upsertInstrumentStat(symbol, quote, snapshot);
   }
@@ -301,4 +339,13 @@ public class MarketDataService {
     return new AddInstrumentResponse(
         instrument.symbol, instrument.name, instrument.exchange, instrument.currency, summary);
   }
+
+  private enum HistoryRefreshAction {
+    TRAILING_YEAR,
+    MAX,
+    FROM_DATE
+  }
+
+  private record HistoryRefreshPlan(
+      String symbol, HistoryRefreshAction action, LocalDate from) {}
 }
