@@ -26,6 +26,10 @@ import org.jboss.logging.Logger;
 public class YahooMarketDataProvider implements MarketDataProvider {
   private static final Logger LOG = Logger.getLogger(YahooMarketDataProvider.class);
   private static final List<String> SUPPORTED_SEARCH_QUOTE_TYPES = List.of("EQUITY", "ETF");
+  private static final java.util.Map<String, String> YAHOO_SYMBOL_OVERRIDES =
+      java.util.Map.of(
+          "BRK.B", "BRK-B",
+          "BF.B", "BF-B");
 
   @Inject @RestClient YahooApi api;
 
@@ -50,7 +54,8 @@ public class YahooMarketDataProvider implements MarketDataProvider {
 
   private ProviderQuote chartQuote(String symbol) {
     try {
-      var meta = api.chart(symbol, "1d", "1d").path("chart").path("result").path(0).path("meta");
+      var meta =
+          api.chart(yahooSymbol(symbol), "1d", "1d").path("chart").path("result").path(0).path("meta");
       var price = decimal(meta, "regularMarketPrice");
       if (price == null) {
         return null;
@@ -103,7 +108,8 @@ public class YahooMarketDataProvider implements MarketDataProvider {
   @Override
   public ProviderSnapshot latestSnapshot(String symbol) {
     try {
-      var meta = api.chart(symbol, "1d", "1d").path("chart").path("result").path(0).path("meta");
+      var meta =
+          api.chart(yahooSymbol(symbol), "1d", "1d").path("chart").path("result").path(0).path("meta");
       if (meta.isMissingNode()) {
         return null;
       }
@@ -135,7 +141,7 @@ public class YahooMarketDataProvider implements MarketDataProvider {
     try {
       var response =
           api.chartPeriod(
-              symbol,
+              yahooSymbol(symbol),
               "1d",
               from.atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond(),
               to.plusDays(1).atStartOfDay(java.time.ZoneOffset.UTC).toEpochSecond());
@@ -218,11 +224,20 @@ public class YahooMarketDataProvider implements MarketDataProvider {
 
   private String chartCurrency(String symbol) {
     try {
-      var meta = api.chart(symbol, "1d", "1d").path("chart").path("result").path(0).path("meta");
+      var meta =
+          api.chart(yahooSymbol(symbol), "1d", "1d").path("chart").path("result").path(0).path("meta");
       return meta.path("currency").asText("USD");
     } catch (RuntimeException exception) {
       return "USD";
     }
+  }
+
+  static String yahooSymbol(String symbol) {
+    if (symbol == null || symbol.isBlank()) {
+      return symbol;
+    }
+    var normalized = symbol.trim().toUpperCase();
+    return YAHOO_SYMBOL_OVERRIDES.getOrDefault(normalized, normalized);
   }
 
   private static BigDecimal decimal(JsonNode node, String field) {

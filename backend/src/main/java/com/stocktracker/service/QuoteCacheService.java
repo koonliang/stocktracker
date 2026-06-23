@@ -9,10 +9,12 @@ import com.stocktracker.service.provider.MarketDataProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.transaction.Transactional.TxType;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -34,6 +36,7 @@ public class QuoteCacheService {
   @Inject InstrumentRepository instrumentRepository;
   @Inject Clock clock;
   @Inject AlertEvaluationService alertEvaluationService;
+  @Inject QuoteCacheService self;
 
   @ConfigProperty(name = "stocktracker.marketdata.refresh-interval", defaultValue = "60s")
   Duration refreshInterval;
@@ -45,7 +48,7 @@ public class QuoteCacheService {
   String providerId;
 
   /** Fetch fresh quotes for the symbols and upsert the cache. Never throws on provider failure. */
-  @Transactional
+  @Transactional(TxType.NOT_SUPPORTED)
   public void refreshSymbols(Collection<String> symbols) {
     var wanted = symbols.stream().map(String::toUpperCase).distinct().toList();
     if (wanted.isEmpty()) {
@@ -54,7 +57,12 @@ public class QuoteCacheService {
     var fetched =
         marketDataProvider.latestQuotes(wanted).stream()
             .collect(Collectors.toMap(q -> q.symbol().toUpperCase(), q -> q, (a, b) -> a));
-    var now = clock.instant();
+    self.persistFetchedQuotes(wanted, fetched, clock.instant());
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  void persistFetchedQuotes(
+      List<String> wanted, Map<String, MarketDataProvider.ProviderQuote> fetched, Instant now) {
     for (var symbol : wanted) {
       var quote = fetched.get(symbol);
       if (quote == null) {
@@ -82,20 +90,28 @@ public class QuoteCacheService {
   }
 
   /** Read cached quotes for the symbols, with stale fallback to the latest price bar (FR-006). */
-  @Transactional
   public QuoteResponse readQuotes(Collection<String> symbols) {
     var wanted = symbols.stream().map(String::toUpperCase).distinct().toList();
 
     // On-demand refresh of stale/missing known instruments (mitigates a cold scheduler).
-    var needsFetch =
-        wanted.stream()
-            .filter(instrumentRepository::existsSymbol)
-            .filter(this::isStaleOrMissing)
-            .toList();
+    var needsFetch = self.findKnownStaleOrMissing(wanted);
     if (!needsFetch.isEmpty()) {
       refreshSymbols(needsFetch);
     }
 
+    return self.readCachedQuotes(wanted);
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  List<String> findKnownStaleOrMissing(List<String> wanted) {
+    return wanted.stream()
+        .filter(instrumentRepository::existsSymbol)
+        .filter(this::isStaleOrMissing)
+        .toList();
+  }
+
+  @Transactional(TxType.REQUIRES_NEW)
+  QuoteResponse readCachedQuotes(List<String> wanted) {
     var quotes =
         quoteRepository.findBySymbols(wanted).stream()
             .collect(Collectors.toMap(q -> q.instrumentSymbol, q -> q, (a, b) -> a));
