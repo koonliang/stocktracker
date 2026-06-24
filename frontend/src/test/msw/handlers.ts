@@ -130,7 +130,10 @@ function buildInstrumentAnalysis(symbol: string): InstrumentAnalysisResponse | n
   const dashboard = buildDashboard(state.transactions);
   const holding = dashboard.holdings.find((entry) => entry.ticker === symbol) ?? null;
   return {
-    ticker,
+    ticker: {
+      ...ticker,
+      currency: buildQuote(symbol).currency ?? 'USD',
+    },
     stats: stats
       ? {
           open: stats.open,

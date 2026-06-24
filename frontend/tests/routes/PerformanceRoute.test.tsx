@@ -99,7 +99,7 @@ describe('PerformanceRoute', () => {
     render(<PerformanceRoute />);
 
     expect(await screen.findByText('Realized P&L details')).toBeInTheDocument();
-    expect(screen.getByText(/Base currency USD/i)).toBeInTheDocument();
+
     expect(screen.getByText('Closed lot gains')).toBeInTheDocument();
     expect(screen.getByText('Dividend income')).toBeInTheDocument();
     expect(screen.getByText('Income events')).toBeInTheDocument();
@@ -109,6 +109,20 @@ describe('PerformanceRoute', () => {
     expect(screen.getAllByText('Dividend')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Stale rate').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Rate unavailable').length).toBeGreaterThan(0);
+  });
+
+  it('hides the FIFO/LIFO toggle on mobile (hidden sm:flex class)', async () => {
+    render(<PerformanceRoute />);
+    await screen.findByRole('heading', { name: /Returns/i, level: 1 });
+    const toggle = screen.getByTestId('lot-method-toggle');
+    expect(toggle).toHaveClass('hidden');
+    expect(toggle).toHaveClass('sm:flex');
+  });
+
+  it('keeps the window selector visible', async () => {
+    render(<PerformanceRoute />);
+    expect(await screen.findByTestId('perf-window-select')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1Y' })).toBeInTheDocument();
   });
 
   it('refetches when base currency changes', async () => {

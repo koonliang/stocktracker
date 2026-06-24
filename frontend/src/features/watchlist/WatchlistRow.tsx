@@ -71,19 +71,25 @@ export function WatchlistRow({
         type="button"
         onClick={open}
         aria-label={`Open analysis for ${symbol}`}
-        className="flex min-w-0 flex-1 items-center gap-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+        className="flex min-w-0 flex-1 flex-col items-stretch gap-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring sm:flex-row sm:items-center sm:gap-3"
       >
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="font-mono text-body font-semibold leading-none text-text">{symbol}</span>
-          <span className="truncate text-small text-text-muted">{name}</span>
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <span className="font-mono text-body font-semibold leading-none text-text">
+              {symbol}
+            </span>
+            <span className="line-clamp-2 text-small leading-snug text-text-muted sm:line-clamp-1">
+              {name}
+            </span>
+          </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5 pr-1 leading-tight sm:flex-row sm:items-center sm:gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-4 pr-1 leading-tight sm:justify-end">
           <div className="font-mono tabular text-body text-text">
             {formatCurrency(currentPrice)}
           </div>
           <div
             className={cn(
-              'font-mono tabular text-small sm:min-w-[5.5rem] sm:text-right',
+              'font-mono tabular text-right text-small sm:min-w-[5.5rem]',
               positive && 'delta-positive',
               negative && 'delta-negative',
               !positive && !negative && 'text-text-muted',

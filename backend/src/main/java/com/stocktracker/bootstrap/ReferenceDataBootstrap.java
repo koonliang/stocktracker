@@ -35,9 +35,10 @@ public class ReferenceDataBootstrap {
 
   @Transactional
   void onStart(@Observes @Priority(1) StartupEvent ignored) throws Exception {
-    if (!enabled || instrumentRepository.count() > 0) {
+    if (!enabled) {
       return;
     }
+    var hasReferenceData = instrumentRepository.count() > 0;
 
     try (InputStream instrumentsStream = resource("seed/instruments.json");
         InputStream pricesStream = resource("seed/price-bars.json");
@@ -46,16 +47,22 @@ public class ReferenceDataBootstrap {
           objectMapper.readValue(
               instrumentsStream, new TypeReference<java.util.List<Map<String, Object>>>() {});
       for (var row : instruments) {
+        var symbol = row.get("symbol").toString().toUpperCase();
+        if (instrumentRepository.existsSymbol(symbol)) {
+          continue;
+        }
         var instrument = new Instrument();
-        instrument.symbol = row.get("symbol").toString().toUpperCase();
+        instrument.symbol = symbol;
         instrument.name = row.get("name").toString();
         instrument.sector = row.get("sector").toString();
         instrument.exchange = row.get("exchange").toString();
+        instrument.currency =
+            row.get("currency") == null ? "USD" : row.get("currency").toString().toUpperCase();
         instrument.active = true;
         instrumentRepository.persist(instrument);
       }
 
-      if (providerConfig.isLiveMarketDataProvider()) {
+      if (hasReferenceData || providerConfig.isLiveMarketDataProvider()) {
         return;
       }
 

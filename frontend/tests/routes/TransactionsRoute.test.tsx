@@ -86,6 +86,12 @@ describe('TransactionsRoute', () => {
     expect(screen.queryByTestId('transaction-ticker-result')).not.toBeInTheDocument();
   });
 
+  it('renders FAB for recording a transaction', () => {
+    renderWithProviders(<TransactionsRoute />);
+    expect(screen.getByTestId('fab')).toBeInTheDocument();
+    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'Record a transaction');
+  });
+
   it('has no critical accessibility violations', async () => {
     setMockApiState({ transactions: seeded });
     const { container } = renderWithProviders(<TransactionsRoute />);

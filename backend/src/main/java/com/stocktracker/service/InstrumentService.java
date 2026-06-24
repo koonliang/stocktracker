@@ -61,7 +61,11 @@ public class InstrumentService {
     var position = portfolioService.findPosition(ticker);
     return new InstrumentAnalysisResponse(
         new InstrumentAnalysisResponse.TickerView(
-            instrument.symbol, instrument.name, instrument.sector, instrument.exchange),
+            instrument.symbol,
+            instrument.name,
+            instrument.sector,
+            instrument.exchange,
+            instrument.currency),
         statsView(stats, quote, allPriceHistory),
         quote,
         priceHistoryResponse,

@@ -1,4 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const listAlertsMock = vi.hoisted(() => vi.fn());
+vi.mock('@/api/alertsApi', () => ({ listAlerts: listAlertsMock }));
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { BottomTabBar } from '@/components/layout/BottomTabBar';
@@ -23,6 +26,7 @@ function setViewport(width: number) {
 
 function reset() {
   localStorage.clear();
+  listAlertsMock.mockResolvedValue({ alerts: [] });
   useWatchlistStore.setState({
     watchlists: [],
     status: 'success',
@@ -124,19 +128,25 @@ describe('responsive viewports (SC-007)', () => {
 });
 
 describe('BottomTabBar at 320px (SC-002)', () => {
-  beforeEach(() => setViewport(320));
+  beforeEach(() => {
+    setViewport(320);
+    listAlertsMock.mockResolvedValue({ alerts: [] });
+  });
   afterEach(() => setViewport(1024));
 
-  it('renders all 5 nav labels', () => {
+  it('renders all 5 nav items with aria-labels (icon-only)', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
         <BottomTabBar />
       </MemoryRouter>,
     );
-    expect(screen.getByText('Dashboard')).toBeInTheDocument();
-    expect(screen.getByText('Watchlists')).toBeInTheDocument();
-    expect(screen.getByText('Trades')).toBeInTheDocument();
-    expect(screen.getByText('Returns')).toBeInTheDocument();
-    expect(screen.getByText('Alerts')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Watchlists' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Trades' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Returns' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Alerts' })).toBeInTheDocument();
+    // Labels must NOT be visible text
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Trades')).not.toBeInTheDocument();
   });
 });

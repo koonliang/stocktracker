@@ -4,6 +4,7 @@ import com.stocktracker.api.ApiException;
 import com.stocktracker.api.ApiStatuses;
 import com.stocktracker.dto.TransactionRequest;
 import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.security.CurrentUser;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
@@ -23,6 +24,9 @@ public class TransactionValidationService {
   private static final Set<String> CASH_TYPES = Set.of("deposit", "withdrawal", "fee");
 
   @Inject InstrumentRepository instrumentRepository;
+  @Inject CurrencyService currencyService;
+  @Inject OnDemandFxService onDemandFxService;
+  @Inject CurrentUser currentUser;
 
   @ConfigProperty(name = "stocktracker.base-currency.default", defaultValue = "USD")
   String defaultBaseCurrency;
@@ -76,6 +80,10 @@ public class TransactionValidationService {
       if (currencyIssue != null) {
         return currencyIssue;
       }
+      var fxIssue = validateFxAvailability(instrument.currency, effectiveBaseCurrency(), request.date());
+      if (fxIssue != null) {
+        return fxIssue;
+      }
     } else {
       if (request.ticker() != null) {
         return type + " must not reference a ticker";
@@ -83,8 +91,10 @@ public class TransactionValidationService {
       if (request.currency() == null) {
         return type + " requires a currency";
       }
-      if (!supportedCurrency(request.currency())) {
-        return "unsupported currency: " + request.currency();
+      var fxIssue =
+          validateFxAvailability(request.currency(), effectiveBaseCurrency(), request.date());
+      if (fxIssue != null) {
+        return fxIssue;
       }
     }
 
@@ -134,16 +144,25 @@ public class TransactionValidationService {
     if (request.currency() != null && !instrumentCurrency.equalsIgnoreCase(request.currency())) {
       return "currency must match the instrument currency (" + instrumentCurrency + ")";
     }
-    if (!supportedCurrency(request.currency() == null ? instrumentCurrency : request.currency())) {
-      return "unsupported currency: "
-          + (request.currency() == null ? instrumentCurrency : request.currency());
-    }
     return null;
   }
 
-  private boolean supportedCurrency(String currency) {
-    return currency != null
-        && List.of(defaultBaseCurrency.toUpperCase(), "USD", "SGD", "EUR").contains(currency);
+  private String effectiveBaseCurrency() {
+    return currentUser.optional()
+        .map(user -> user.baseCurrency)
+        .filter(currency -> currency != null && !currency.isBlank())
+        .orElse(defaultBaseCurrency)
+        .toUpperCase();
+  }
+
+  private String validateFxAvailability(String fromCurrency, String baseCurrency, LocalDate date) {
+    if (fromCurrency == null || fromCurrency.equalsIgnoreCase(baseCurrency)) {
+      return null;
+    }
+    if (!onDemandFxService.ensureRate(fromCurrency, baseCurrency, date)) {
+      return "FX rate unavailable for " + fromCurrency + " to " + baseCurrency;
+    }
+    return null;
   }
 
   public void applyToBalances(TransactionRequest request, Map<String, BigDecimal> shareBalances) {

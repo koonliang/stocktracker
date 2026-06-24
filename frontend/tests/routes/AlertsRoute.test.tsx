@@ -113,4 +113,26 @@ describe('AlertsRoute', () => {
       ]),
     );
   });
+
+  it('hides the create section by default (mobile collapsed)', async () => {
+    render(<AlertsRoute />);
+    await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
+    const section = screen.getByTestId('create-alert-section');
+    expect(section).toHaveClass('hidden');
+  });
+
+  it('reveals the create section when FAB is clicked', async () => {
+    const user = userEvent.setup();
+    render(<AlertsRoute />);
+    await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
+    await user.click(screen.getByTestId('fab'));
+    expect(screen.getByTestId('create-alert-section')).not.toHaveClass('hidden');
+  });
+
+  it('renders FAB for creating an alert', async () => {
+    render(<AlertsRoute />);
+    await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
+    expect(screen.getByTestId('fab')).toBeInTheDocument();
+    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'Create alert');
+  });
 });

@@ -43,6 +43,20 @@ export function formatSignedPercent(n: number | null | undefined): string {
   return signedPercentFmt.format(n).replace('-', '−');
 }
 
+// Explicit symbols for currencies whose narrowSymbol in en-US ICU data resolves
+// to a generic "$" (ambiguous with USD). Currencies with unambiguous narrowSymbol
+// (€, £, ¥, ₹, ₩, …) are handled by Intl directly.
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  AUD: 'A$',
+  CAD: 'C$',
+  HKD: 'HK$',
+  MXN: 'MX$',
+  NZD: 'NZ$',
+  SGD: 'S$',
+  TWD: 'NT$',
+};
+
 export function formatCurrencyCode(
   n: number | null | undefined,
   currency: string | null | undefined,
@@ -50,10 +64,16 @@ export function formatCurrencyCode(
 ): string {
   if (n == null || !Number.isFinite(n)) return '—';
   if (!currency) return formatCurrency(n, opts);
+  const decimals = opts?.cents === false ? 0 : 2;
+  const sym = CURRENCY_SYMBOLS[currency.toUpperCase()];
+  if (sym) {
+    return `${sym}${nf({ minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(n)}`;
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
-    maximumFractionDigits: opts?.cents === false ? 0 : 2,
+    currencyDisplay: 'narrowSymbol',
+    maximumFractionDigits: decimals,
   }).format(n);
 }
 
@@ -65,6 +85,34 @@ export function formatSignedCurrencyCode(
   if (n == null || !Number.isFinite(n)) return '—';
   const sign = n > 0 ? '+' : n < 0 ? '−' : '';
   return `${sign}${formatCurrencyCode(Math.abs(n), currency, opts)}`;
+}
+
+export function formatCompactCurrencyCode(
+  n: number | null | undefined,
+  currency: string | null | undefined,
+): string {
+  if (n == null || !Number.isFinite(n)) return '—';
+  const rounded = nf({ notation: 'compact', maximumFractionDigits: 1 }).format(n);
+  if (!currency) return rounded;
+  const sym = CURRENCY_SYMBOLS[currency.toUpperCase()];
+  if (sym) return `${sym}${rounded}`;
+  const parts = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).formatToParts(n);
+  return parts.map((part) => part.value).join('');
+}
+
+export function formatSignedCompactCurrencyCode(
+  n: number | null | undefined,
+  currency: string | null | undefined,
+): string {
+  if (n == null || !Number.isFinite(n)) return '—';
+  const sign = n > 0 ? '+' : n < 0 ? '−' : '';
+  return `${sign}${formatCompactCurrencyCode(Math.abs(n), currency)}`;
 }
 
 /** "just now" / "3m ago" / "2h ago" relative to now, for the last-updated indicator. */

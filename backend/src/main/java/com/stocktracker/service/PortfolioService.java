@@ -24,10 +24,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @ApplicationScoped
 public class PortfolioService {
+  private static final Set<String> SECURITY_TYPES = Set.of("buy", "sell", "dividend", "split");
+  private static final Set<String> CASH_TYPES = Set.of("deposit", "withdrawal", "fee");
+
   @Inject PortfolioTransactionRepository transactionRepository;
   @Inject InstrumentRepository instrumentRepository;
   @Inject TransactionValidationService transactionValidationService;
@@ -36,6 +40,8 @@ public class PortfolioService {
   @Inject CurrencyService currencyService;
   @Inject CostBasisEngine costBasisEngine;
   @Inject TransactionCurrencyBackfillService transactionCurrencyBackfillService;
+  @Inject OnDemandFxService onDemandFxService;
+  @Inject PortfolioService self;
 
   @org.eclipse.microprofile.config.inject.ConfigProperty(
       name = "stocktracker.base-currency.default",
@@ -75,9 +81,14 @@ public class PortfolioService {
     return balances;
   }
 
-  @Transactional
   public void createTransactions(List<TransactionRequest> requests, String source) {
     var normalized = requests.stream().map(transactionValidationService::normalize).toList();
+    preflightHistoricalFx(normalized);
+    self.createTransactionsTransactional(normalized, source);
+  }
+
+  @Transactional
+  void createTransactionsTransactional(List<TransactionRequest> normalized, String source) {
     transactionValidationService.validateBatch(normalized, currentShareBalances());
     var userId = currentUser.id();
     for (var request : normalized) {
@@ -101,6 +112,36 @@ public class PortfolioService {
       transaction.source = source;
       transactionRepository.persist(transaction);
     }
+  }
+
+  void preflightHistoricalFx(List<TransactionRequest> requests) {
+    var baseCurrency =
+        currentUser.optional()
+            .map(user -> user.baseCurrency)
+            .filter(currency -> currency != null && !currency.isBlank())
+            .orElse(defaultBaseCurrency)
+            .toUpperCase();
+    for (var request : requests) {
+      var fromCurrency = fxSourceCurrency(request);
+      if (fromCurrency == null || request.date() == null) {
+        continue;
+      }
+      onDemandFxService.ensureRate(fromCurrency, baseCurrency, request.date());
+    }
+  }
+
+  String fxSourceCurrency(TransactionRequest request) {
+    if (request.type() == null) {
+      return null;
+    }
+    if (SECURITY_TYPES.contains(request.type())) {
+      var instrument = instrumentRepository.findBySymbol(request.ticker()).orElse(null);
+      return instrument == null ? null : instrument.currency;
+    }
+    if (CASH_TYPES.contains(request.type())) {
+      return request.currency();
+    }
+    return null;
   }
 
   @Transactional

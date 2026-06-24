@@ -3,6 +3,7 @@ package com.stocktracker.support;
 import com.stocktracker.domain.Alert;
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.FxRate;
+import com.stocktracker.domain.Instrument;
 import com.stocktracker.domain.Notification;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.domain.Watchlist;
@@ -167,6 +168,31 @@ public abstract class IntegrationTestSupport {
           fxRate.rate = new BigDecimal(rate);
           fxRate.source = "stub";
           fxRateRepository.persist(fxRate);
+        });
+  }
+
+  protected void persistInstrument(String symbol, String name, String exchange, String currency)
+      throws Exception {
+    inTransaction(
+        () -> {
+          var instrument = new Instrument();
+          instrument.symbol = symbol;
+          instrument.name = name;
+          instrument.sector = "Unknown";
+          instrument.exchange = exchange;
+          instrument.currency = currency;
+          instrument.active = true;
+          instrument.persist();
+        });
+  }
+
+  protected void setSeedUserBaseCurrency(String baseCurrency) throws Exception {
+    inTransaction(
+        () -> {
+          var seedUser = AppUser.<AppUser>findById(SEED_USER_ID);
+          if (seedUser != null) {
+            seedUser.baseCurrency = baseCurrency;
+          }
         });
   }
 

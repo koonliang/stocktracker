@@ -84,6 +84,15 @@ Let users set thresholds on a ticker (price >, price <, % change).
 - every transaction should have a toast message
 - seed data is showing inaccurate data. if live provider is enabled, seed data should use from live provider 
 
+# 012-mobile-ui-cleanup
+- un-necessary details cluttering ui for mobile view
+- Prominent details must be visible on the page in mobile view without scrolling
+- Dashboard Page: Remove "Add a symbol" and Allocation section. Suggest more improvement.
+- Trade Page: Hide Manual Entry and Import section. Suggest how to show those section, any more improvement?
+- Returns Page: Remove FIFO/LIFO. Chart should be seen without scrolling. Suggest more improvement.
+- Alerts Page: Hide Create section. Suggest how to show those section, any more improvement?
+- Bottom Navigation: Maybe just show icon,  currently selected navigation should be more visible. Suggest more improvement.
+
 # 0??-stock-analysis
 - On the Stock Analysis view, render headlines from a news API. Filter by source and recency; cache aggressively to control cost.
 - On the Stock Analysis view, show a comprehensive analysis of the stock with the following sections (for this iteration, the data can be mocked. next iteration will implement the data pipeline)

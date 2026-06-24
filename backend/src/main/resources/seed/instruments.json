@@ -178,5 +178,12 @@
     "name": "Taiwan Semiconductor Manufacturing",
     "sector": "Technology",
     "exchange": "NYSE"
+  },
+  {
+    "symbol": "D05.SI",
+    "name": "DBS Group Holdings Ltd",
+    "sector": "Financials",
+    "exchange": "SGX",
+    "currency": "SGD"
   }
 ]

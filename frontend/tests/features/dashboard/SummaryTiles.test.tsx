@@ -88,6 +88,6 @@ describe('SummaryTiles', () => {
       />,
     );
 
-    expect(screen.getByText(/Base currency SGD/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Base currency/i)).not.toBeInTheDocument();
   });
 });
