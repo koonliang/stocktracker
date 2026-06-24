@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -7,6 +7,7 @@ import { ImportPreview } from '@/features/transactions/ImportPreview';
 import { ExportButton } from '@/features/transactions/ExportButton';
 import { TransactionsTable } from '@/features/transactions/TransactionsTable';
 import { TransactionForm } from '@/features/transactions/TransactionForm';
+import { FAB } from '@/components/ui/FAB';
 import { usePortfolioStore } from '@/stores/portfolioStore';
 
 export function TransactionsRoute() {
@@ -24,6 +25,7 @@ export function TransactionsRoute() {
     commitPreview,
     createManualTransaction,
   } = usePortfolioStore();
+  const [isEntryOpen, setIsEntryOpen] = useState(false);
 
   useEffect(() => {
     void loadTransactions();
@@ -39,35 +41,39 @@ export function TransactionsRoute() {
       />
 
       <div className="flex flex-col gap-6">
-        <Card overflow="visible">
-          <CardHeader eyebrow="Manual entry" title="Record a transaction" />
-          <TransactionForm
-            pending={commitStatus === 'loading'}
-            onSubmit={(row) => void createManualTransaction(row)}
-          />
-        </Card>
-
-        {preview ? (
-          <Card>
-            <CardHeader eyebrow="Preview" title="Review before commit" />
-            <ImportPreview
-              result={preview}
+        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
+          <Card overflow="visible">
+            <CardHeader eyebrow="Manual entry" title="Record a transaction" />
+            <TransactionForm
               pending={commitStatus === 'loading'}
-              onConfirm={() => void commitPreview()}
-              onCancel={clearPreview}
+              onSubmit={(row) => void createManualTransaction(row)}
             />
           </Card>
-        ) : (
-          <Card>
-            <CardHeader eyebrow="Import" title="Upload a CSV" />
-            <ImportDropzone
-              onFile={(file) => {
-                void previewImport(file);
-              }}
-              loading={previewStatus === 'loading'}
-            />
-          </Card>
-        )}
+        </div>
+
+        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
+          {preview ? (
+            <Card>
+              <CardHeader eyebrow="Preview" title="Review before commit" />
+              <ImportPreview
+                result={preview}
+                pending={commitStatus === 'loading'}
+                onConfirm={() => void commitPreview()}
+                onCancel={clearPreview}
+              />
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader eyebrow="Import" title="Upload a CSV" />
+              <ImportDropzone
+                onFile={(file) => {
+                  void previewImport(file);
+                }}
+                loading={previewStatus === 'loading'}
+              />
+            </Card>
+          )}
+        </div>
 
         <Card padded={false}>
           <div className="p-5 pb-0 sm:p-6 sm:pb-0">
@@ -91,7 +97,7 @@ export function TransactionsRoute() {
               <EmptyState
                 eyebrow="Nothing yet"
                 title="No transactions on file."
-                description="Import a CSV above to populate the server-backed ledger."
+                description="Tap + to record a trade, or import a CSV."
               />
             </div>
           ) : (
@@ -102,6 +108,8 @@ export function TransactionsRoute() {
           )}
         </Card>
       </div>
+
+      <FAB label="Record a transaction" onClick={() => setIsEntryOpen(true)} />
     </>
   );
 }

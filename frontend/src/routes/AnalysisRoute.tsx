@@ -111,6 +111,7 @@ export function AnalysisRoute() {
         name={tickerInfo.name}
         sector={tickerInfo.sector}
         exchange={tickerInfo.exchange}
+        currency={tickerInfo.currency}
         currentPrice={currentPrice}
         dayChange={dayChange}
         dayChangePct={dayChangePct}
@@ -119,14 +120,19 @@ export function AnalysisRoute() {
       <div className="flex flex-col gap-6">
         <Card>
           <CardHeader eyebrow="Price" title="Performance" />
-          <PriceChart bars={bars} range={range} onRangeChange={setRange} />
+          <PriceChart
+            bars={bars}
+            currency={tickerInfo.currency}
+            range={range}
+            onRangeChange={setRange}
+          />
         </Card>
 
         <PositionSummary summary={data.positionSummary} />
 
         <Card>
           <CardHeader eyebrow="Key statistics" title="Snapshot" />
-          <KeyStatsGrid stats={stats} />
+          <KeyStatsGrid stats={stats} currency={tickerInfo.currency} />
         </Card>
       </div>
     </>

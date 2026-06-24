@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { PriceBar, TimeRange } from '@/lib/types';
 import { TIME_RANGES } from '@/lib/types';
-import { formatCurrency, formatDateISO } from '@/lib/format';
+import { formatCurrencyCode, formatDateISO } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { rgbVar } from '@/lib/colors';
 
@@ -25,26 +25,30 @@ export function filterBarsByRange(bars: PriceBar[], range: TimeRange): PriceBar[
 type TooltipProps = {
   active?: boolean;
   payload?: Array<{ payload: PriceBar }>;
+  currency?: string;
 };
 
-function ChartTooltip({ active, payload }: TooltipProps) {
+function ChartTooltip({ active, payload, currency }: TooltipProps) {
   if (!active || !payload?.[0]) return null;
   const bar = payload[0].payload;
   return (
     <div className="rounded-md border border-border bg-surface px-3 py-2 text-small shadow-popover">
       <div className="text-text-muted">{formatDateISO(bar.date)}</div>
-      <div className="mt-0.5 font-mono tabular text-text">{formatCurrency(bar.close)}</div>
+      <div className="mt-0.5 font-mono tabular text-text">
+        {formatCurrencyCode(bar.close, currency)}
+      </div>
     </div>
   );
 }
 
 type Props = {
   bars: PriceBar[];
+  currency?: string;
   range: TimeRange;
   onRangeChange: (r: TimeRange) => void;
 };
 
-export function PriceChart({ bars, range, onRangeChange }: Props) {
+export function PriceChart({ bars, currency, range, onRangeChange }: Props) {
   const data = useMemo(() => filterBarsByRange(bars, range), [bars, range]);
 
   const positive = data.length > 1 && data[data.length - 1]!.close >= data[0]!.close;
@@ -120,9 +124,9 @@ export function PriceChart({ bars, range, onRangeChange }: Props) {
                 tickLine={true}
                 axisLine={true}
                 width={44}
-                tickFormatter={(v: number) => formatCurrency(v, { cents: false })}
+                tickFormatter={(v: number) => formatCurrencyCode(v, currency, { cents: false })}
               />
-              <Tooltip content={<ChartTooltip />} />
+              <Tooltip content={<ChartTooltip currency={currency} />} />
               <Area
                 type="monotone"
                 dataKey="close"

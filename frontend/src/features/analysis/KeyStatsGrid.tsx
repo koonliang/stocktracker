@@ -1,26 +1,26 @@
 import type { KeyStats } from '@/lib/types';
-import { formatCompactNumber, formatCurrency, formatNumber } from '@/lib/format';
+import { formatCompactNumber, formatCurrencyCode, formatNumber } from '@/lib/format';
 
-type Props = { stats: KeyStats | null | undefined };
+type Props = { stats: KeyStats | null | undefined; currency?: string };
 
 type Stat = { label: string; value: string };
 
-function buildStats(stats: KeyStats | null | undefined): Stat[] {
+function buildStats(stats: KeyStats | null | undefined, currency?: string): Stat[] {
   return [
-    { label: 'Open', value: formatCurrency(stats?.open) },
-    { label: 'Day High', value: formatCurrency(stats?.high) },
-    { label: 'Day Low', value: formatCurrency(stats?.low) },
-    { label: 'Previous Close', value: formatCurrency(stats?.previousClose) },
+    { label: 'Open', value: formatCurrencyCode(stats?.open, currency) },
+    { label: 'Day High', value: formatCurrencyCode(stats?.high, currency) },
+    { label: 'Day Low', value: formatCurrencyCode(stats?.low, currency) },
+    { label: 'Previous Close', value: formatCurrencyCode(stats?.previousClose, currency) },
     { label: 'Volume', value: formatCompactNumber(stats?.volume) },
-    { label: '52W High', value: formatCurrency(stats?.week52High) },
-    { label: '52W Low', value: formatCurrency(stats?.week52Low) },
+    { label: '52W High', value: formatCurrencyCode(stats?.week52High, currency) },
+    { label: '52W Low', value: formatCurrencyCode(stats?.week52Low, currency) },
     { label: 'Market Cap', value: formatCompactNumber(stats?.marketCap) },
     { label: 'P/E Ratio', value: formatNumber(stats?.peRatio ?? null) },
   ];
 }
 
-export function KeyStatsGrid({ stats }: Props) {
-  const items = buildStats(stats);
+export function KeyStatsGrid({ stats, currency }: Props) {
+  const items = buildStats(stats, currency);
   return (
     <dl
       data-testid="key-stats-grid"

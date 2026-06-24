@@ -1,4 +1,4 @@
-import { formatCurrency, formatSignedCurrency, formatSignedPercent } from '@/lib/format';
+import { formatCurrencyCode, formatSignedCurrencyCode, formatSignedPercent } from '@/lib/format';
 import { cn } from '@/lib/cn';
 
 type Props = {
@@ -6,6 +6,7 @@ type Props = {
   name: string;
   sector?: string;
   exchange?: string;
+  currency?: string;
   currentPrice: number | null;
   dayChange: number | null;
   dayChangePct: number | null;
@@ -16,6 +17,7 @@ export function AnalysisHeader({
   name,
   sector,
   exchange,
+  currency,
   currentPrice,
   dayChange,
   dayChangePct,
@@ -38,7 +40,7 @@ export function AnalysisHeader({
       </div>
       <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-mono tabular text-display-lg text-text">
-          {formatCurrency(currentPrice)}
+          {formatCurrencyCode(currentPrice, currency)}
         </span>
         <span
           className={cn(
@@ -48,7 +50,7 @@ export function AnalysisHeader({
             !positive && !negative && 'text-text-muted',
           )}
         >
-          <span>{formatSignedCurrency(dayChange)}</span>
+          <span>{formatSignedCurrencyCode(dayChange, currency)}</span>
           <span className="ml-2 opacity-80">{formatSignedPercent(dayChangePct)}</span>
         </span>
       </div>

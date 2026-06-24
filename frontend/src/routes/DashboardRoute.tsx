@@ -5,7 +5,6 @@ import { AllocationChart } from '@/features/dashboard/AllocationChart';
 import { DashboardEmptyState } from '@/features/dashboard/DashboardEmptyState';
 import { useHoldings } from '@/features/dashboard/useHoldings';
 import { LiveQuotesIndicator } from '@/features/quotes/LiveQuotesIndicator';
-import { SymbolSearch } from '@/features/search/SymbolSearch';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -55,21 +54,18 @@ export function DashboardRoute() {
         />
       ) : (
         <div className="flex flex-col gap-6">
-          <Card>
-            <CardHeader eyebrow="Add a symbol" title="Track any market" />
-            <SymbolSearch onAdded={() => void refreshDashboard()} />
-          </Card>
-
           {holdings.length === 0 ? (
             <DashboardEmptyState />
           ) : (
             <>
               <SummaryTiles summary={summary} />
 
-              <Card>
-                <CardHeader eyebrow="Allocation" title="Composition" />
-                <AllocationChart holdings={holdings} />
-              </Card>
+              <div className="hidden sm:block">
+                <Card>
+                  <CardHeader eyebrow="Allocation" title="Composition" />
+                  <AllocationChart holdings={holdings} />
+                </Card>
+              </div>
 
               <Card padded={false}>
                 <div className="p-5 pb-0 sm:p-6 sm:pb-0">

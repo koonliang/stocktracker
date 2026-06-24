@@ -1,31 +1,71 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { loadTickers } from '@/lib/seed';
+import { addInstrument, searchInstruments } from '@/api/searchApi';
 import { cn } from '@/lib/cn';
+import type { SymbolSearchResult } from '@/api/types';
 
 export function TickerSearch() {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-  const tickers = useMemo(() => loadTickers(), []);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [results, setResults] = useState<SymbolSearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectingSymbol, setSelectingSymbol] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
   const navigate = useNavigate();
 
-  const results = useMemo(() => {
-    if (!query.trim()) return [];
-    const q = query.trim().toLowerCase();
-    return tickers
-      .filter((t) => t.symbol.toLowerCase().includes(q) || t.name.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [query, tickers]);
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setResults([]);
+      setSearching(false);
+      setError(null);
+      return;
+    }
 
-  function select(symbol: string) {
-    setQuery('');
-    setOpen(false);
-    navigate(`/analysis/${symbol}`, {
-      state: { backTo: '/', backLabel: 'Back to dashboard' },
-    });
+    const id = ++requestId.current;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const matches = await searchInstruments(trimmed);
+        if (id === requestId.current) {
+          setResults(matches.slice(0, 8));
+          setError(null);
+          setActiveIndex(0);
+        }
+      } catch {
+        if (id === requestId.current) {
+          setResults([]);
+          setError('Search failed. Try again.');
+        }
+      } finally {
+        if (id === requestId.current) {
+          setSearching(false);
+        }
+      }
+    }, 300);
+
+    return () => clearTimeout(handle);
+  }, [query]);
+
+  async function select(result: SymbolSearchResult) {
+    setSelectingSymbol(result.symbol);
+    setError(null);
+    try {
+      await addInstrument(result.symbol);
+      setQuery('');
+      setResults([]);
+      setOpen(false);
+      navigate(`/analysis/${result.symbol}`, {
+        state: { backTo: '/', backLabel: 'Back to dashboard' },
+      });
+    } catch {
+      setError(`Could not open ${result.symbol}.`);
+    } finally {
+      setSelectingSymbol(null);
+    }
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
@@ -39,7 +79,7 @@ export function TickerSearch() {
     } else if (e.key === 'Enter') {
       e.preventDefault();
       const pick = results[activeIndex];
-      if (pick) select(pick.symbol);
+      if (pick) void select(pick);
     } else if (e.key === 'Escape') {
       setOpen(false);
     }
@@ -54,7 +94,6 @@ export function TickerSearch() {
           className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-subtle"
         />
         <input
-          ref={inputRef}
           type="search"
           role="combobox"
           aria-expanded={open && results.length > 0}
@@ -66,6 +105,7 @@ export function TickerSearch() {
             setQuery(e.target.value);
             setOpen(true);
             setActiveIndex(0);
+            setError(null);
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 120)}
@@ -86,7 +126,7 @@ export function TickerSearch() {
               aria-selected={i === activeIndex}
               onMouseDown={(e) => {
                 e.preventDefault();
-                select(t.symbol);
+                void select(t);
               }}
               onMouseEnter={() => setActiveIndex(i)}
               className={cn(
@@ -94,12 +134,26 @@ export function TickerSearch() {
                 i === activeIndex ? 'bg-surface-alt text-text' : 'text-text-muted',
               )}
             >
-              <span className="font-mono font-semibold text-text">{t.symbol}</span>
-              <span className="truncate text-right text-text-muted">{t.name}</span>
+              <span className="font-mono font-semibold text-text">
+                {selectingSymbol === t.symbol ? 'Opening…' : t.symbol}
+              </span>
+              <span className="truncate text-right text-text-muted">
+                {t.name} · {t.exchange}
+              </span>
             </li>
           ))}
         </ul>
       )}
+      {open && query.trim() && !searching && results.length === 0 && !error ? (
+        <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 rounded-md border border-border bg-surface px-3 py-2 text-small text-text-muted shadow-popover">
+          No matches.
+        </div>
+      ) : null}
+      {error ? (
+        <p className="absolute left-0 right-0 top-[calc(100%+4px)] z-40 rounded-md border border-border bg-surface px-3 py-2 text-small text-negative shadow-popover">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }

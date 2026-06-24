@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   formatCompactNumber,
   formatCurrency,
+  formatCurrencyCode,
   formatDateISO,
   formatNumber,
   formatPercent,
   formatShares,
   formatSignedCurrency,
+  formatSignedCurrencyCode,
   formatSignedPercent,
 } from '@/lib/format';
 
@@ -58,6 +60,20 @@ describe('format', () => {
 
   it('formats ISO dates to editorial style', () => {
     expect(formatDateISO('2024-02-14')).toBe('14 Feb 2024');
+  });
+
+  it('uses narrow currency symbol for non-USD currencies', () => {
+    // Symbol-map currencies (dollar variants)
+    expect(formatCurrencyCode(1234.5, 'SGD')).toBe('S$1,234.50');
+    expect(formatCurrencyCode(1234.5, 'AUD')).toBe('A$1,234.50');
+    expect(formatCurrencyCode(1234.5, 'HKD')).toBe('HK$1,234.50');
+    expect(formatCurrencyCode(1234.5, 'USD')).toBe('$1,234.50');
+    // Intl narrowSymbol currencies
+    expect(formatCurrencyCode(1234.5, 'EUR')).toBe('€1,234.50');
+    expect(formatCurrencyCode(1234.5, 'GBP')).toBe('£1,234.50');
+    // Signed variants
+    expect(formatSignedCurrencyCode(1234.5, 'SGD')).toBe('+S$1,234.50');
+    expect(formatSignedCurrencyCode(-500, 'EUR')).toBe('−€500.00');
   });
 
   it('handles very large and zero values', () => {

@@ -3,6 +3,7 @@ export type Ticker = {
   name: string;
   sector: string;
   exchange: string;
+  currency?: string;
 };
 
 export type PriceBar = {

@@ -3,16 +3,13 @@ package com.stocktracker.e2e.pages;
 import com.stocktracker.e2e.support.Waits;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
 
-/** Dashboard live-data surfaces: last-updated indicator, symbol search/add, base-currency select. */
+/** Dashboard live-data surfaces: last-updated indicator and base-currency select. */
 public class LiveQuotesPage {
 
   private static final By LAST_UPDATED = By.cssSelector("[data-testid='quote-last-updated']");
   private static final By SYMBOL_SEARCH = By.cssSelector("[data-testid='symbol-search']");
-  private static final By SYMBOL_RESULT = By.cssSelector("[data-testid='symbol-search-result']");
-  private static final By SYMBOL_ADD = By.cssSelector("[data-testid='symbol-add']");
   private static final By BASE_CURRENCY = By.cssSelector("[data-testid='base-currency-select']");
   private static final By BASE_CURRENCY_OPTIONS =
       By.cssSelector("[data-testid='base-currency-select'] option");
@@ -27,7 +24,7 @@ public class LiveQuotesPage {
 
   public LiveQuotesPage waitLoaded() {
     waits.untilVisible(LAST_UPDATED);
-    waits.untilVisible(SYMBOL_SEARCH);
+    waits.untilVisible(BASE_CURRENCY);
     return this;
   }
 
@@ -39,6 +36,10 @@ public class LiveQuotesPage {
     return !driver.findElements(BASE_CURRENCY).isEmpty();
   }
 
+  public boolean hasSymbolSearch() {
+    return !driver.findElements(SYMBOL_SEARCH).isEmpty();
+  }
+
   public LiveQuotesPage selectBaseCurrency(String currency) {
     var select = waits.untilVisible(BASE_CURRENCY);
     waits.untilTrue(
@@ -46,32 +47,6 @@ public class LiveQuotesPage {
             d.findElements(BASE_CURRENCY_OPTIONS).stream()
                 .anyMatch(option -> option.getText().trim().equals(currency)));
     new Select(select).selectByVisibleText(currency);
-    return this;
-  }
-
-  /** Type a query and wait until a result row containing {@code expectedSymbol} appears. */
-  public LiveQuotesPage search(String query, String expectedSymbol) {
-    waits.untilVisible(SYMBOL_SEARCH).sendKeys(query);
-    waits.untilTrue(
-        d ->
-            d.findElements(SYMBOL_RESULT).stream()
-                .anyMatch(row -> row.getText().contains(expectedSymbol)));
-    return this;
-  }
-
-  /** Click the Add button on the result row containing {@code expectedSymbol}. */
-  public LiveQuotesPage addResult(String expectedSymbol) {
-    waits.untilTrue(
-        d ->
-            d.findElements(SYMBOL_RESULT).stream()
-                .anyMatch(result -> result.getText().contains(expectedSymbol)));
-    WebElement row =
-        driver.findElements(SYMBOL_RESULT).stream()
-            .filter(result -> result.getText().contains(expectedSymbol))
-            .findFirst()
-            .orElseThrow();
-    row.findElement(SYMBOL_ADD).click();
-    waits.untilTrue(d -> d.findElements(SYMBOL_RESULT).isEmpty());
     return this;
   }
 }

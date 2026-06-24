@@ -23,19 +23,15 @@ class PerformanceTest extends BaseTest {
   void baseCurrencySwitchRefreshesDashboardAndPerformanceCurrencyViews() {
     signInAsSeedUser();
     open("/");
-    new LiveQuotesPage(driver, waits)
-        .waitLoaded()
-        .search("DBS", "D05.SI")
-        .addResult("D05.SI")
-        .selectBaseCurrency("SGD");
-    var dashboard = new DashboardPage(driver, waits).waitLoaded().waitForSummaryTextContaining("SGD");
+    new LiveQuotesPage(driver, waits).waitLoaded().selectBaseCurrency("SGD");
+    var dashboard = new DashboardPage(driver, waits).waitLoaded().waitForSummaryTextContaining("S$");
 
-    assertThat(dashboard.summaryTilesText()).contains("SGD");
-    assertThat(dashboard.holdingsText()).containsAnyOf("SGD", "Stale rate", "Rate unavailable");
+    assertThat(dashboard.summaryTilesText()).contains("S$");
+    assertThat(dashboard.holdingsText()).containsAnyOf("S$", "Stale rate", "Rate unavailable");
 
     open("/performance");
-    var performance = new PerformancePage(driver, waits).waitLoaded().waitForPageTextContaining("SGD");
+    var performance = new PerformancePage(driver, waits).waitLoaded().waitForPageTextContaining("S$");
 
-    assertThat(performance.pageText()).containsAnyOf("SGD", "Stale rate", "Rate unavailable");
+    assertThat(performance.pageText()).containsAnyOf("S$", "Stale rate", "Rate unavailable");
   }
 }

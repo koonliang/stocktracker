@@ -8,7 +8,8 @@ public record InstrumentAnalysisResponse(
     QuoteResponse.QuoteView quote,
     List<PriceHistoryPoint> priceHistory,
     PositionSummary positionSummary) {
-  public record TickerView(String symbol, String name, String sector, String exchange) {}
+  public record TickerView(
+      String symbol, String name, String sector, String exchange, String currency) {}
 
   public record StatsView(
       Double open,

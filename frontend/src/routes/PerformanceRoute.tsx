@@ -74,7 +74,7 @@ export function PerformanceRoute() {
                 </Button>
               ))}
             </div>
-            <div className="flex gap-2" data-testid="lot-method-toggle">
+            <div className="hidden sm:flex gap-2" data-testid="lot-method-toggle">
               {(['fifo', 'lifo'] as LotMethod[]).map((value) => (
                 <Button
                   key={value}
@@ -110,10 +110,7 @@ export function PerformanceRoute() {
           />
         ) : (
           <>
-            <div className="text-right text-xs uppercase tracking-wide text-text-subtle">
-              Base currency {data.baseCurrency}
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <Metric
                 label="Realized P&L"
                 value={formatSignedCurrencyCode(data.realizedPnL, data.baseCurrency)}
@@ -182,8 +179,8 @@ export function PerformanceRoute() {
                     key={row.symbol}
                     className="flex items-center justify-between gap-3 border-t border-border px-5 py-3"
                   >
-                    <span className="font-medium text-text">{row.symbol}</span>
-                    <div className="inline-flex flex-col items-end gap-1 font-mono tabular-nums">
+                    <span className="text-small font-medium text-text">{row.symbol}</span>
+                    <div className="inline-flex flex-col items-end gap-1 font-mono tabular-nums text-small">
                       <span>{formatNumber(row.contributionPct, 2)}%</span>
                       <FxStatus conversion={row.contributionConversion} />
                     </div>
@@ -226,9 +223,11 @@ function Metric({
   conversions?: Array<ConversionMetadata | undefined>;
 }) {
   return (
-    <Card>
-      <div className="text-small uppercase text-text-subtle">{label}</div>
-      <div className="mt-2 font-display text-title text-text">{value}</div>
+    <Card padded={false} className="p-3 sm:p-6">
+      <div className="overflow-hidden whitespace-nowrap text-micro uppercase text-text-subtle sm:text-small">
+        {label}
+      </div>
+      <div className="mt-1 truncate font-display text-small text-text sm:text-title">{value}</div>
       <FxStatus conversion={worstConversion(conversions)} />
     </Card>
   );
