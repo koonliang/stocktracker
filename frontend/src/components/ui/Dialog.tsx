@@ -10,9 +10,10 @@ type Props = {
   description?: string;
   children: ReactNode;
   footer?: ReactNode;
+  className?: string;
 };
 
-export function Dialog({ open, onClose, title, description, children, footer }: Props) {
+export function Dialog({ open, onClose, title, description, children, footer, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
 
@@ -79,7 +80,11 @@ export function Dialog({ open, onClose, title, description, children, footer }: 
         aria-modal="true"
         aria-labelledby="dialog-title"
         aria-describedby={description ? 'dialog-desc' : undefined}
-        className="w-full max-w-md rounded-xl border border-border bg-surface shadow-popover"
+        className={cn(
+          'w-full rounded-xl border border-border bg-surface shadow-popover',
+          className ? '' : 'max-w-md',
+          className,
+        )}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border p-5 pb-4">
           <div>

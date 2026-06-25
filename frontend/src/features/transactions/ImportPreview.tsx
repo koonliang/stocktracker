@@ -75,7 +75,7 @@ export function ImportPreview({ result, pending = false, onConfirm, onCancel }: 
             data-testid="csv-version"
             className="rounded-full bg-surface-alt px-3 py-1 font-medium text-text-muted"
           >
-            CSV {result.detectedVersion}
+            CSV
           </span>
         </div>
         <div className="flex gap-2">
