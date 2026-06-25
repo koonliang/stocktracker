@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { FAB } from '@/components/ui/FAB';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { NewWatchlistDialog } from '@/features/watchlist/NewWatchlistDialog';
 import { formatDateISO } from '@/lib/format';
@@ -30,10 +31,12 @@ export function WatchlistsRoute() {
         title="Watchlists"
         description="Named lists of tickers you want to monitor. Create as many as you like."
         actions={
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus size={14} aria-hidden />
-            New watchlist
-          </Button>
+          hasAny ? (
+            <Button onClick={() => setDialogOpen(true)}>
+              <Plus size={14} aria-hidden />
+              New watchlist
+            </Button>
+          ) : null
         }
       />
 
@@ -99,6 +102,7 @@ export function WatchlistsRoute() {
         onClose={() => setDialogOpen(false)}
         onCreated={(id) => navigate(`/watchlists/${id}`)}
       />
+      <FAB label="New watchlist" onClick={() => setDialogOpen(true)} />
     </>
   );
 }

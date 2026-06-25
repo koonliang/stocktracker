@@ -34,7 +34,24 @@ describe('TransactionsRoute', () => {
     expect(await screen.findByText(/No transactions on file/i)).toBeInTheDocument();
   });
 
-  it('renders the dropzone affordance', () => {
+  it('keeps manual entry and import collapsed by default on mobile', () => {
+    renderWithProviders(<TransactionsRoute />);
+    expect(screen.getByTestId('transaction-manual-entry-section')).toHaveClass('hidden');
+    expect(screen.getByTestId('transaction-import-section')).toHaveClass('hidden');
+  });
+
+  it('reveals manual entry and import when FAB is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TransactionsRoute />);
+
+    await user.click(screen.getByTestId('fab'));
+
+    expect(screen.getByTestId('transaction-manual-entry-section')).not.toHaveClass('hidden');
+    expect(screen.getByTestId('transaction-import-section')).not.toHaveClass('hidden');
+    expect(screen.getByText(/Drop a CSV file to import/i)).toBeInTheDocument();
+  });
+
+  it('renders the dropzone affordance for desktop layout', () => {
     renderWithProviders(<TransactionsRoute />);
     expect(screen.getByText(/Drop a CSV file to import/i)).toBeInTheDocument();
   });
@@ -72,6 +89,7 @@ describe('TransactionsRoute', () => {
   it('keeps the ticker smart-search dropdown closed after selecting a result', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TransactionsRoute />);
+    await user.click(screen.getByTestId('fab'));
 
     await user.type(screen.getByTestId('transaction-ticker-search'), 'AAP');
     const result = await screen.findByTestId('transaction-ticker-result');

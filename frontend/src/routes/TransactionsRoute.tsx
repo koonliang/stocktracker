@@ -41,7 +41,10 @@ export function TransactionsRoute() {
       />
 
       <div className="flex flex-col gap-6">
-        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
+        <div
+          data-testid="transaction-manual-entry-section"
+          className={isEntryOpen ? undefined : 'hidden sm:block'}
+        >
           <Card overflow="visible">
             <CardHeader eyebrow="Manual entry" title="Record a transaction" />
             <TransactionForm
@@ -51,7 +54,10 @@ export function TransactionsRoute() {
           </Card>
         </div>
 
-        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
+        <div
+          data-testid="transaction-import-section"
+          className={isEntryOpen ? undefined : 'hidden sm:block'}
+        >
           {preview ? (
             <Card>
               <CardHeader eyebrow="Preview" title="Review before commit" />

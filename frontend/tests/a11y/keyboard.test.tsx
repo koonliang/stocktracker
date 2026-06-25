@@ -50,9 +50,9 @@ describe('keyboard navigation (FR-024)', () => {
   it('Watchlists index: New watchlist button is reachable via keyboard and opens dialog on Enter', async () => {
     const user = userEvent.setup();
     renderAt('/watchlists', <WatchlistsRoute />, '/watchlists');
-    const ctas = await screen.findAllByRole('button', { name: /New watchlist/i });
-    ctas[0]!.focus();
-    expect(document.activeElement).toBe(ctas[0]);
+    const cta = await screen.findByRole('button', { name: /New watchlist/i });
+    cta.focus();
+    expect(document.activeElement).toBe(cta);
     await user.keyboard('{Enter}');
     expect(screen.getByRole('dialog', { name: /New watchlist/i })).toBeInTheDocument();
     await user.keyboard('{Escape}');
