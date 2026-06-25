@@ -16,6 +16,9 @@ type Props = {
 export function Dialog({ open, onClose, title, description, children, footer, className }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -23,7 +26,7 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
       }
       if (e.key === 'Tab' && ref.current) {
         const focusables = ref.current.querySelectorAll<HTMLElement>(
@@ -56,7 +59,7 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
       document.body.style.overflow = prevOverflow;
       lastFocusedRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -71,7 +74,7 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
         'animate-in fade-in',
       )}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) onCloseRef.current();
       }}
     >
       <div
@@ -81,7 +84,7 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
         aria-labelledby="dialog-title"
         aria-describedby={description ? 'dialog-desc' : undefined}
         className={cn(
-          'w-full rounded-xl border border-border bg-surface shadow-popover',
+          'flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-popover',
           className ? '' : 'max-w-md',
           className,
         )}
@@ -106,9 +109,9 @@ export function Dialog({ open, onClose, title, description, children, footer, cl
             <X size={18} aria-hidden />
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="min-h-0 overflow-y-auto p-5">{children}</div>
         {footer && (
-          <div className="flex justify-end gap-2 border-t border-border bg-surface-alt/50 p-4">
+          <div className="flex flex-wrap justify-end gap-2 border-t border-border bg-surface-alt/50 p-4">
             {footer}
           </div>
         )}

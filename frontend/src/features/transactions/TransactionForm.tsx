@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Plus } from 'lucide-react';
 import { addInstrument, searchInstruments } from '@/api/searchApi';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/Label';
 import type {
@@ -13,6 +11,9 @@ import { todayISO } from '@/lib/format';
 
 type Props = {
   pending?: boolean;
+  formId?: string;
+  showSubmit?: boolean;
+  submitLabel?: string;
   onSubmit: (row: TransactionImportNormalizedRow) => void | Promise<void>;
 };
 
@@ -26,7 +27,13 @@ const TYPES: TransactionType[] = [
   'fee',
 ];
 
-export function TransactionForm({ pending = false, onSubmit }: Props) {
+export function TransactionForm({
+  pending = false,
+  formId,
+  showSubmit = true,
+  submitLabel = 'Create',
+  onSubmit,
+}: Props) {
   const [type, setType] = useState<TransactionType>('buy');
   const [date, setDate] = useState(todayISO());
   const [ticker, setTicker] = useState('');
@@ -113,6 +120,7 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
 
   return (
     <form
+      id={formId}
       className="grid gap-4 md:grid-cols-4"
       data-testid="transaction-form"
       onSubmit={(event) => {
@@ -268,12 +276,24 @@ export function TransactionForm({ pending = false, onSubmit }: Props) {
           />
         </div>
       )}
-      <div className="flex items-end">
-        <Button type="submit" loading={pending} className="w-full">
-          <Plus size={16} aria-hidden />
-          Add
-        </Button>
-      </div>
+      {showSubmit ? (
+        <div className="flex items-end">
+          <button
+            type="submit"
+            disabled={pending}
+            aria-busy={pending || undefined}
+            className="inline-flex h-10 w-full items-center justify-center rounded-md bg-accent px-4 text-body font-medium text-accent-fg transition-all duration-[120ms] ease-out-expo hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {pending ? (
+              <span
+                aria-hidden
+                className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+              />
+            ) : null}
+            {submitLabel}
+          </button>
+        </div>
+      ) : null}
     </form>
   );
 }

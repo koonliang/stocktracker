@@ -34,7 +34,7 @@ export function WatchlistsRoute() {
           hasAny ? (
             <Button onClick={() => setDialogOpen(true)}>
               <Plus size={14} aria-hidden />
-              New watchlist
+              New Watchlist
             </Button>
           ) : null
         }
@@ -59,9 +59,9 @@ export function WatchlistsRoute() {
           description="Group tickers you want to keep an eye on — by theme, sector, or any way you like."
           icon={<ListChecks size={18} aria-hidden />}
           actions={
-            <Button onClick={() => setDialogOpen(true)}>
+            <Button className="hidden md:inline-flex" onClick={() => setDialogOpen(true)}>
               <Plus size={14} aria-hidden />
-              New watchlist
+              New Watchlist
             </Button>
           }
         />

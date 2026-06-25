@@ -4,7 +4,9 @@ import com.stocktracker.e2e.support.DriverFactory;
 import com.stocktracker.e2e.support.Waits;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import org.openqa.selenium.By;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.ui.Select;
@@ -12,10 +14,18 @@ import org.openqa.selenium.support.ui.Select;
 /** Transactions ledger at route {@code /transactions}: CSV import (preview + commit) and export. */
 public class TransactionsPage {
 
+  private static final By NEW_TRANSACTION_BUTTON =
+      By.xpath("//button[contains(normalize-space(.), 'New Transaction')]");
+  private static final By NEW_TRANSACTION_FAB =
+      By.cssSelector("[data-testid='fab'][aria-label='New transaction']");
+  private static final By IMPORT_BUTTON =
+      By.xpath("//button[contains(normalize-space(.), 'Import CSV')]");
   private static final By IMPORT_INPUT = By.cssSelector("[data-testid='csv-import-input']");
   private static final By EXPORT_BUTTON = By.cssSelector("[data-testid='csv-export']");
   private static final By TRANSACTIONS_TABLE = By.cssSelector("[data-testid='transactions-table']");
   private static final By TRANSACTION_FORM = By.cssSelector("[data-testid='transaction-form']");
+  private static final By TRANSACTION_SUBMIT =
+      By.cssSelector("button[form='transaction-create-form']");
   private static final By TICKER_SEARCH = By.cssSelector("[data-testid='transaction-ticker-search']");
   private static final By TICKER_RESULTS = By.cssSelector("[data-testid='transaction-ticker-result']");
   private static final By CONFIRM_IMPORT =
@@ -31,8 +41,8 @@ public class TransactionsPage {
 
   /** Uploads the CSV (file inputs accept sendKeys even while visually hidden), then commits it. */
   public TransactionsPage importCsv(Path csv) {
-    // The file input is present from load; sendKeys triggers the preview.
-    driver.findElement(IMPORT_INPUT).sendKeys(csv.toAbsolutePath().toString());
+    openImportDialog();
+    waits.untilVisible(IMPORT_INPUT).sendKeys(csv.toAbsolutePath().toString());
     waits.untilClickable(CONFIRM_IMPORT).click();
     return this;
   }
@@ -48,21 +58,23 @@ public class TransactionsPage {
 
   public TransactionsPage recordBuy(String ticker, String quantity, String price) {
     waitForForm();
-    new Select(driver.findElement(By.id("transaction-type"))).selectByValue("buy");
+    selectTransactionType("buy");
     selectTicker(ticker);
     set(By.id("transaction-quantity"), quantity);
     set(By.id("transaction-price"), price);
-    driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
+    waits.untilClickable(TRANSACTION_SUBMIT).click();
+    waits.untilInvisible(TRANSACTION_FORM);
     waitForTransactionRow(ticker, "buy");
     return this;
   }
 
   public TransactionsPage recordSplit(String ticker, String ratio) {
     waitForForm();
-    new Select(driver.findElement(By.id("transaction-type"))).selectByValue("split");
+    selectTransactionType("split");
     selectTicker(ticker);
     set(By.id("transaction-quantity"), ratio);
-    driver.findElement(By.cssSelector("[data-testid='transaction-form'] button[type='submit']")).click();
+    waits.untilClickable(TRANSACTION_SUBMIT).click();
+    waits.untilInvisible(TRANSACTION_FORM);
     waitForTransactionRow(ticker, "split");
     return this;
   }
@@ -112,7 +124,24 @@ public class TransactionsPage {
   }
 
   private void waitForForm() {
+    openTransactionDialog();
     waits.untilVisible(TRANSACTION_FORM);
+  }
+
+  private void openTransactionDialog() {
+    List<WebElement> existingForms = driver.findElements(TRANSACTION_FORM);
+    if (!existingForms.isEmpty() && existingForms.get(0).isDisplayed()) {
+      return;
+    }
+    clickVisibleLauncher(NEW_TRANSACTION_BUTTON, NEW_TRANSACTION_FAB);
+    waits.untilVisible(TRANSACTION_FORM);
+  }
+
+  private void openImportDialog() {
+    if (!driver.findElements(IMPORT_INPUT).isEmpty()) {
+      return;
+    }
+    waits.untilClickable(IMPORT_BUTTON).click();
   }
 
   private void selectTicker(String ticker) {
@@ -130,5 +159,35 @@ public class TransactionsPage {
     WebElement element = waits.untilVisible(locator);
     element.clear();
     element.sendKeys(value);
+  }
+
+  private void clickVisibleLauncher(By primary, By fallback) {
+    for (WebElement button : driver.findElements(primary)) {
+      if (button.isDisplayed() && button.isEnabled()) {
+        button.click();
+        return;
+      }
+    }
+    for (WebElement button : driver.findElements(fallback)) {
+      if (button.isDisplayed() && button.isEnabled()) {
+        button.click();
+        return;
+      }
+    }
+    waits.untilClickable(primary).click();
+  }
+
+  private void selectTransactionType(String value) {
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        WebElement selectElement = waits.untilVisible(By.id("transaction-type"));
+        new Select(selectElement).selectByValue(value);
+        return;
+      } catch (StaleElementReferenceException ignored) {
+        // The dialog can rerender immediately after opening; refetch the select and retry.
+      }
+    }
+    WebElement selectElement = waits.untilVisible(By.id("transaction-type"));
+    new Select(selectElement).selectByValue(value);
   }
 }

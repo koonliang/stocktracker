@@ -109,9 +109,25 @@ export function TransactionsRoute() {
         title="New transaction"
         description="Record a transaction manually."
         className="max-w-5xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setManualDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="transaction-create-form"
+              loading={commitStatus === 'loading'}
+            >
+              Create
+            </Button>
+          </>
+        }
       >
         <TransactionForm
+          formId="transaction-create-form"
           pending={commitStatus === 'loading'}
+          showSubmit={false}
           onSubmit={async (row) => {
             await createManualTransaction(row);
             if (usePortfolioStore.getState().commitStatus === 'success') {
