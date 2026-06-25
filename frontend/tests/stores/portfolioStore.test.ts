@@ -186,6 +186,38 @@ describe('portfolioStore', () => {
           ),
         )
         .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              holdings: [],
+              summary: {
+                totalMarketValue: 0,
+                totalCostBasis: 0,
+                totalUnrealizedPnL: 0,
+                totalUnrealizedPnLPct: 0,
+                totalDayChange: 0,
+                totalDayChangePct: 0,
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              holdings: [],
+              summary: {
+                totalMarketValue: 0,
+                totalCostBasis: 0,
+                totalUnrealizedPnL: 0,
+                totalUnrealizedPnLPct: 0,
+                totalDayChange: 0,
+                totalDayChangePct: 0,
+              },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+        .mockResolvedValueOnce(
           new Response(JSON.stringify([]), {
             status: 200,
             headers: { 'Content-Type': 'application/json' },
@@ -208,6 +240,42 @@ describe('portfolioStore', () => {
       expect.arrayContaining([
         expect.objectContaining({
           title: 'Transaction created',
+          tone: 'success',
+        }),
+      ]),
+    );
+  });
+
+  it('pushes one consolidated success toast when multiple transactions are deleted', async () => {
+    getDashboardMock.mockResolvedValue({
+      holdings: [],
+      summary: {
+        totalMarketValue: 0,
+        totalCostBasis: 0,
+        totalUnrealizedPnL: 0,
+        totalUnrealizedPnLPct: 0,
+        totalDayChange: 0,
+        totalDayChangePct: 0,
+      },
+    });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation(
+        async () =>
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+      ),
+    );
+
+    await usePortfolioStore.getState().deleteTransactions(['1', '2']);
+
+    expect(useToastStore.getState().toasts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: '2 transactions deleted',
           tone: 'success',
         }),
       ]),

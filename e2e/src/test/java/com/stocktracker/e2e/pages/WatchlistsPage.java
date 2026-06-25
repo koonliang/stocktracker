@@ -13,7 +13,7 @@ import org.openqa.selenium.WebElement;
 public class WatchlistsPage {
 
   private static final By NEW_WATCHLIST_BUTTON =
-      By.xpath("//button[contains(normalize-space(.), 'New watchlist')]");
+      By.xpath("//button[contains(normalize-space(.), 'New Watchlist')]");
   private static final By NAME_INPUT = By.id("new-watchlist-name");
   private static final By CREATE_BUTTON = By.xpath("//button[normalize-space(.)='Create']");
   private static final By SYMBOL_SEARCH_INPUT = By.cssSelector("[data-testid='symbol-search']");

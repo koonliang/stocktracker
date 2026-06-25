@@ -21,7 +21,7 @@ async function submitForm(
   await user.type(screen.getByLabelText('Date'), '2026-06-13');
   await user.selectOptions(screen.getByLabelText('Type'), type);
   await fill(user);
-  await user.click(screen.getByRole('button', { name: /add/i }));
+  await user.click(screen.getByRole('button', { name: /create/i }));
 
   expect(onSubmit).toHaveBeenCalledTimes(1);
   return onSubmit.mock.calls[0]![0] as TransactionImportNormalizedRow;

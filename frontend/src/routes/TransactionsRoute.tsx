@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Plus, Upload } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Card, CardHeader } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { Dialog } from '@/components/ui/Dialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ImportDropzone } from '@/features/transactions/ImportDropzone';
 import { ImportPreview } from '@/features/transactions/ImportPreview';
@@ -20,16 +23,23 @@ export function TransactionsRoute() {
     error,
     loadTransactions,
     deleteTransaction,
+    deleteTransactions,
     previewImport,
     clearPreview,
     commitPreview,
     createManualTransaction,
   } = usePortfolioStore();
-  const [isEntryOpen, setIsEntryOpen] = useState(false);
+  const [manualDialogOpen, setManualDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   useEffect(() => {
     void loadTransactions();
   }, [loadTransactions]);
+
+  function closeImportDialog() {
+    clearPreview();
+    setImportDialogOpen(false);
+  }
 
   return (
     <>
@@ -37,44 +47,26 @@ export function TransactionsRoute() {
         eyebrow="Transactions"
         title="Import &amp; Export"
         description="Bring in transactions from a CSV, review them, then commit. Export at any time to round-trip your portfolio."
-        actions={<ExportButton disabled={transactions.length === 0} />}
+        actions={
+          <>
+            <Button
+              size="sm"
+              className="hidden md:inline-flex"
+              onClick={() => setManualDialogOpen(true)}
+            >
+              <Plus size={14} aria-hidden />
+              New Transaction
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setImportDialogOpen(true)}>
+              <Upload size={14} aria-hidden />
+              Import CSV
+            </Button>
+            <ExportButton disabled={transactions.length === 0} />
+          </>
+        }
       />
 
       <div className="flex flex-col gap-6">
-        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
-          <Card overflow="visible">
-            <CardHeader eyebrow="Manual entry" title="Record a transaction" />
-            <TransactionForm
-              pending={commitStatus === 'loading'}
-              onSubmit={(row) => void createManualTransaction(row)}
-            />
-          </Card>
-        </div>
-
-        <div className={isEntryOpen ? undefined : 'hidden sm:block'}>
-          {preview ? (
-            <Card>
-              <CardHeader eyebrow="Preview" title="Review before commit" />
-              <ImportPreview
-                result={preview}
-                pending={commitStatus === 'loading'}
-                onConfirm={() => void commitPreview()}
-                onCancel={clearPreview}
-              />
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader eyebrow="Import" title="Upload a CSV" />
-              <ImportDropzone
-                onFile={(file) => {
-                  void previewImport(file);
-                }}
-                loading={previewStatus === 'loading'}
-              />
-            </Card>
-          )}
-        </div>
-
         <Card padded={false}>
           <div className="p-5 pb-0 sm:p-6 sm:pb-0">
             <CardHeader
@@ -103,13 +95,82 @@ export function TransactionsRoute() {
           ) : (
             <TransactionsTable
               transactions={transactions}
+              pending={commitStatus === 'loading'}
               onDelete={(id) => void deleteTransaction(id)}
+              onDeleteMany={(ids) => void deleteTransactions(ids)}
             />
           )}
         </Card>
       </div>
 
-      <FAB label="Record a transaction" onClick={() => setIsEntryOpen(true)} />
+      <Dialog
+        open={manualDialogOpen}
+        onClose={() => setManualDialogOpen(false)}
+        title="New transaction"
+        description="Record a transaction manually."
+        className="max-w-5xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setManualDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="transaction-create-form"
+              loading={commitStatus === 'loading'}
+            >
+              Create
+            </Button>
+          </>
+        }
+      >
+        <TransactionForm
+          formId="transaction-create-form"
+          pending={commitStatus === 'loading'}
+          showSubmit={false}
+          onSubmit={async (row) => {
+            await createManualTransaction(row);
+            if (usePortfolioStore.getState().commitStatus === 'success') {
+              setManualDialogOpen(false);
+            }
+          }}
+        />
+      </Dialog>
+
+      <Dialog
+        open={importDialogOpen}
+        onClose={closeImportDialog}
+        title={preview ? 'Review import' : 'Import CSV'}
+        description={
+          preview
+            ? 'Review the parsed rows before committing them to your portfolio.'
+            : 'Upload a CSV file, then review the parsed transactions before import.'
+        }
+        className="max-w-6xl"
+      >
+        {preview ? (
+          <ImportPreview
+            result={preview}
+            pending={commitStatus === 'loading'}
+            onConfirm={async () => {
+              await commitPreview();
+              if (usePortfolioStore.getState().commitStatus === 'success') {
+                setImportDialogOpen(false);
+              }
+            }}
+            onCancel={closeImportDialog}
+          />
+        ) : (
+          <ImportDropzone
+            onFile={(file) => {
+              void previewImport(file);
+            }}
+            loading={previewStatus === 'loading'}
+          />
+        )}
+      </Dialog>
+
+      <FAB label="New transaction" onClick={() => setManualDialogOpen(true)} />
     </>
   );
 }

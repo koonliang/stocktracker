@@ -121,7 +121,11 @@ describe('PerformanceRoute', () => {
 
   it('keeps the window selector visible', async () => {
     render(<PerformanceRoute />);
-    expect(await screen.findByTestId('perf-window-select')).toBeInTheDocument();
+    const selector = await screen.findByTestId('perf-window-select');
+    expect(selector).toBeInTheDocument();
+    expect(selector).toHaveClass('grid');
+    expect(selector).toHaveClass('grid-cols-6');
+    expect(selector).toHaveClass('sm:flex');
     expect(screen.getByRole('button', { name: '1Y' })).toBeInTheDocument();
   });
 

@@ -60,7 +60,7 @@ export function NewWatchlistDialog({ open, onClose, onCreated }: Props) {
     <Dialog
       open={open}
       onClose={onClose}
-      title="New watchlist"
+      title="New Watchlist"
       description="Give your watchlist a name. You can add tickers after it's created."
       footer={
         <>

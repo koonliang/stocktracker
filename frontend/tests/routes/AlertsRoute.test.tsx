@@ -83,6 +83,7 @@ describe('AlertsRoute', () => {
     render(<AlertsRoute />);
     await screen.findByText('AAPL');
 
+    await user.click(screen.getAllByRole('button', { name: /New Alert/i })[0]!);
     await user.type(screen.getByTestId('alert-symbol'), 'MSFT');
     await user.clear(screen.getByTestId('alert-threshold'));
     await user.type(screen.getByTestId('alert-threshold'), '250');
@@ -114,25 +115,30 @@ describe('AlertsRoute', () => {
     );
   });
 
-  it('hides the create section by default (mobile collapsed)', async () => {
+  it('keeps the alert dialog closed by default', async () => {
     render(<AlertsRoute />);
     await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
-    const section = screen.getByTestId('create-alert-section');
-    expect(section).toHaveClass('hidden');
+    expect(screen.queryByTestId('alert-form')).not.toBeInTheDocument();
   });
 
-  it('reveals the create section when FAB is clicked', async () => {
+  it('opens the alert dialog when FAB is clicked', async () => {
     const user = userEvent.setup();
     render(<AlertsRoute />);
     await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
     await user.click(screen.getByTestId('fab'));
-    expect(screen.getByTestId('create-alert-section')).not.toHaveClass('hidden');
+    expect(screen.getByTestId('alert-form')).toBeInTheDocument();
   });
 
   it('renders FAB for creating an alert', async () => {
     render(<AlertsRoute />);
     await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
     expect(screen.getByTestId('fab')).toBeInTheDocument();
-    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'Create alert');
+    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'New alert');
+  });
+
+  it('renders the desktop New Alert action', async () => {
+    render(<AlertsRoute />);
+    await screen.findByRole('heading', { name: /Price Alerts/i, level: 1 });
+    expect(screen.getAllByRole('button', { name: /New Alert/i })).toHaveLength(2);
   });
 });

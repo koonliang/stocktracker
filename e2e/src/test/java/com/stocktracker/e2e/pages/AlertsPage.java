@@ -6,6 +6,8 @@ import org.openqa.selenium.WebDriver;
 
 public class AlertsPage {
   private static final By PAGE = By.cssSelector("[data-testid='alerts-page']");
+  private static final By NEW_ALERT_BUTTON =
+      By.xpath("//button[contains(normalize-space(.), 'New Alert')]");
   private static final By SYMBOL = By.cssSelector("[data-testid='alert-symbol']");
   private static final By THRESHOLD = By.cssSelector("[data-testid='alert-threshold']");
   private static final By SUBMIT = By.cssSelector("[data-testid='alert-submit']");
@@ -25,14 +27,22 @@ public class AlertsPage {
   }
 
   public AlertsPage createPriceAlert(String symbol, String threshold) {
-    var symbolInput = driver.findElement(SYMBOL);
+    openAlertDialog();
+    var symbolInput = waits.untilVisible(SYMBOL);
     symbolInput.clear();
     symbolInput.sendKeys(symbol);
-    var thresholdInput = driver.findElement(THRESHOLD);
+    var thresholdInput = waits.untilVisible(THRESHOLD);
     thresholdInput.clear();
     thresholdInput.sendKeys(threshold);
-    driver.findElement(SUBMIT).click();
+    waits.untilClickable(SUBMIT).click();
     waits.untilVisible(ROW);
     return this;
+  }
+
+  private void openAlertDialog() {
+    if (!driver.findElements(SYMBOL).isEmpty()) {
+      return;
+    }
+    waits.untilClickable(NEW_ALERT_BUTTON).click();
   }
 }

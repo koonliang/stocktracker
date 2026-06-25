@@ -39,6 +39,7 @@ type Actions = {
   loadTransactions: () => Promise<void>;
   refreshAll: () => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
+  deleteTransactions: (ids: string[]) => Promise<void>;
   previewImport: (file: File) => Promise<void>;
   clearPreview: () => void;
   commitPreview: () => Promise<void>;
@@ -142,6 +143,71 @@ export const usePortfolioStore = create<State & Actions>()((set, get) => ({
         operation: 'delete',
         outcome: 'failure',
         message: messageFromError(error),
+      });
+    }
+  },
+
+  async deleteTransactions(ids) {
+    if (ids.length === 0) return;
+
+    set({ commitStatus: 'loading', error: null });
+    let deletedCount = 0;
+
+    try {
+      for (const id of ids) {
+        await deleteTransactionRequest(id);
+        deletedCount++;
+      }
+
+      const [dashboard, transactions] = await Promise.all([getDashboard(), getTransactions()]);
+      set({
+        ...applyDashboard(dashboard),
+        transactions,
+        transactionsStatus: 'success',
+        commitStatus: 'success',
+      });
+      notifyActionFeedback({
+        scope: 'transaction',
+        operation: 'delete',
+        outcome: 'success',
+        title: `${deletedCount} transactions deleted`,
+      });
+    } catch (error) {
+      const [dashboard, transactions] = await Promise.allSettled([
+        getDashboard(),
+        getTransactions(),
+      ]);
+      const dashboardState =
+        dashboard.status === 'fulfilled'
+          ? applyDashboard(dashboard.value)
+          : {
+              holdings: get().holdings,
+              summary: get().summary,
+              dashboardStatus: get().dashboardStatus,
+            };
+
+      set({
+        holdings: dashboardState.holdings,
+        summary: dashboardState.summary,
+        dashboardStatus: dashboardState.dashboardStatus,
+        transactions: transactions.status === 'fulfilled' ? transactions.value : get().transactions,
+        transactionsStatus:
+          transactions.status === 'fulfilled' ? 'success' : get().transactionsStatus,
+        commitStatus: 'error',
+        error: messageFromError(error),
+      });
+      notifyActionFeedback({
+        scope: 'transaction',
+        operation: 'delete',
+        outcome: 'failure',
+        title:
+          deletedCount > 0
+            ? 'Some transactions could not be deleted'
+            : 'Transactions could not be deleted',
+        message:
+          deletedCount > 0
+            ? `${deletedCount} deleted before the request failed. ${messageFromError(error)}`
+            : messageFromError(error),
       });
     }
   },

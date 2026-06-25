@@ -61,12 +61,16 @@ export function PerformanceRoute() {
       <div className="flex flex-col gap-6" data-testid="performance-page">
         <Card>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap gap-2" data-testid="perf-window-select">
+            <div
+              className="grid grid-cols-6 gap-2 sm:flex sm:flex-wrap"
+              data-testid="perf-window-select"
+            >
               {windows.map((value) => (
                 <Button
                   key={value}
                   variant={window === value ? 'primary' : 'secondary'}
                   size="sm"
+                  className="w-full px-0 sm:w-auto sm:px-3"
                   onClick={() => setWindow(value)}
                   type="button"
                 >

@@ -34,9 +34,27 @@ describe('TransactionsRoute', () => {
     expect(await screen.findByText(/No transactions on file/i)).toBeInTheDocument();
   });
 
-  it('renders the dropzone affordance', () => {
+  it('keeps manual entry closed by default on mobile', () => {
     renderWithProviders(<TransactionsRoute />);
-    expect(screen.getByText(/Drop a CSV file to import/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Record a transaction manually/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Drop a CSV file to import/i)).not.toBeInTheDocument();
+  });
+
+  it('opens manual entry when FAB is clicked', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(<TransactionsRoute />);
+
+    await user.click(screen.getByTestId('fab'));
+
+    expect(screen.getByText(/Record a transaction manually/i)).toBeInTheDocument();
+    expect(screen.getByTestId('transaction-form')).toBeInTheDocument();
+    expect(screen.queryByText(/Drop a CSV file to import/i)).not.toBeInTheDocument();
+  });
+
+  it('renders desktop header actions for transaction workflows', () => {
+    renderWithProviders(<TransactionsRoute />);
+    expect(screen.getAllByRole('button', { name: /New Transaction/i })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: /Import CSV/i })).toBeInTheDocument();
   });
 
   it('lists committed transactions', async () => {
@@ -72,6 +90,7 @@ describe('TransactionsRoute', () => {
   it('keeps the ticker smart-search dropdown closed after selecting a result', async () => {
     const user = userEvent.setup();
     renderWithProviders(<TransactionsRoute />);
+    await user.click(screen.getByTestId('fab'));
 
     await user.type(screen.getByTestId('transaction-ticker-search'), 'AAP');
     const result = await screen.findByTestId('transaction-ticker-result');
@@ -89,7 +108,7 @@ describe('TransactionsRoute', () => {
   it('renders FAB for recording a transaction', () => {
     renderWithProviders(<TransactionsRoute />);
     expect(screen.getByTestId('fab')).toBeInTheDocument();
-    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'Record a transaction');
+    expect(screen.getByTestId('fab')).toHaveAttribute('aria-label', 'New transaction');
   });
 
   it('has no critical accessibility violations', async () => {
