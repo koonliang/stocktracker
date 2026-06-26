@@ -3,8 +3,8 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
-import { renderWithProviders } from '@/test/utils';
-import { setMockApiState } from '@/test/server';
+import { renderWithProviders } from '@tests/utils';
+import { setMockApiState } from '@tests/server';
 
 function reset() {
   localStorage.clear();

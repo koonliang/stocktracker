@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders, screen, within } from '@/test/utils';
+import { renderWithProviders, screen, within } from '@tests/utils';
 import { useNotificationsStore } from '@/stores/notificationsStore';
 import { NotificationDialogTrigger } from '@/features/alerts/NotificationDialogTrigger';
 

@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { SignupRoute } from '@/routes/SignupRoute';
 import { VerifyEmailRoute } from '@/routes/VerifyEmailRoute';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 
 describe('SignupRoute', () => {
   it('submits sign-up and shows the immediate-access state', async () => {

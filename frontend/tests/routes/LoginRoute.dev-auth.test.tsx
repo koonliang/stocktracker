@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { LoginRoute } from '@/routes/LoginRoute';
 import { useAuthStore } from '@/stores/authStore';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 import * as AuthProviderModule from '@/auth/AuthProvider';
 
 function reset() {

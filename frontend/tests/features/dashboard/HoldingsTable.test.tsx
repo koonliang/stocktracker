@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { HoldingsTable } from '@/features/dashboard/HoldingsTable';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 import type { Holding } from '@/lib/types';
 
 function h(overrides: Partial<Holding>): Holding {

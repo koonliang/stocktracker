@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { AppShell } from '@/components/layout/AppShell';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 
 describe('AppShell', () => {
   it('renders a main landmark and primary nav with Dashboard/Watchlists/Transactions', () => {

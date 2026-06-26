@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { ForgotPasswordRoute } from '@/routes/ForgotPasswordRoute';
 import { ResetPasswordRoute } from '@/routes/ResetPasswordRoute';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 
 describe('ForgotPasswordRoute', () => {
   it('shows a neutral confirmation after submitting', async () => {

@@ -79,8 +79,8 @@ jobs:
         run: npm run lint
       - name: Typecheck
         run: npm run typecheck
-      - name: Test
-        run: npm test
+      - name: Test with coverage threshold
+        run: npm run test:coverage
       - name: Build
         run: npm run build
 
