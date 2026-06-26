@@ -273,6 +273,27 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+            <id>print-coverage-summary</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>bash</executable>
+              <arguments>
+                <argument>-lc</argument>
+                <argument>if [ -f "${project.build.directory}/site/jacoco/jacoco.csv" ]; then awk -F, 'NR&gt;1 { lineMiss += $8; lineCover += $9; branchMiss += $6; branchCover += $7 } END { if (lineMiss + lineCover &gt; 0) printf "[INFO] Total line coverage: %.2f%%\n", (lineCover / (lineMiss + lineCover)) * 100; if (branchMiss + branchCover &gt; 0) printf "[INFO] Total branch coverage: %.2f%%\n", (branchCover / (branchMiss + branchCover)) * 100; }' "${project.build.directory}/site/jacoco/jacoco.csv"; else echo "[INFO] Coverage summary unavailable: ${project.build.directory}/site/jacoco/jacoco.csv not found"; fi</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.diffplug.spotless</groupId>
         <artifactId>spotless-maven-plugin</artifactId>
         <version>${spotless.version}</version>
