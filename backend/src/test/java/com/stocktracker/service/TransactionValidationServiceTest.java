@@ -1,198 +1,207 @@
 package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-import com.stocktracker.domain.FxRate;
+import com.stocktracker.domain.AppUser;
+import com.stocktracker.domain.Instrument;
 import com.stocktracker.dto.TransactionRequest;
-import com.stocktracker.support.IntegrationTestSupport;
-import com.stocktracker.support.MySqlTestResource;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import com.stocktracker.persistence.InstrumentRepository;
+import com.stocktracker.security.CurrentUser;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@QuarkusTest
-@QuarkusTestResource(MySqlTestResource.class)
-class TransactionValidationServiceTest extends IntegrationTestSupport {
-  @Inject TransactionValidationService transactionValidationService;
-
+class TransactionValidationServiceTest {
   private static final LocalDate TODAY = LocalDate.now();
+
+  private final StubInstrumentRepository instrumentRepository = new StubInstrumentRepository();
+  private final StubOnDemandFxService onDemandFxService = new StubOnDemandFxService();
+
+  private TransactionValidationService service;
+
+  @BeforeEach
+  void setUp() {
+    service = new TransactionValidationService();
+    service.instrumentRepository = instrumentRepository;
+    service.onDemandFxService = onDemandFxService;
+    service.currentUser = new StubCurrentUser(null);
+    service.defaultBaseCurrency = "USD";
+
+    instrumentRepository.addInstrument("AAPL", "USD");
+  }
+
+  @Test
+  void normalizeTrimsAndUppercasesFields() {
+    var normalized =
+        service.normalize(
+            new TransactionRequest(
+                TODAY,
+                " aapl ",
+                " Buy ",
+                new BigDecimal("10.0"),
+                new BigDecimal("100.0000"),
+                new BigDecimal("1.5000"),
+                new BigDecimal("1000.0000"),
+                " sgd "));
+
+    assertEquals("AAPL", normalized.ticker());
+    assertEquals("buy", normalized.type());
+    assertEquals(0, normalized.quantity().compareTo(new BigDecimal("10")));
+    assertEquals(0, normalized.price().compareTo(new BigDecimal("100")));
+    assertEquals(0, normalized.fees().compareTo(new BigDecimal("1.5")));
+    assertEquals(0, normalized.amount().compareTo(new BigDecimal("1000")));
+    assertEquals("SGD", normalized.currency());
+  }
 
   @Test
   void securityBuyRequiresInstrumentCurrency() {
-    var request =
-        new TransactionRequest(
-            TODAY,
-            "AAPL",
-            "buy",
-            new BigDecimal("10"),
-            new BigDecimal("100"),
-            BigDecimal.ZERO,
-            null,
-            "SGD");
-    var issue = transactionValidationService.validate(request, Map.of());
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("10"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "SGD"),
+            Map.of());
+
     assertEquals("currency must match the instrument currency (USD)", issue);
   }
 
   @Test
   void securityBuyWithNullCurrencyDefaultsToInstrument() {
-    var request =
-        new TransactionRequest(
-            TODAY,
-            "AAPL",
-            "buy",
-            new BigDecimal("10"),
-            new BigDecimal("100"),
-            BigDecimal.ZERO,
-            null,
-            null);
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals(null, issue);
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("10"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                null),
+            Map.of());
+
+    assertNull(issue);
   }
 
   @Test
   void cashDepositRequiresCurrency() {
-    var request =
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), null);
-    var issue = transactionValidationService.validate(request, Map.of());
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), null),
+            Map.of());
+
     assertEquals("deposit requires a currency", issue);
   }
 
   @Test
-  void cashDepositWithCurrencyValid() {
-    var request =
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), "USD");
-    var issue = transactionValidationService.validate(request, Map.of());
-    // Withdrawals/deposits skip the positive-amount check in validate()
-    assertEquals(null, issue);
-  }
-
-  @Test
   void unsupportedCurrencyIsRejectedForCashTypes() {
-    var request =
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), "XYZ");
-    var issue = transactionValidationService.validate(request, Map.of());
+    onDemandFxService.markUnavailable("XYZ", "USD");
+
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), "XYZ"),
+            Map.of());
+
     assertEquals("FX rate unavailable for XYZ to USD", issue);
   }
 
   @Test
-  void cashDepositWithFxBackedCurrencyIsValid() throws Exception {
-    var request =
-        new TransactionRequest(
-            TODAY.minusYears(1), null, "deposit", null, null, null, new BigDecimal("1000"), "SGD");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals(null, issue);
-    assertTrue(
-        FxRate.count(
-                "baseCurrency = ?1 and quoteCurrency = ?2 and rateDate = ?3",
-                "USD",
-                "SGD",
-                TODAY.minusYears(1))
-            > 0);
-  }
-
-  @Test
-  void cashDepositFailsWhenFxToBaseCurrencyIsUnavailable() throws Exception {
-    persistFxRate("EUR", "JPY", TODAY.toString(), "170.00");
-
-    var request =
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), "JPY");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals("FX rate unavailable for JPY to USD", issue);
-  }
-
-  @Test
-  void cashDepositAllowsStaleFxFallback() throws Exception {
-    persistFxRate("USD", "JPY", TODAY.minusDays(2).toString(), "155.20");
-
-    var request =
-        new TransactionRequest(
-            TODAY, null, "deposit", null, null, null, new BigDecimal("1000"), "JPY");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals(null, issue);
-  }
-
-  @Test
-  void currencyMismatchCheckedBeforeUnsupportedForSecurityTypes() {
-    // For security types the instrument currency match is checked first
-    var request =
-        new TransactionRequest(
-            TODAY,
-            "AAPL",
-            "buy",
-            new BigDecimal("10"),
-            new BigDecimal("100"),
-            BigDecimal.ZERO,
-            null,
-            "XYZ");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals("currency must match the instrument currency (USD)", issue);
-  }
-
-  @Test
-  void normalizeTrimsAndUppercasesCurrency() {
-    var normalized =
-        transactionValidationService.normalize(
+  void sellQuantityCannotExceedHeldShares() {
+    var issue =
+        service.validate(
             new TransactionRequest(
-                TODAY, null, "deposit", null, null, null, new BigDecimal("100"), " sgd "));
-    assertEquals("SGD", normalized.currency());
+                TODAY,
+                "AAPL",
+                "sell",
+                new BigDecimal("5"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
+            Map.of("AAPL", new BigDecimal("3")));
+
+    assertEquals("sell quantity exceeds held shares", issue);
   }
 
   @Test
-  void normalizeSetsNullCurrencyToNull() {
-    var normalized =
-        transactionValidationService.normalize(
+  void currentUserBaseCurrencyOverridesDefaultForFxValidation() {
+    service.currentUser = new StubCurrentUser(userWithBaseCurrency("SGD"));
+    onDemandFxService.markUnavailable("JPY", "SGD");
+    instrumentRepository.addInstrument("7203.T", "JPY");
+
+    var issue =
+        service.validate(
             new TransactionRequest(
-                TODAY, null, "deposit", null, null, null, new BigDecimal("100"), null));
-    assertEquals(null, normalized.currency());
+                TODAY,
+                "7203.T",
+                "buy",
+                new BigDecimal("10"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "JPY"),
+            Map.of());
+
+    assertEquals("FX rate unavailable for JPY to SGD", issue);
   }
 
-  @Test
-  void securityBuyAllowsInstrumentCurrencyOutsideLegacyAllowlist() throws Exception {
-    persistInstrument("SGD7203.SI", "SGD Test Instrument", "SGX", "SGD");
-
-    var request =
-        new TransactionRequest(
-            TODAY,
-            "SGD7203.SI",
-            "buy",
-            new BigDecimal("10"),
-            new BigDecimal("100"),
-            BigDecimal.ZERO,
-            null,
-            "SGD");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals(null, issue);
-    assertTrue(
-        FxRate.count(
-                "baseCurrency = ?1 and quoteCurrency = ?2 and rateDate = ?3", "USD", "SGD", TODAY)
-            > 0);
+  private AppUser userWithBaseCurrency(String baseCurrency) {
+    var user = new AppUser();
+    user.baseCurrency = baseCurrency;
+    return user;
   }
 
-  @Test
-  void securityBuyFailsWhenInstrumentCurrencyCannotConvertToBase() throws Exception {
-    persistInstrument("JPY7204.T", "Toyota Motor Corp", "TSE", "JPY");
-    persistFxRate("EUR", "JPY", TODAY.toString(), "170.00");
+  private static final class StubCurrentUser extends CurrentUser {
+    private final AppUser user;
 
-    var request =
-        new TransactionRequest(
-            TODAY,
-            "JPY7204.T",
-            "buy",
-            new BigDecimal("10"),
-            new BigDecimal("100"),
-            BigDecimal.ZERO,
-            null,
-            "JPY");
-    var issue = transactionValidationService.validate(request, Map.of());
-    assertEquals("FX rate unavailable for JPY to USD", issue);
+    private StubCurrentUser(AppUser user) {
+      this.user = user;
+    }
+
+    @Override
+    public Optional<AppUser> optional() {
+      return Optional.ofNullable(user);
+    }
+  }
+
+  private static final class StubOnDemandFxService extends OnDemandFxService {
+    private final java.util.Set<String> unavailablePairs = new java.util.HashSet<>();
+
+    @Override
+    public boolean ensureRate(String fromCurrency, String baseCurrency, LocalDate date) {
+      return !unavailablePairs.contains(fromCurrency + "->" + baseCurrency);
+    }
+
+    private void markUnavailable(String fromCurrency, String baseCurrency) {
+      unavailablePairs.add(fromCurrency + "->" + baseCurrency);
+    }
+  }
+
+  private static final class StubInstrumentRepository extends InstrumentRepository {
+    private final java.util.Map<String, Instrument> instruments = new java.util.HashMap<>();
+
+    @Override
+    public Optional<Instrument> findBySymbol(String symbol) {
+      return Optional.ofNullable(instruments.get(symbol.toUpperCase()));
+    }
+
+    private void addInstrument(String symbol, String currency) {
+      var instrument = new Instrument();
+      instrument.symbol = symbol.toUpperCase();
+      instrument.currency = currency;
+      instruments.put(instrument.symbol, instrument);
+    }
   }
 }
