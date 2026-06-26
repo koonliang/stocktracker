@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.Instrument;
+import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.InstrumentQuote;
 import com.stocktracker.domain.PortfolioTransaction;
 import com.stocktracker.dto.ConversionDtos.FxStatus;
@@ -295,6 +296,44 @@ class PortfolioServiceTest {
   }
 
   @Test
+  void buildDashboardFallsBackToPriceBarWhenQuoteMissing() {
+    var user = new AppUser();
+    user.baseCurrency = "USD";
+    when(currentUser.optional()).thenReturn(Optional.of(user));
+    when(instrumentRepository.findBySymbols(Set.of("AAPL")))
+        .thenReturn(Map.of("AAPL", instrument("AAPL", "USD")));
+    when(instrumentRepository.listPriceBars(Set.of("AAPL")))
+        .thenReturn(List.of(bar("AAPL", "2026-03-01", "99"), bar("AAPL", "2026-03-02", "101")));
+    when(quoteCacheService.cachedBySymbol(Set.of("AAPL"))).thenReturn(Map.of());
+    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+        .thenAnswer(
+            invocation ->
+                new CurrencyService.Converted(
+                    invocation.getArgument(0), invocation.getArgument(3), FxStatus.current));
+
+    var dashboard =
+        service.buildDashboard(
+            List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
+
+    assertEquals(101.0, dashboard.holdings().getFirst().nativePrice());
+    assertEquals(2.0, dashboard.holdings().getFirst().dayChange());
+    assertTrue(dashboard.holdings().getFirst().stale());
+  }
+
+  @Test
+  void buildDashboardReturnsEmptySummaryWhenNoSymbols() {
+    var user = new AppUser();
+    user.baseCurrency = "USD";
+    when(currentUser.optional()).thenReturn(Optional.of(user));
+
+    var dashboard = service.buildDashboard(List.of(transaction("deposit", null, null, null, null, "10", "USD")));
+
+    assertEquals(0, dashboard.holdings().size());
+    assertEquals(0.0, dashboard.summary().totalMarketValue());
+    assertTrue(dashboard.summary().marketValueConversion().fxStatus().name().equals("current"));
+  }
+
+  @Test
   void getDashboardAndListTransactionsBackfillBeforeReading() {
     when(currentUser.id()).thenReturn(2L);
     when(currentUser.optional()).thenReturn(Optional.empty());
@@ -341,6 +380,21 @@ class PortfolioServiceTest {
   }
 
   @Test
+  void deleteTransactionRemovesOwnedRecordAndReturnsUpdatedDashboard() {
+    when(currentUser.id()).thenReturn(1L);
+    var tx = transaction("buy", "AAPL", "1", "100", "0", null, "USD");
+    tx.id = 88L;
+    when(transactionRepository.findByIdAndUser(88L, 1L)).thenReturn(Optional.of(tx));
+    when(transactionRepository.listAscending(1L)).thenReturn(List.of());
+    when(currentUser.optional()).thenReturn(Optional.empty());
+
+    var dashboard = service.deleteTransaction(88L);
+
+    verify(transactionRepository).delete(tx);
+    assertEquals(0, dashboard.holdings().size());
+  }
+
+  @Test
   void buildDashboardReturnsEmptySummaryWithoutSymbolsAndFindPositionNullWithoutUser() {
     when(currentUser.optional()).thenReturn(Optional.empty());
 
@@ -382,6 +436,29 @@ class PortfolioServiceTest {
     assertEquals(0.0, dashboard.summary().totalMarketValue());
   }
 
+  @Test
+  void findPositionReturnsSnapshotWhenHoldingExists() {
+    var user = new AppUser();
+    user.id = 5L;
+    user.baseCurrency = "USD";
+    when(currentUser.optional()).thenReturn(Optional.of(user));
+    when(transactionRepository.listAscending(5L)).thenReturn(List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
+    when(instrumentRepository.findBySymbols(Set.of("AAPL")))
+        .thenReturn(Map.of("AAPL", instrument("AAPL", "USD")));
+    when(instrumentRepository.listPriceBars(Set.of("AAPL"))).thenReturn(List.of(bar("AAPL", "2026-03-01", "100")));
+    when(quoteCacheService.cachedBySymbol(Set.of("AAPL"))).thenReturn(Map.of());
+    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+        .thenAnswer(
+            invocation ->
+                new CurrencyService.Converted(
+                    invocation.getArgument(0), invocation.getArgument(3), FxStatus.current));
+
+    var snapshot = service.findPosition("aapl");
+
+    assertNotNull(snapshot);
+    assertEquals(1.0, snapshot.shares());
+  }
+
   private PortfolioTransaction transaction(
       String type,
       String symbol,
@@ -400,6 +477,18 @@ class PortfolioServiceTest {
     transaction.currency = currency;
     transaction.tradeDate = LocalDate.of(2026, 1, 1);
     return transaction;
+  }
+
+  private InstrumentPriceBar bar(String symbol, String date, String close) {
+    var bar = new InstrumentPriceBar();
+    bar.instrumentSymbol = symbol;
+    bar.tradeDate = LocalDate.parse(date);
+    bar.openPrice = new BigDecimal(close);
+    bar.highPrice = new BigDecimal(close);
+    bar.lowPrice = new BigDecimal(close);
+    bar.closePrice = new BigDecimal(close);
+    bar.volume = 0L;
+    return bar;
   }
 
   private Instrument instrument(String symbol, String currency) {

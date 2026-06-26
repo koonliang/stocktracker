@@ -1,6 +1,7 @@
 package com.stocktracker.service.provider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
@@ -9,7 +10,9 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -34,11 +37,30 @@ class YahooMarketDataProviderTest {
   }
 
   @Test
+  void yahooSymbolReturnsInputForBlankAndNull() {
+    assertNull(YahooMarketDataProvider.yahooSymbol(null));
+    assertEquals(" ", YahooMarketDataProvider.yahooSymbol(" "));
+  }
+
+  @Test
   void latestQuotesReturnsEmptyForEmptyInput() {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
 
     assertTrue(provider.latestQuotes(List.of()).isEmpty());
+  }
+
+  @Test
+  void latestQuotesSkipsSymbolsWhenChartPriceIsMissingOrFails() throws Exception {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.chart("MISS", "1d", "1d"))
+        .thenReturn(objectMapper.readTree("{\"chart\":{\"result\":[{\"meta\":{}}]}}"));
+    when(api.chart("ERR", "1d", "1d")).thenThrow(new RuntimeException("boom"));
+
+    var quotes = provider.latestQuotes(List.of("MISS", "ERR"));
+
+    assertTrue(quotes.isEmpty());
   }
 
   @Test
@@ -65,10 +87,66 @@ class YahooMarketDataProviderTest {
   }
 
   @Test
+  void latestQuotesUsesNowWhenMarketTimeIsMissing() throws Exception {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.chart("AAPL", "1d", "1d"))
+        .thenReturn(
+            objectMapper.readTree(
+                """
+                {"chart":{"result":[{"meta":{
+                  "regularMarketPrice":201.5,
+                  "chartPreviousClose":198.0
+                }}]}}
+                """));
+
+    var quote = provider.latestQuotes(List.of("AAPL")).getFirst();
+
+    assertEquals(201.5, quote.price().doubleValue());
+    assertTrue(quote.asOf().isAfter(Instant.EPOCH));
+  }
+
+  @Test
   void latestSnapshotReturnsNullWhenChartMetaMissing() throws Exception {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
     when(api.chart("AAPL", "1d", "1d")).thenReturn(objectMapper.readTree("{\"chart\":{\"result\":[]}}"));
+
+    assertNull(provider.latestSnapshot("AAPL"));
+  }
+
+  @Test
+  void latestSnapshotUsesTodayWhenMarketTimeIsMissing() throws Exception {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    var today = LocalDate.now(ZoneOffset.UTC);
+    when(api.chart("AAPL", "1d", "1d"))
+        .thenReturn(
+            objectMapper.readTree(
+                """
+                {"chart":{"result":[{"meta":{
+                  "regularMarketOpen":200.0,
+                  "regularMarketDayHigh":210.0,
+                  "regularMarketDayLow":190.0,
+                  "chartPreviousClose":198.0,
+                  "regularMarketVolume":1234,
+                  "fiftyTwoWeekHigh":250.0,
+                  "fiftyTwoWeekLow":150.0,
+                  "marketCap":5000000,
+                  "trailingPE":30.0
+                }}]}}
+                """));
+
+    var snapshot = provider.latestSnapshot("AAPL");
+
+    assertEquals(today, snapshot.asOfDate());
+  }
+
+  @Test
+  void latestSnapshotReturnsNullWhenApiThrows() {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.chart("AAPL", "1d", "1d")).thenThrow(new RuntimeException("boom"));
 
     assertNull(provider.latestSnapshot("AAPL"));
   }
@@ -104,6 +182,26 @@ class YahooMarketDataProviderTest {
   }
 
   @Test
+  void dailyHistoryReturnsEmptyOnNonBoundaryFailure() {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+        .thenThrow(new WebApplicationException(Response.status(500).build()));
+
+    assertTrue(provider.dailyHistory("AAPL", LocalDate.of(2025, 1, 1)).isEmpty());
+  }
+
+  @Test
+  void dailyHistoryReturnsEmptyWhenApiThrowsRuntimeException() {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+        .thenThrow(new RuntimeException("boom"));
+
+    assertTrue(provider.dailyHistory("AAPL", LocalDate.of(2025, 1, 1)).isEmpty());
+  }
+
+  @Test
   void searchSymbolsFiltersUnsupportedQuoteTypesAndUsesChartCurrency() throws Exception {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
@@ -124,5 +222,28 @@ class YahooMarketDataProviderTest {
     verify(api).chart("AAPL", "1d", "1d");
     assertEquals(1, results.size());
     assertEquals("USD", results.getFirst().currency());
+  }
+
+  @Test
+  void searchSymbolsSkipsMissingSymbolAndDefaultsCurrencyWhenMetaLookupFails() throws Exception {
+    var provider = new YahooMarketDataProvider();
+    provider.api = api;
+    when(api.search("apple"))
+        .thenReturn(
+            objectMapper.readTree(
+                """
+                {"quotes":[
+                  {"quoteType":"EQUITY","longname":"Ignored"},
+                  {"symbol":"AAPL","quoteType":"EQUITY","shortname":"Apple"}
+                ]}
+                """));
+    when(api.chart("AAPL", "1d", "1d")).thenThrow(new RuntimeException("boom"));
+
+    var results = provider.searchSymbols("apple");
+
+    assertEquals(1, results.size());
+    assertEquals("AAPL", results.getFirst().symbol());
+    assertEquals("USD", results.getFirst().currency());
+    assertFalse(results.getFirst().name().isBlank());
   }
 }

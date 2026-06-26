@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import com.stocktracker.domain.AppUser;
@@ -21,6 +22,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -172,6 +174,93 @@ class PerformanceServiceTest {
     var error = assertThrows(ApiException.class, () -> service.performance("1Y", "bad"));
 
     assertEquals("validation_error", error.code());
+  }
+
+  @Test
+  void performanceNormalizesWindowValues() {
+    var service = service();
+    var user = new AppUser();
+    user.id = 12L;
+    user.baseCurrency = "USD";
+    when(currentUser.require()).thenReturn(user);
+    when(transactionRepository.listAscending(12L)).thenReturn(List.of());
+    when(instrumentRepository.findBySymbols(Set.of())).thenReturn(Map.of());
+    when(instrumentRepository.listPriceBars(Set.of())).thenReturn(List.of());
+    when(lotMatchingService.match(List.of(), "fifo"))
+        .thenReturn(new CostBasisEngine.Result(List.of(), List.of()));
+
+    assertEquals("1Y", service.performance(null, null).window());
+    assertEquals("1M", service.performance("1m", "fifo").window());
+    assertEquals("3M", service.performance("3m", "fifo").window());
+    assertEquals("6M", service.performance("6m", "fifo").window());
+    assertEquals("YTD", service.performance("ytd", "fifo").window());
+    assertEquals("ALL", service.performance("all", "fifo").window());
+    assertEquals("1Y", service.performance("bogus", "fifo").window());
+  }
+
+  @Test
+  void performanceBackfillsOnlyMissingOrStaleHistory() {
+    var service = service();
+    var user = new AppUser();
+    user.id = 13L;
+    user.baseCurrency = "USD";
+    var aapl = tx("AAPL", "buy", "2026-06-01", "1", "10", null, "USD");
+    var msft = tx("MSFT", "buy", "2026-06-01", "1", "10", null, "USD");
+    var goog = tx("GOOG", "buy", "2026-06-01", "1", "10", null, "USD");
+    var transactions = List.of(aapl, msft, goog);
+    when(currentUser.require()).thenReturn(user);
+    when(transactionRepository.listAscending(13L)).thenReturn(transactions);
+    when(instrumentRepository.findBySymbols(Set.of("AAPL", "GOOG", "MSFT")))
+        .thenReturn(
+            Map.of(
+                "AAPL", instrument("AAPL", "USD"),
+                "MSFT", instrument("MSFT", "USD"),
+                "GOOG", instrument("GOOG", "USD")));
+    when(instrumentRepository.listPriceBars(Set.of("AAPL", "GOOG", "MSFT")))
+        .thenReturn(
+            List.of(
+                bar("MSFT", "2026-01-01", "10"),
+                bar("GOOG", "2025-06-01", "10"),
+                bar("GOOG", "2026-06-25", "11")));
+    when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
+    when(instrumentRepository.listPriceBars("MSFT")).thenReturn(List.of(bar("MSFT", "2026-01-01", "10")));
+    when(instrumentRepository.listPriceBars("GOOG"))
+        .thenReturn(List.of(bar("GOOG", "2025-06-01", "10"), bar("GOOG", "2026-06-25", "11")));
+    when(lotMatchingService.match(any(List.class), eq("fifo")))
+        .thenReturn(
+            new CostBasisEngine.Result(
+                List.of(
+                    new CostBasisEngine.Lot(
+                        "AAPL",
+                        LocalDate.parse("2026-06-01"),
+                        new BigDecimal("1"),
+                        new BigDecimal("10"),
+                        new BigDecimal("10")),
+                    new CostBasisEngine.Lot(
+                        "MSFT",
+                        LocalDate.parse("2026-06-01"),
+                        new BigDecimal("1"),
+                        new BigDecimal("10"),
+                        new BigDecimal("10")),
+                    new CostBasisEngine.Lot(
+                        "GOOG",
+                        LocalDate.parse("2026-06-01"),
+                        new BigDecimal("1"),
+                        new BigDecimal("10"),
+                        new BigDecimal("10"))),
+                List.of()));
+    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+        .thenAnswer(
+            invocation ->
+                new CurrencyService.Converted(
+                    invocation.getArgument(0), invocation.getArgument(3), FxStatus.current));
+
+    var response = service.performance("1Y", "fifo");
+
+    verify(historicalBackfillService).backfill("AAPL", LocalDate.parse("2025-06-26"));
+    verify(historicalBackfillService).backfill("MSFT", LocalDate.parse("2025-06-26"));
+    verify(historicalBackfillService, never()).backfill(eq("GOOG"), any());
+    assertEquals(3, response.contributions().size());
   }
 
   private PerformanceService service() {

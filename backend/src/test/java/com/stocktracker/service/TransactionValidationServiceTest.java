@@ -60,6 +60,29 @@ class TransactionValidationServiceTest {
   }
 
   @Test
+  void normalizeHandlesBlankAndNullValues() {
+    var normalized =
+        service.normalize(
+            new TransactionRequest(
+                TODAY,
+                " ",
+                null,
+                null,
+                null,
+                null,
+                null,
+                " "));
+
+    assertNull(normalized.ticker());
+    assertNull(normalized.type());
+    assertNull(normalized.quantity());
+    assertNull(normalized.price());
+    assertEquals(0, normalized.fees().compareTo(BigDecimal.ZERO));
+    assertNull(normalized.amount());
+    assertNull(normalized.currency());
+  }
+
+  @Test
   void securityBuyRequiresInstrumentCurrency() {
     var issue =
         service.validate(
@@ -96,6 +119,24 @@ class TransactionValidationServiceTest {
   }
 
   @Test
+  void securityBuyWithMatchingCurrencyAndNoFxRequirementPasses() {
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("10"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
+            Map.of());
+
+    assertNull(issue);
+  }
+
+  @Test
   void cashDepositRequiresCurrency() {
     var issue =
         service.validate(
@@ -104,6 +145,19 @@ class TransactionValidationServiceTest {
             Map.of());
 
     assertEquals("deposit requires a currency", issue);
+  }
+
+  @Test
+  void cashWithdrawalAndFeeValidatePositiveAmount() {
+    assertNull(
+        service.validate(
+            new TransactionRequest(
+                TODAY, null, "withdrawal", null, null, null, new BigDecimal("100"), "USD"),
+            Map.of()));
+    assertNull(
+        service.validate(
+            new TransactionRequest(TODAY, null, "fee", null, null, null, new BigDecimal("1"), "USD"),
+            Map.of()));
   }
 
   @Test
@@ -138,6 +192,24 @@ class TransactionValidationServiceTest {
   }
 
   @Test
+  void sellQuantityEqualToHeldSharesIsAllowed() {
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "sell",
+                new BigDecimal("3"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
+            Map.of("AAPL", new BigDecimal("3")));
+
+    assertNull(issue);
+  }
+
+  @Test
   void currentUserBaseCurrencyOverridesDefaultForFxValidation() {
     service.currentUser = new StubCurrentUser(userWithBaseCurrency("SGD"));
     onDemandFxService.markUnavailable("JPY", "SGD");
@@ -157,6 +229,29 @@ class TransactionValidationServiceTest {
             Map.of());
 
     assertEquals("FX rate unavailable for JPY to SGD", issue);
+  }
+
+  @Test
+  void currentUserBlankBaseCurrencyFallsBackToDefault() {
+    var user = new AppUser();
+    user.baseCurrency = " ";
+    service.currentUser = new StubCurrentUser(user);
+    instrumentRepository.addInstrument("7203.T", "JPY");
+
+    var issue =
+        service.validate(
+            new TransactionRequest(
+                TODAY,
+                "7203.T",
+                "buy",
+                new BigDecimal("10"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "JPY"),
+            Map.of());
+
+    assertNull(issue);
   }
 
   @Test
@@ -261,6 +356,18 @@ class TransactionValidationServiceTest {
                     new java.util.LinkedHashMap<>(java.util.Map.of("AAPL", new BigDecimal("1")))));
 
     assertEquals("validation_error", error.code());
+  }
+
+  @Test
+  void validateBatchHandlesEmptyInputAndApplyToBalancesSkipsNullTicker() {
+    var balances = new java.util.LinkedHashMap<String, BigDecimal>();
+    service.validateBatch(java.util.List.of(), balances);
+    assertEquals(0, balances.size());
+
+    service.applyToBalances(
+        new TransactionRequest(TODAY, null, "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+        balances);
+    assertEquals(0, balances.size());
   }
 
   @Test
