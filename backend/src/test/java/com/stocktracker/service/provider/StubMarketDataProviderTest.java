@@ -2,6 +2,8 @@ package com.stocktracker.service.provider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +52,26 @@ class StubMarketDataProviderTest {
   }
 
   @Test
+  void synthesizesHistoryForKnownPersistedSymbolWithoutBars() {
+    when(instruments.listPriceBars("IBM")).thenReturn(List.of());
+    when(instruments.existsSymbol("IBM")).thenReturn(true);
+
+    var bars = provider.dailyHistory("IBM", LocalDate.of(2025, 1, 6));
+
+    assertFalse(bars.isEmpty());
+    assertEquals("IBM", bars.getFirst().symbol());
+    assertTrue(bars.stream().allMatch(bar -> !bar.date().isBefore(LocalDate.of(2025, 1, 6))));
+  }
+
+  @Test
+  void dailyHistoryMaxExtendsBackTenYears() {
+    var bars = provider.dailyHistoryMax("AAPL");
+
+    assertFalse(bars.isEmpty());
+    assertTrue(bars.getFirst().date().isBefore(LocalDate.of(2016, 1, 10)));
+  }
+
+  @Test
   void usesRepositorySearchBeforeFixtureMatches() {
     var instrument = new Instrument();
     instrument.symbol = "MSFT";
@@ -77,6 +99,30 @@ class StubMarketDataProviderTest {
     assertEquals(new BigDecimal("106"), snapshot.highPrice());
     assertEquals(new BigDecimal("103"), snapshot.lowPrice());
     assertEquals(new BigDecimal("104"), snapshot.previousClose());
+  }
+
+  @Test
+  void derivesSnapshotFromFixtureWhenNoBarsExist() {
+    when(instruments.listPriceBars("AAPL")).thenReturn(List.of());
+
+    var snapshot = provider.latestSnapshot("AAPL");
+
+    assertNotNull(snapshot);
+    assertEquals("AAPL", snapshot.symbol());
+    assertEquals(LocalDate.of(2025, 1, 8), snapshot.asOfDate());
+    assertEquals(snapshot.highPrice(), snapshot.lowPrice());
+  }
+
+  @Test
+  void returnsNullSnapshotForUnknownSymbol() {
+    when(instruments.listPriceBars("UNKNOWN")).thenReturn(List.of());
+
+    assertNull(provider.latestSnapshot("UNKNOWN"));
+  }
+
+  @Test
+  void blankSearchReturnsEmptyList() {
+    assertTrue(provider.searchSymbols(" ").isEmpty());
   }
 
   private InstrumentPriceBar bar(String date, String open, String high, String low, String close) {

@@ -2,7 +2,9 @@ package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.stocktracker.api.ApiException;
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.Instrument;
 import com.stocktracker.dto.TransactionRequest;
@@ -155,6 +157,126 @@ class TransactionValidationServiceTest {
             Map.of());
 
     assertEquals("FX rate unavailable for JPY to SGD", issue);
+  }
+
+  @Test
+  void rejectsFutureDateAndUnknownType() {
+    assertEquals(
+        "date is in the future",
+        service.validate(
+            new TransactionRequest(
+                TODAY.plusDays(1),
+                "AAPL",
+                "buy",
+                new BigDecimal("1"),
+                new BigDecimal("100"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
+            Map.of()));
+
+    assertEquals(
+        "unknown transaction type: weird",
+        service.validate(
+            new TransactionRequest(TODAY, null, "weird", null, null, null, null, null), Map.of()));
+  }
+
+  @Test
+  void rejectsSecurityWithoutTickerAndUnknownTicker() {
+    assertEquals(
+        "buy requires a ticker",
+        service.validate(
+            new TransactionRequest(
+                TODAY, null, "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, null),
+            Map.of()));
+
+    assertEquals(
+        "unknown ticker: MISS",
+        service.validate(
+            new TransactionRequest(
+                TODAY, "MISS", "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+            Map.of()));
+  }
+
+  @Test
+  void rejectsCashTypesWithTickerAndInvalidTradeFields() {
+    assertEquals(
+        "deposit must not reference a ticker",
+        service.validate(
+            new TransactionRequest(
+                TODAY, "AAPL", "deposit", null, null, null, new BigDecimal("10"), "USD"),
+            Map.of()));
+
+    assertEquals(
+        "quantity must be > 0",
+        service.validate(
+            new TransactionRequest(TODAY, "AAPL", "buy", BigDecimal.ZERO, new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+            Map.of()));
+    assertEquals(
+        "price must be > 0",
+        service.validate(
+            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), BigDecimal.ZERO, BigDecimal.ZERO, null, "USD"),
+            Map.of()));
+    assertEquals(
+        "fees must be >= 0",
+        service.validate(
+            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), new BigDecimal("10"), new BigDecimal("-1"), null, "USD"),
+            Map.of()));
+  }
+
+  @Test
+  void validatesPositiveAmountAndSplitRatio() {
+    assertEquals(
+        "split ratio must be > 0",
+        service.validate(
+            new TransactionRequest(TODAY, "AAPL", "split", BigDecimal.ZERO, null, BigDecimal.ZERO, null, "USD"),
+            Map.of()));
+    assertEquals(
+        "amount must be > 0",
+        service.validate(
+            new TransactionRequest(TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, BigDecimal.ZERO, "USD"),
+            Map.of()));
+  }
+
+  @Test
+  void validateBatchAppliesBalancesAndThrowsOnFirstInvalidRequest() {
+    var balances = new java.util.LinkedHashMap<String, BigDecimal>();
+    balances.put("AAPL", new BigDecimal("2"));
+
+    service.validateBatch(
+        java.util.List.of(
+            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+            new TransactionRequest(TODAY, "AAPL", "split", new BigDecimal("2"), null, BigDecimal.ZERO, null, "USD")),
+        balances);
+
+    assertEquals(0, balances.get("AAPL").compareTo(new BigDecimal("6")));
+
+    var error =
+        assertThrows(
+            ApiException.class,
+            () ->
+                service.validateBatch(
+                    java.util.List.of(
+                        new TransactionRequest(TODAY, "AAPL", "sell", new BigDecimal("10"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD")),
+                    new java.util.LinkedHashMap<>(java.util.Map.of("AAPL", new BigDecimal("1")))));
+
+    assertEquals("validation_error", error.code());
+  }
+
+  @Test
+  void applyToBalancesLeavesCashAndDividendUnchangedAndExposesFieldDetail() {
+    var balances = new java.util.LinkedHashMap<String, BigDecimal>();
+    balances.put("AAPL", new BigDecimal("3"));
+
+    service.applyToBalances(
+        new TransactionRequest(TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
+        balances);
+    service.applyToBalances(
+        new TransactionRequest(TODAY, null, "deposit", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
+        balances);
+
+    assertEquals(0, balances.get("AAPL").compareTo(new BigDecimal("3")));
+    assertEquals(java.util.Map.of("field", "ticker", "value", "AAPL"), service.fieldDetail("ticker", "AAPL"));
   }
 
   private AppUser userWithBaseCurrency(String baseCurrency) {

@@ -90,6 +90,45 @@ class CurrencyServiceTest {
     assertEquals(0, converted.value().compareTo(BigDecimal.ZERO));
   }
 
+  @Test
+  void convertHandlesNullAmountAndSameCurrency() {
+    var date = LocalDate.of(2025, 5, 1);
+
+    var nullAmount = service.convert(null, "USD", "SGD", date);
+    var sameCurrency = service.convert(new BigDecimal("5"), "usd", "USD", date);
+
+    assertEquals(new BigDecimal("0"), nullAmount.value());
+    assertEquals(FxStatus.current, nullAmount.fxStatus());
+    assertEquals(new BigDecimal("5"), sameCurrency.value());
+  }
+
+  @Test
+  void usesInverseExactAndHonorsExplicitStaleFlag() {
+    var date = LocalDate.of(2025, 2, 10);
+    when(fxRates.find("SGD", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", true)));
+
+    var converted = service.rate("SGD", "USD", date);
+
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.stale, converted.get().fxStatus());
+  }
+
+  @Test
+  void usesDirectFallbackAsCurrentWhenRecent() {
+    var date = LocalDate.of(2025, 2, 10);
+    when(fxRates.find("USD", "SGD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("SGD", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date.minusDays(1), "1.34", false)));
+
+    var converted = service.rate("USD", "SGD", date);
+
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.current, converted.get().fxStatus());
+  }
+
   private FxRate rate(String base, String quote, LocalDate date, String value, boolean stale) {
     var row = new FxRate();
     row.baseCurrency = base;
