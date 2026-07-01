@@ -26,7 +26,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 class InstrumentServiceTest {
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final PortfolioService portfolioService = Mockito.mock(PortfolioService.class);
   private final QuoteCacheService quoteCacheService = Mockito.mock(QuoteCacheService.class);
   private final HistoricalBackfillService historicalBackfillService =
@@ -118,7 +119,11 @@ class InstrumentServiceTest {
     when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument()));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
     when(quoteCacheService.readQuotes(List.of("AAPL")))
-        .thenReturn(new QuoteResponse(List.of(new QuoteResponse.QuoteView("AAPL", null, "USD", null, null, null, null, null, null, true))));
+        .thenReturn(
+            new QuoteResponse(
+                List.of(
+                    new QuoteResponse.QuoteView(
+                        "AAPL", null, "USD", null, null, null, null, null, null, true))));
     when(instrumentRepository.listPriceBars("AAPL"))
         .thenReturn(List.of(bar("2024-01-01", "100", "101", "99", "100")));
     when(portfolioService.findPosition("AAPL")).thenReturn(null);
@@ -134,7 +139,11 @@ class InstrumentServiceTest {
     when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument()));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
     when(quoteCacheService.readQuotes(List.of("AAPL")))
-        .thenReturn(new QuoteResponse(List.of(new QuoteResponse.QuoteView("AAPL", 100.0, "USD", null, null, null, null, null, null, true))));
+        .thenReturn(
+            new QuoteResponse(
+                List.of(
+                    new QuoteResponse.QuoteView(
+                        "AAPL", 100.0, "USD", null, null, null, null, null, null, true))));
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
     when(portfolioService.findPosition("AAPL")).thenReturn(null);
 
@@ -149,7 +158,11 @@ class InstrumentServiceTest {
     when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument()));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
     when(quoteCacheService.readQuotes(List.of("AAPL")))
-        .thenReturn(new QuoteResponse(List.of(new QuoteResponse.QuoteView("AAPL", 100.0, "USD", null, null, null, null, null, null, true))));
+        .thenReturn(
+            new QuoteResponse(
+                List.of(
+                    new QuoteResponse.QuoteView(
+                        "AAPL", 100.0, "USD", null, null, null, null, null, null, true))));
     when(instrumentRepository.listPriceBars("AAPL"))
         .thenReturn(List.of(bar("2026-06-20", "190", "193", "189", "192")));
     when(portfolioService.findPosition("AAPL")).thenReturn(null);
@@ -193,8 +206,7 @@ class InstrumentServiceTest {
     return stat;
   }
 
-  private InstrumentPriceBar bar(
-      String date, String open, String high, String low, String close) {
+  private InstrumentPriceBar bar(String date, String open, String high, String low, String close) {
     var bar = new InstrumentPriceBar();
     bar.tradeDate = LocalDate.parse(date);
     bar.openPrice = new BigDecimal(open);

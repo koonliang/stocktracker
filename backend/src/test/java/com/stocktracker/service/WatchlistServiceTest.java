@@ -25,7 +25,8 @@ import org.mockito.Mockito;
 
 class WatchlistServiceTest {
   private final WatchlistRepository watchlistRepository = Mockito.mock(WatchlistRepository.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final EntityManager entityManager = Mockito.mock(EntityManager.class);
   private final CurrentUser currentUser = Mockito.mock(CurrentUser.class);
 
@@ -63,7 +64,8 @@ class WatchlistServiceTest {
   @Test
   void createTrimsNameAndPersistsWatchlist() {
     when(currentUser.id()).thenReturn(3L);
-    when(watchlistRepository.findByUserAndNameIgnoreCase(3L, "Growth")).thenReturn(Optional.empty());
+    when(watchlistRepository.findByUserAndNameIgnoreCase(3L, "Growth"))
+        .thenReturn(Optional.empty());
     doAnswer(
             invocation -> {
               var watchlist = invocation.<Watchlist>getArgument(0);
@@ -112,7 +114,8 @@ class WatchlistServiceTest {
     when(currentUser.id()).thenReturn(5L);
     var existing = watchlist(11L, "Income");
     when(watchlistRepository.findByIdAndUser(11L, 5L)).thenReturn(Optional.of(existing));
-    when(watchlistRepository.findByUserAndNameIgnoreCase(5L, "Growth")).thenReturn(Optional.empty());
+    when(watchlistRepository.findByUserAndNameIgnoreCase(5L, "Growth"))
+        .thenReturn(Optional.empty());
     when(watchlistRepository.listItems(11L)).thenReturn(List.of());
 
     var response = service.rename(11L, " Growth ");
@@ -134,10 +137,26 @@ class WatchlistServiceTest {
   }
 
   @Test
+  void renameAllowsSameNameForSameWatchlist() {
+    when(currentUser.id()).thenReturn(5L);
+    var existing = watchlist(11L, "Income");
+    when(watchlistRepository.findByIdAndUser(11L, 5L)).thenReturn(Optional.of(existing));
+    when(watchlistRepository.findByUserAndNameIgnoreCase(5L, "Income"))
+        .thenReturn(Optional.of(existing));
+    when(watchlistRepository.listItems(11L)).thenReturn(List.of());
+
+    var response = service.rename(11L, "Income");
+
+    assertEquals("Income", response.name());
+  }
+
+  @Test
   void reorderRejectsTickerListThatDoesNotMatchExistingItems() {
     when(currentUser.id()).thenReturn(8L);
-    when(watchlistRepository.findByIdAndUser(30L, 8L)).thenReturn(Optional.of(watchlist(30L, "ETF")));
-    when(watchlistRepository.listItems(30L)).thenReturn(List.of(item(30L, "SPY", 0), item(30L, "QQQ", 1)));
+    when(watchlistRepository.findByIdAndUser(30L, 8L))
+        .thenReturn(Optional.of(watchlist(30L, "ETF")));
+    when(watchlistRepository.listItems(30L))
+        .thenReturn(List.of(item(30L, "SPY", 0), item(30L, "QQQ", 1)));
 
     var error = assertThrows(ApiException.class, () -> service.reorder(30L, List.of("SPY")));
 

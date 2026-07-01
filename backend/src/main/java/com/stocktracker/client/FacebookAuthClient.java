@@ -31,7 +31,7 @@ public class FacebookAuthClient {
   @Inject NonProdAuthConfig config;
   @Inject ObjectMapper objectMapper;
 
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  HttpClient httpClient = HttpClient.newHttpClient();
 
   public GoogleAuthClient.ProviderProfile exchange(String code, String redirectUri) {
     config.validateProviderCredentials("facebook");
@@ -48,7 +48,7 @@ public class FacebookAuthClient {
     var request =
         HttpRequest.newBuilder(
                 URI.create(
-                    TOKEN_URI
+                    tokenUri()
                         + "?"
                         + queryString(
                             new LinkedHashMap<>() {
@@ -79,7 +79,7 @@ public class FacebookAuthClient {
 
   private GoogleAuthClient.ProviderProfile fetchUserProfile(String accessToken) {
     var request =
-        HttpRequest.newBuilder(USERINFO_URI)
+        HttpRequest.newBuilder(userInfoUri())
             .timeout(TIMEOUT)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
             .GET()
@@ -140,5 +140,13 @@ public class FacebookAuthClient {
 
   private String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value;
+  }
+
+  URI tokenUri() {
+    return TOKEN_URI;
+  }
+
+  URI userInfoUri() {
+    return USERINFO_URI;
   }
 }

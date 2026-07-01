@@ -117,7 +117,8 @@ public class MarketDataService {
     }
     var today = LocalDate.now(clock);
     for (var symbol : wanted) {
-      applyHistoryRefresh(self.buildHistoryRefreshPlan(symbol, today, providerConfig.isLiveMarketDataProvider()));
+      applyHistoryRefresh(
+          self.buildHistoryRefreshPlan(symbol, today, providerConfig.isLiveMarketDataProvider()));
       // QuoteRefreshJob owns instrument_quote updates; reusing the cached row here avoids
       // deadlocks when the history job overlaps the quote-refresh cadence.
       self.persistSnapshotArtifacts(symbol, marketDataProvider.latestSnapshot(symbol));
@@ -346,6 +347,5 @@ public class MarketDataService {
     FROM_DATE
   }
 
-  private record HistoryRefreshPlan(
-      String symbol, HistoryRefreshAction action, LocalDate from) {}
+  private record HistoryRefreshPlan(String symbol, HistoryRefreshAction action, LocalDate from) {}
 }

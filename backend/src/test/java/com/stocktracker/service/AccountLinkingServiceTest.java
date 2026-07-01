@@ -19,7 +19,8 @@ import org.mockito.Mockito;
 
 class AccountLinkingServiceTest {
   private final AppUserRepository users = Mockito.mock(AppUserRepository.class);
-  private final SocialIdentityRepository socialIdentities = Mockito.mock(SocialIdentityRepository.class);
+  private final SocialIdentityRepository socialIdentities =
+      Mockito.mock(SocialIdentityRepository.class);
   private AccountLinkingService service;
 
   @BeforeEach
@@ -39,7 +40,8 @@ class AccountLinkingServiceTest {
         .thenReturn(Optional.of(identity));
     when(users.findById(4L)).thenReturn(user);
 
-    var resolved = service.resolveOrLink(SocialIdentity.Provider.GOOGLE, "sub", "user@example.com", true);
+    var resolved =
+        service.resolveOrLink(SocialIdentity.Provider.GOOGLE, "sub", "user@example.com", true);
 
     assertEquals(4L, resolved.id);
   }
@@ -54,7 +56,8 @@ class AccountLinkingServiceTest {
         .thenReturn(Optional.empty());
     when(users.findByNormalizedEmail("user@example.com")).thenReturn(Optional.of(user));
 
-    try (MockedConstruction<SocialIdentity> identities = Mockito.mockConstruction(SocialIdentity.class)) {
+    try (MockedConstruction<SocialIdentity> identities =
+        Mockito.mockConstruction(SocialIdentity.class)) {
       var resolved =
           service.resolveOrLink(
               SocialIdentity.Provider.GOOGLE, "sub", "user@example.com", true, true);
@@ -82,7 +85,8 @@ class AccountLinkingServiceTest {
         .when(users)
         .persist(any(AppUser.class));
 
-    try (MockedConstruction<SocialIdentity> identities = Mockito.mockConstruction(SocialIdentity.class)) {
+    try (MockedConstruction<SocialIdentity> identities =
+        Mockito.mockConstruction(SocialIdentity.class)) {
       var created =
           service.resolveOrLink(
               SocialIdentity.Provider.FACEBOOK, "subject-1", "User@Example.com", false);

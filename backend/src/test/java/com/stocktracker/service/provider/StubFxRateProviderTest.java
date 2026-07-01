@@ -36,12 +36,17 @@ class StubFxRateProviderTest {
 
   @Test
   void rangeRatesReturnsEmptyForInvalidBounds() {
-    assertTrue(provider.rangeRates("USD", List.of("SGD"), LocalDate.of(2025, 1, 8), LocalDate.of(2025, 1, 7)).isEmpty());
+    assertTrue(
+        provider
+            .rangeRates("USD", List.of("SGD"), LocalDate.of(2025, 1, 8), LocalDate.of(2025, 1, 7))
+            .isEmpty());
   }
 
   @Test
   void rangeRatesExpandsDayByDay() {
-    var rates = provider.rangeRates("USD", List.of("SGD"), LocalDate.of(2025, 1, 6), LocalDate.of(2025, 1, 8));
+    var rates =
+        provider.rangeRates(
+            "USD", List.of("SGD"), LocalDate.of(2025, 1, 6), LocalDate.of(2025, 1, 8));
 
     assertEquals(3, rates.size());
     assertFalse(rates.isEmpty());

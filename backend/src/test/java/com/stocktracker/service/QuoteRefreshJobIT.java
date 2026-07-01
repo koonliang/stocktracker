@@ -40,7 +40,8 @@ class QuoteRefreshJobIT extends IntegrationTestSupport {
   }
 
   @Test
-  void trackedSymbolsIncludesInstrumentRowsWithoutPortfolioOrWatchlistReferences() throws Exception {
+  void trackedSymbolsIncludesInstrumentRowsWithoutPortfolioOrWatchlistReferences()
+      throws Exception {
     var symbol = "TRACKONLY";
     inTransaction(
         () -> {

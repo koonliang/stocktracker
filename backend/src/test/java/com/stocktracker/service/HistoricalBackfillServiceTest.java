@@ -1,8 +1,6 @@
 package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,12 +17,12 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedConstruction;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 class HistoricalBackfillServiceTest {
   private final MarketDataProvider marketDataProvider = Mockito.mock(MarketDataProvider.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private HistoricalBackfillService service;
 
   @BeforeEach
@@ -38,7 +36,10 @@ class HistoricalBackfillServiceTest {
 
   @Test
   void backfillDelegatesToProviderHistoryAndInsertBars() {
-    var bars = List.of(new MarketDataProvider.ProviderDailyBar("AAPL", LocalDate.parse("2026-06-25"), new BigDecimal("10")));
+    var bars =
+        List.of(
+            new MarketDataProvider.ProviderDailyBar(
+                "AAPL", LocalDate.parse("2026-06-25"), new BigDecimal("10")));
     when(marketDataProvider.dailyHistory("AAPL", LocalDate.parse("2026-06-01"))).thenReturn(bars);
     doReturn(1).when(service).insertBars("AAPL", bars);
 
@@ -74,11 +75,14 @@ class HistoricalBackfillServiceTest {
         .thenReturn(List.of(existingBar("2026-06-24", "9")));
     var providerBars =
         List.of(
-            new MarketDataProvider.ProviderDailyBar("AAPL", LocalDate.parse("2026-06-24"), new BigDecimal("9")),
+            new MarketDataProvider.ProviderDailyBar(
+                "AAPL", LocalDate.parse("2026-06-24"), new BigDecimal("9")),
             new MarketDataProvider.ProviderDailyBar("AAPL", LocalDate.parse("2026-06-25"), null),
-            new MarketDataProvider.ProviderDailyBar("AAPL", LocalDate.parse("2026-06-26"), new BigDecimal("11")));
+            new MarketDataProvider.ProviderDailyBar(
+                "AAPL", LocalDate.parse("2026-06-26"), new BigDecimal("11")));
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class)) {
+    try (MockedConstruction<InstrumentPriceBar> bars =
+        Mockito.mockConstruction(InstrumentPriceBar.class)) {
       var inserted = service.insertBars("aapl", providerBars);
 
       assertEquals(1, inserted);

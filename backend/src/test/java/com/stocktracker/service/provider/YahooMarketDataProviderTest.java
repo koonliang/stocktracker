@@ -110,7 +110,8 @@ class YahooMarketDataProviderTest {
   void latestSnapshotReturnsNullWhenChartMetaMissing() throws Exception {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
-    when(api.chart("AAPL", "1d", "1d")).thenReturn(objectMapper.readTree("{\"chart\":{\"result\":[]}}"));
+    when(api.chart("AAPL", "1d", "1d"))
+        .thenReturn(objectMapper.readTree("{\"chart\":{\"result\":[]}}"));
 
     assertNull(provider.latestSnapshot("AAPL"));
   }
@@ -155,7 +156,8 @@ class YahooMarketDataProviderTest {
   void dailyHistoryFiltersNullAndOutOfRangeBars() throws Exception {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
-    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+    when(api.chartPeriod(
+            Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
         .thenReturn(
             objectMapper.readTree(
                 """
@@ -175,7 +177,8 @@ class YahooMarketDataProviderTest {
   void dailyHistoryReturnsEmptyOnBoundary400() {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
-    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+    when(api.chartPeriod(
+            Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
         .thenThrow(new WebApplicationException(Response.status(400).build()));
 
     assertTrue(provider.dailyHistory("AAPL", LocalDate.of(2025, 1, 1)).isEmpty());
@@ -185,7 +188,8 @@ class YahooMarketDataProviderTest {
   void dailyHistoryReturnsEmptyOnNonBoundaryFailure() {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
-    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+    when(api.chartPeriod(
+            Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
         .thenThrow(new WebApplicationException(Response.status(500).build()));
 
     assertTrue(provider.dailyHistory("AAPL", LocalDate.of(2025, 1, 1)).isEmpty());
@@ -195,7 +199,8 @@ class YahooMarketDataProviderTest {
   void dailyHistoryReturnsEmptyWhenApiThrowsRuntimeException() {
     var provider = new YahooMarketDataProvider();
     provider.api = api;
-    when(api.chartPeriod(Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
+    when(api.chartPeriod(
+            Mockito.eq("AAPL"), Mockito.eq("1d"), Mockito.anyLong(), Mockito.anyLong()))
         .thenThrow(new RuntimeException("boom"));
 
     assertTrue(provider.dailyHistory("AAPL", LocalDate.of(2025, 1, 1)).isEmpty());
@@ -215,7 +220,8 @@ class YahooMarketDataProviderTest {
                 ]}
                 """));
     when(api.chart("AAPL", "1d", "1d"))
-        .thenReturn(objectMapper.readTree("{\"chart\":{\"result\":[{\"meta\":{\"currency\":\"USD\"}}]}}"));
+        .thenReturn(
+            objectMapper.readTree("{\"chart\":{\"result\":[{\"meta\":{\"currency\":\"USD\"}}]}}"));
 
     var results = provider.searchSymbols("apple");
 

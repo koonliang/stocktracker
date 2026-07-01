@@ -2,8 +2,6 @@ package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.stocktracker.domain.Instrument;
@@ -49,13 +47,17 @@ class CashBalanceServiceTest {
   @Test
   void convertsTotalAndPropagatesStaleFlag() {
     when(currencyService.convert(new BigDecimal("100"), "USD", "SGD", LocalDate.of(2025, 1, 1)))
-        .thenReturn(new CurrencyService.Converted(new BigDecimal("135"), LocalDate.now(), FxStatus.current));
+        .thenReturn(
+            new CurrencyService.Converted(
+                new BigDecimal("135"), LocalDate.now(), FxStatus.current));
     when(currencyService.convert(new BigDecimal("50"), "EUR", "SGD", LocalDate.of(2025, 1, 1)))
-        .thenReturn(new CurrencyService.Converted(new BigDecimal("73"), LocalDate.now(), FxStatus.stale));
+        .thenReturn(
+            new CurrencyService.Converted(new BigDecimal("73"), LocalDate.now(), FxStatus.stale));
 
     var total =
         service.baseConvertedTotal(
-            new java.util.LinkedHashMap<>(java.util.Map.of("USD", new BigDecimal("100"), "EUR", new BigDecimal("50"))),
+            new java.util.LinkedHashMap<>(
+                java.util.Map.of("USD", new BigDecimal("100"), "EUR", new BigDecimal("50"))),
             "SGD",
             LocalDate.of(2025, 1, 1));
 
@@ -64,7 +66,13 @@ class CashBalanceServiceTest {
   }
 
   private PortfolioTransaction transaction(
-      String type, String symbol, String quantity, String price, String fees, String amount, String currency) {
+      String type,
+      String symbol,
+      String quantity,
+      String price,
+      String fees,
+      String amount,
+      String currency) {
     var tx = new PortfolioTransaction();
     tx.transactionType = type;
     tx.instrumentSymbol = symbol;

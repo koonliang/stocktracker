@@ -40,8 +40,13 @@ class EmailSenderTest {
     when(authMode.isDev()).thenReturn(false);
     var mail = new Mail();
     try (MockedStatic<Mail> mails = mockStatic(Mail.class)) {
-      mails.when(() -> Mail.withText("user@example.com", "Reset your StockTracker password",
-              "Reset your StockTracker password using this token: token"))
+      mails
+          .when(
+              () ->
+                  Mail.withText(
+                      "user@example.com",
+                      "Reset your StockTracker password",
+                      "Reset your StockTracker password using this token: token"))
           .thenReturn(mail);
 
       service.sendPasswordReset("user@example.com", "token");

@@ -116,7 +116,8 @@ public class PortfolioService {
 
   void preflightHistoricalFx(List<TransactionRequest> requests) {
     var baseCurrency =
-        currentUser.optional()
+        currentUser
+            .optional()
             .map(user -> user.baseCurrency)
             .filter(currency -> currency != null && !currency.isBlank())
             .orElse(defaultBaseCurrency)

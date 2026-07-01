@@ -4,24 +4,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.stocktracker.api.ApiException;
 import com.stocktracker.domain.AppUser;
 import com.stocktracker.domain.Instrument;
 import com.stocktracker.domain.InstrumentPriceBar;
 import com.stocktracker.domain.PortfolioTransaction;
-import com.stocktracker.api.ApiException;
 import com.stocktracker.dto.ConversionDtos.FxStatus;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.persistence.PortfolioTransactionRepository;
 import com.stocktracker.security.CurrentUser;
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +31,8 @@ import org.mockito.Mockito;
 class PerformanceServiceTest {
   private final PortfolioTransactionRepository transactionRepository =
       Mockito.mock(PortfolioTransactionRepository.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final CurrentUser currentUser = Mockito.mock(CurrentUser.class);
   private final LotMatchingService lotMatchingService = Mockito.mock(LotMatchingService.class);
   private final CurrencyService currencyService = Mockito.mock(CurrencyService.class);
@@ -37,6 +40,7 @@ class PerformanceServiceTest {
       Mockito.mock(HistoricalBackfillService.class);
   private final FxHistoricalBackfillService fxHistoricalBackfillService =
       Mockito.mock(FxHistoricalBackfillService.class);
+  private final Clock clock = Clock.fixed(Instant.parse("2026-06-26T00:00:00Z"), ZoneOffset.UTC);
 
   @Test
   void timeWeightedReturnChainsSubPeriodReturns() {
@@ -122,11 +126,18 @@ class PerformanceServiceTest {
         .thenReturn(List.of(bar("AAPL", "2026-06-25", "100"), bar("AAPL", "2026-06-26", "110")));
     when(lotMatchingService.match(any(List.class), eq("fifo")))
         .thenReturn(new CostBasisEngine.Result(List.of(openLot), List.of(closedLot)));
-    when(currencyService.convertTransaction(new BigDecimal("20"), "USD", "USD", LocalDate.parse("2026-06-20")))
-        .thenReturn(new CurrencyService.Converted(new BigDecimal("20"), LocalDate.parse("2026-06-20"), FxStatus.current));
-    when(currencyService.convertTransaction(new BigDecimal("4"), "USD", "USD", LocalDate.parse("2026-06-15")))
-        .thenReturn(new CurrencyService.Converted(new BigDecimal("4"), LocalDate.parse("2026-06-15"), FxStatus.current));
-    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+    when(currencyService.convertTransaction(
+            new BigDecimal("20"), "USD", "USD", LocalDate.parse("2026-06-20")))
+        .thenReturn(
+            new CurrencyService.Converted(
+                new BigDecimal("20"), LocalDate.parse("2026-06-20"), FxStatus.current));
+    when(currencyService.convertTransaction(
+            new BigDecimal("4"), "USD", "USD", LocalDate.parse("2026-06-15")))
+        .thenReturn(
+            new CurrencyService.Converted(
+                new BigDecimal("4"), LocalDate.parse("2026-06-15"), FxStatus.current));
+    when(currencyService.convertHolding(
+            any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
         .thenAnswer(
             invocation ->
                 new CurrencyService.Converted(
@@ -135,7 +146,11 @@ class PerformanceServiceTest {
     var response = service.performance("1M", "fifo");
 
     verify(fxHistoricalBackfillService)
-        .backfillForBase(eq("USD"), eq(java.util.Set.of("USD")), eq(LocalDate.parse("2026-06-01")), any(LocalDate.class));
+        .backfillForBase(
+            eq("USD"),
+            eq(java.util.Set.of("USD")),
+            eq(LocalDate.parse("2026-06-01")),
+            any(LocalDate.class));
     assertEquals(24.0, response.realizedPnL());
     assertEquals(40.0, response.unrealizedPnL());
     assertEquals(1, response.closedLots().size());
@@ -223,7 +238,8 @@ class PerformanceServiceTest {
                 bar("GOOG", "2025-06-01", "10"),
                 bar("GOOG", "2026-06-25", "11")));
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
-    when(instrumentRepository.listPriceBars("MSFT")).thenReturn(List.of(bar("MSFT", "2026-01-01", "10")));
+    when(instrumentRepository.listPriceBars("MSFT"))
+        .thenReturn(List.of(bar("MSFT", "2026-01-01", "10")));
     when(instrumentRepository.listPriceBars("GOOG"))
         .thenReturn(List.of(bar("GOOG", "2025-06-01", "10"), bar("GOOG", "2026-06-25", "11")));
     when(lotMatchingService.match(any(List.class), eq("fifo")))
@@ -249,7 +265,8 @@ class PerformanceServiceTest {
                         new BigDecimal("10"),
                         new BigDecimal("10"))),
                 List.of()));
-    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+    when(currencyService.convertHolding(
+            any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
         .thenAnswer(
             invocation ->
                 new CurrencyService.Converted(
@@ -272,11 +289,18 @@ class PerformanceServiceTest {
     service.currencyService = currencyService;
     service.historicalBackfillService = historicalBackfillService;
     service.fxHistoricalBackfillService = fxHistoricalBackfillService;
+    service.clock = clock;
     return service;
   }
 
   private PortfolioTransaction tx(
-      String symbol, String type, String date, String quantity, String price, String amount, String currency) {
+      String symbol,
+      String type,
+      String date,
+      String quantity,
+      String price,
+      String amount,
+      String currency) {
     var tx = new PortfolioTransaction();
     tx.instrumentSymbol = symbol;
     tx.transactionType = type;

@@ -80,7 +80,7 @@ public class ReferenceDataBootstrap {
           bar.lowPrice = decimal(barNode, "low");
           bar.closePrice = decimal(barNode, "close");
           bar.volume = barNode.get("volume").asLong();
-          bar.persist();
+          persistPriceBar(bar);
           // Flush and detach periodically so the price-bar dataset (tens of
           // thousands of rows) does not accumulate in the persistence context.
           if (++inserted % 1000 == 0) {
@@ -109,23 +109,31 @@ public class ReferenceDataBootstrap {
         stat.marketCap = node.get("marketCap").asLong();
         stat.peRatio = node.get("peRatio").isNull() ? null : decimal(node, "peRatio");
         stat.asOfDate = latestTradeDate(entry.getKey());
-        stat.persist();
+        persistInstrumentStat(stat);
       }
     }
   }
 
-  private InputStream resource(String name) {
+  InputStream resource(String name) {
     return Thread.currentThread().getContextClassLoader().getResourceAsStream(name);
   }
 
-  private LocalDate latestTradeDate(String symbol) {
+  LocalDate latestTradeDate(String symbol) {
     return instrumentRepository.listPriceBars(symbol).stream()
         .map(bar -> bar.tradeDate)
         .max(LocalDate::compareTo)
         .orElse(LocalDate.now());
   }
 
-  private BigDecimal decimal(JsonNode node, String field) {
+  BigDecimal decimal(JsonNode node, String field) {
     return new BigDecimal(node.get(field).asText());
+  }
+
+  void persistPriceBar(InstrumentPriceBar bar) {
+    bar.persist();
+  }
+
+  void persistInstrumentStat(InstrumentStat stat) {
+    stat.persist();
   }
 }

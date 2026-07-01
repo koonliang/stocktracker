@@ -38,7 +38,8 @@ class NonProdSocialAuthServiceTest {
     var missing =
         assertThrows(
             ApiException.class,
-            () -> service.exchange("google", new SocialExchangeRequest(" ", "https://app/callback")));
+            () ->
+                service.exchange("google", new SocialExchangeRequest(" ", "https://app/callback")));
     assertEquals("AUTH_FAILED", missing.code());
 
     var unknown =

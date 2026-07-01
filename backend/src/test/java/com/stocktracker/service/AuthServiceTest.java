@@ -17,6 +17,7 @@ import com.stocktracker.domain.VerificationToken.Purpose;
 import com.stocktracker.dto.ForgotPasswordRequest;
 import com.stocktracker.dto.LoginRequest;
 import com.stocktracker.dto.ResendVerificationRequest;
+import com.stocktracker.dto.ResetPasswordRequest;
 import com.stocktracker.dto.SignUpRequest;
 import com.stocktracker.dto.VerifyEmailRequest;
 import com.stocktracker.persistence.AppUserRepository;
@@ -30,7 +31,8 @@ import org.mockito.Mockito;
 
 class AuthServiceTest {
   private final AppUserRepository users = Mockito.mock(AppUserRepository.class);
-  private final VerificationTokenRepository tokens = Mockito.mock(VerificationTokenRepository.class);
+  private final VerificationTokenRepository tokens =
+      Mockito.mock(VerificationTokenRepository.class);
   private final TokenIssuer tokenIssuer = Mockito.mock(TokenIssuer.class);
   private final EmailSender emailSender = Mockito.mock(EmailSender.class);
   private final DevTokenStore devTokenStore = Mockito.mock(DevTokenStore.class);
@@ -53,7 +55,9 @@ class AuthServiceTest {
   void loginRejectsInvalidCredentials() {
     when(users.findByNormalizedEmail("user@example.com")).thenReturn(Optional.empty());
 
-    var error = assertThrows(ApiException.class, () -> service.login(new LoginRequest("user@example.com", "bad")));
+    var error =
+        assertThrows(
+            ApiException.class, () -> service.login(new LoginRequest("user@example.com", "bad")));
 
     assertEquals("AUTH_FAILED", error.code());
   }
@@ -61,7 +65,8 @@ class AuthServiceTest {
   @Test
   void signupRejectsInvalidEmailAndWeakPassword() {
     var invalidEmail =
-        assertThrows(ApiException.class, () -> service.signup(new SignUpRequest("bad", "StrongPass1!")));
+        assertThrows(
+            ApiException.class, () -> service.signup(new SignUpRequest("bad", "StrongPass1!")));
     assertEquals("VALIDATION", invalidEmail.code());
 
     var weakPassword =
@@ -93,6 +98,17 @@ class AuthServiceTest {
   }
 
   @Test
+  void signupIsNoOpForExistingUser() {
+    when(users.findByNormalizedEmail("user@example.com"))
+        .thenReturn(Optional.of(activeUser(4L, "user@example.com")));
+
+    var response = service.signup(new SignUpRequest("user@example.com", "StrongPass1!"));
+
+    assertEquals("account_created", response.status());
+    verify(users, never()).persist(any(AppUser.class));
+  }
+
+  @Test
   void forgotPasswordSendsResetOnlyForActiveUsers() {
     var user = activeUser(9L, "user@example.com");
     when(users.findByNormalizedEmail("user@example.com")).thenReturn(Optional.of(user));
@@ -107,7 +123,9 @@ class AuthServiceTest {
   @Test
   void forgotPasswordDoesNothingForMissingOrInactiveUser() {
     when(users.findByNormalizedEmail("missing@example.com")).thenReturn(Optional.empty());
-    assertEquals("reset_sent", service.forgotPassword(new ForgotPasswordRequest("missing@example.com")).status());
+    assertEquals(
+        "reset_sent",
+        service.forgotPassword(new ForgotPasswordRequest("missing@example.com")).status());
 
     var inactive = new AppUser();
     inactive.id = 2L;
@@ -115,7 +133,9 @@ class AuthServiceTest {
     inactive.status = AppUser.Status.UNVERIFIED;
     when(users.findByNormalizedEmail("inactive@example.com")).thenReturn(Optional.of(inactive));
 
-    assertEquals("reset_sent", service.forgotPassword(new ForgotPasswordRequest("inactive@example.com")).status());
+    assertEquals(
+        "reset_sent",
+        service.forgotPassword(new ForgotPasswordRequest("inactive@example.com")).status());
     verify(emailSender, never()).sendPasswordReset(eq("inactive@example.com"), any());
   }
 
@@ -174,12 +194,14 @@ class AuthServiceTest {
     token.userId = 10L;
     doReturn(token).when(service).consumeToken("verify-token-2", Purpose.EMAIL_VERIFICATION);
     when(users.findById(10L)).thenReturn(null);
-    assertEquals("verified", service.verifyEmail(new VerifyEmailRequest("verify-token-2")).status());
+    assertEquals(
+        "verified", service.verifyEmail(new VerifyEmailRequest("verify-token-2")).status());
 
     var active = activeUser(11L, "active@example.com");
     token.userId = 11L;
     when(users.findById(11L)).thenReturn(active);
-    assertEquals("verified", service.verifyEmail(new VerifyEmailRequest("verify-token-2")).status());
+    assertEquals(
+        "verified", service.verifyEmail(new VerifyEmailRequest("verify-token-2")).status());
   }
 
   @Test
@@ -190,7 +212,9 @@ class AuthServiceTest {
 
     verify(tokens).supersedePrior(eq(4L), eq(Purpose.PASSWORD_RESET), any(LocalDateTime.class));
     verify(tokens).persist(any(VerificationToken.class));
-    verify(devTokenStore).record(eq("user@example.com"), eq(Purpose.PASSWORD_RESET), eq(raw), any(LocalDateTime.class));
+    verify(devTokenStore)
+        .record(
+            eq("user@example.com"), eq(Purpose.PASSWORD_RESET), eq(raw), any(LocalDateTime.class));
   }
 
   @Test
@@ -201,7 +225,8 @@ class AuthServiceTest {
     token.expiresAt = LocalDateTime.now().minusMinutes(1);
     when(tokens.findByHash(any())).thenReturn(Optional.of(token));
 
-    var error = assertThrows(ApiException.class, () -> service.consumeToken("raw", Purpose.PASSWORD_RESET));
+    var error =
+        assertThrows(ApiException.class, () -> service.consumeToken("raw", Purpose.PASSWORD_RESET));
 
     assertEquals("TOKEN_INVALID", error.code());
   }
@@ -218,6 +243,43 @@ class AuthServiceTest {
 
     assertEquals(token, consumed);
     org.junit.jupiter.api.Assertions.assertNotNull(token.consumedAt);
+  }
+
+  @Test
+  void consumeTokenRejectsMissingAndConsumedTokens() {
+    when(tokens.findByHash(any())).thenReturn(Optional.empty());
+    assertEquals(
+        "TOKEN_INVALID",
+        assertThrows(
+                ApiException.class, () -> service.consumeToken("missing", Purpose.PASSWORD_RESET))
+            .code());
+
+    var consumed = new VerificationToken();
+    consumed.userId = 7L;
+    consumed.purpose = Purpose.PASSWORD_RESET;
+    consumed.expiresAt = LocalDateTime.now().plusMinutes(5);
+    consumed.consumedAt = LocalDateTime.now();
+    when(tokens.findByHash(any())).thenReturn(Optional.of(consumed));
+
+    var error =
+        assertThrows(
+            ApiException.class, () -> service.consumeToken("used", Purpose.PASSWORD_RESET));
+
+    assertEquals("TOKEN_INVALID", error.code());
+  }
+
+  @Test
+  void resetPasswordRejectsMissingUserAndCreatesCredentialWhenAbsent() {
+    var token = new VerificationToken();
+    token.userId = 99L;
+    doReturn(token).when(service).consumeToken("reset-token", Purpose.PASSWORD_RESET);
+    when(users.findById(99L)).thenReturn(null);
+
+    var missingUser =
+        assertThrows(
+            ApiException.class,
+            () -> service.resetPassword(new ResetPasswordRequest("reset-token", "StrongPass1!")));
+    assertEquals("TOKEN_INVALID", missingUser.code());
   }
 
   private AppUser activeUser(Long id, String email) {

@@ -52,7 +52,8 @@ class DemoUserServiceTest {
     when(config.demoUserMax()).thenReturn(1);
     when(users.listDemoUsers()).thenReturn(List.of(demoUser(1, "First")));
 
-    var error = assertThrows(ApiException.class, () -> service.create(new DemoUserCreateRequest("New")));
+    var error =
+        assertThrows(ApiException.class, () -> service.create(new DemoUserCreateRequest("New")));
 
     assertEquals("DEMO_USER_LIMIT_REACHED", error.code());
   }
@@ -90,7 +91,9 @@ class DemoUserServiceTest {
     when(config.demoUserPrefix()).thenReturn("demo");
     when(users.listDemoUsers()).thenReturn(List.of());
     when(users.findDemoUserBySlot(1)).thenReturn(Optional.empty());
-    doThrow(new RuntimeException("boom")).when(devDataBootstrap).refreshDemoUserPortfolio(any(AppUser.class));
+    doThrow(new RuntimeException("boom"))
+        .when(devDataBootstrap)
+        .refreshDemoUserPortfolio(any(AppUser.class));
 
     assertThrows(IllegalStateException.class, () -> service.create(new DemoUserCreateRequest("A")));
   }

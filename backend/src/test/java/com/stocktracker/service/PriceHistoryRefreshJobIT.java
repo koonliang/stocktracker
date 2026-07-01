@@ -3,7 +3,6 @@ package com.stocktracker.service;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.stocktracker.domain.InstrumentStat;
 import com.stocktracker.persistence.InstrumentRepository;
 import com.stocktracker.scheduler.PriceHistoryRefreshJob;
 import com.stocktracker.support.IntegrationTestSupport;

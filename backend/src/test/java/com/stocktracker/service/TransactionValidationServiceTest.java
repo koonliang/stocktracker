@@ -62,16 +62,7 @@ class TransactionValidationServiceTest {
   @Test
   void normalizeHandlesBlankAndNullValues() {
     var normalized =
-        service.normalize(
-            new TransactionRequest(
-                TODAY,
-                " ",
-                null,
-                null,
-                null,
-                null,
-                null,
-                " "));
+        service.normalize(new TransactionRequest(TODAY, " ", null, null, null, null, null, " "));
 
     assertNull(normalized.ticker());
     assertNull(normalized.type());
@@ -156,7 +147,8 @@ class TransactionValidationServiceTest {
             Map.of()));
     assertNull(
         service.validate(
-            new TransactionRequest(TODAY, null, "fee", null, null, null, new BigDecimal("1"), "USD"),
+            new TransactionRequest(
+                TODAY, null, "fee", null, null, null, new BigDecimal("1"), "USD"),
             Map.of()));
   }
 
@@ -282,14 +274,28 @@ class TransactionValidationServiceTest {
         "buy requires a ticker",
         service.validate(
             new TransactionRequest(
-                TODAY, null, "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, null),
+                TODAY,
+                null,
+                "buy",
+                new BigDecimal("1"),
+                new BigDecimal("10"),
+                BigDecimal.ZERO,
+                null,
+                null),
             Map.of()));
 
     assertEquals(
         "unknown ticker: MISS",
         service.validate(
             new TransactionRequest(
-                TODAY, "MISS", "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+                TODAY,
+                "MISS",
+                "buy",
+                new BigDecimal("1"),
+                new BigDecimal("10"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
             Map.of()));
   }
 
@@ -305,17 +311,41 @@ class TransactionValidationServiceTest {
     assertEquals(
         "quantity must be > 0",
         service.validate(
-            new TransactionRequest(TODAY, "AAPL", "buy", BigDecimal.ZERO, new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                BigDecimal.ZERO,
+                new BigDecimal("10"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
             Map.of()));
     assertEquals(
         "price must be > 0",
         service.validate(
-            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), BigDecimal.ZERO, BigDecimal.ZERO, null, "USD"),
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("1"),
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                null,
+                "USD"),
             Map.of()));
     assertEquals(
         "fees must be >= 0",
         service.validate(
-            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), new BigDecimal("10"), new BigDecimal("-1"), null, "USD"),
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("1"),
+                new BigDecimal("10"),
+                new BigDecimal("-1"),
+                null,
+                "USD"),
             Map.of()));
   }
 
@@ -324,12 +354,14 @@ class TransactionValidationServiceTest {
     assertEquals(
         "split ratio must be > 0",
         service.validate(
-            new TransactionRequest(TODAY, "AAPL", "split", BigDecimal.ZERO, null, BigDecimal.ZERO, null, "USD"),
+            new TransactionRequest(
+                TODAY, "AAPL", "split", BigDecimal.ZERO, null, BigDecimal.ZERO, null, "USD"),
             Map.of()));
     assertEquals(
         "amount must be > 0",
         service.validate(
-            new TransactionRequest(TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, BigDecimal.ZERO, "USD"),
+            new TransactionRequest(
+                TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, BigDecimal.ZERO, "USD"),
             Map.of()));
   }
 
@@ -340,8 +372,17 @@ class TransactionValidationServiceTest {
 
     service.validateBatch(
         java.util.List.of(
-            new TransactionRequest(TODAY, "AAPL", "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
-            new TransactionRequest(TODAY, "AAPL", "split", new BigDecimal("2"), null, BigDecimal.ZERO, null, "USD")),
+            new TransactionRequest(
+                TODAY,
+                "AAPL",
+                "buy",
+                new BigDecimal("1"),
+                new BigDecimal("10"),
+                BigDecimal.ZERO,
+                null,
+                "USD"),
+            new TransactionRequest(
+                TODAY, "AAPL", "split", new BigDecimal("2"), null, BigDecimal.ZERO, null, "USD")),
         balances);
 
     assertEquals(0, balances.get("AAPL").compareTo(new BigDecimal("6")));
@@ -352,7 +393,15 @@ class TransactionValidationServiceTest {
             () ->
                 service.validateBatch(
                     java.util.List.of(
-                        new TransactionRequest(TODAY, "AAPL", "sell", new BigDecimal("10"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD")),
+                        new TransactionRequest(
+                            TODAY,
+                            "AAPL",
+                            "sell",
+                            new BigDecimal("10"),
+                            new BigDecimal("10"),
+                            BigDecimal.ZERO,
+                            null,
+                            "USD")),
                     new java.util.LinkedHashMap<>(java.util.Map.of("AAPL", new BigDecimal("1")))));
 
     assertEquals("validation_error", error.code());
@@ -365,7 +414,15 @@ class TransactionValidationServiceTest {
     assertEquals(0, balances.size());
 
     service.applyToBalances(
-        new TransactionRequest(TODAY, null, "buy", new BigDecimal("1"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD"),
+        new TransactionRequest(
+            TODAY,
+            null,
+            "buy",
+            new BigDecimal("1"),
+            new BigDecimal("10"),
+            BigDecimal.ZERO,
+            null,
+            "USD"),
         balances);
     assertEquals(0, balances.size());
   }
@@ -376,14 +433,18 @@ class TransactionValidationServiceTest {
     balances.put("AAPL", new BigDecimal("3"));
 
     service.applyToBalances(
-        new TransactionRequest(TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
+        new TransactionRequest(
+            TODAY, "AAPL", "dividend", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
         balances);
     service.applyToBalances(
-        new TransactionRequest(TODAY, null, "deposit", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
+        new TransactionRequest(
+            TODAY, null, "deposit", null, null, BigDecimal.ZERO, new BigDecimal("5"), "USD"),
         balances);
 
     assertEquals(0, balances.get("AAPL").compareTo(new BigDecimal("3")));
-    assertEquals(java.util.Map.of("field", "ticker", "value", "AAPL"), service.fieldDetail("ticker", "AAPL"));
+    assertEquals(
+        java.util.Map.of("field", "ticker", "value", "AAPL"),
+        service.fieldDetail("ticker", "AAPL"));
   }
 
   private AppUser userWithBaseCurrency(String baseCurrency) {

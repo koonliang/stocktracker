@@ -27,7 +27,8 @@ class CurrencyServiceTest {
   @Test
   void returnsExactDirectRateAsCurrent() {
     var date = LocalDate.of(2025, 1, 2);
-    when(fxRates.find("USD", "SGD", date)).thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
 
     var converted = service.convert(new BigDecimal("10"), "USD", "SGD", date);
 
@@ -58,8 +59,10 @@ class CurrencyServiceTest {
     when(fxRates.find("SGD", "EUR", date)).thenReturn(Optional.empty());
     when(fxRates.findLatestOnOrBefore("EUR", "SGD", date)).thenReturn(Optional.empty());
     when(fxRates.findLatestOnOrBefore("SGD", "EUR", date)).thenReturn(Optional.empty());
-    when(fxRates.find("EUR", "USD", date)).thenReturn(Optional.of(rate("EUR", "USD", date, "1.10", false)));
-    when(fxRates.find("USD", "SGD", date)).thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
+    when(fxRates.find("EUR", "USD", date))
+        .thenReturn(Optional.of(rate("EUR", "USD", date, "1.10", false)));
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
 
     var converted = service.rate("EUR", "SGD", date);
 

@@ -3,10 +3,9 @@ package com.stocktracker.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -31,14 +30,15 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentMatchers;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 class PortfolioServiceTest {
   private final PortfolioTransactionRepository transactionRepository =
       Mockito.mock(PortfolioTransactionRepository.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final TransactionValidationService transactionValidationService =
       Mockito.mock(TransactionValidationService.class);
   private final CurrentUser currentUser = Mockito.mock(CurrentUser.class);
@@ -88,7 +88,8 @@ class PortfolioServiceTest {
 
   @Test
   void fxSourceCurrencyUsesInstrumentCurrencyForSecuritiesAndRequestCurrencyForCash() {
-    when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument("AAPL", "USD")));
+    when(instrumentRepository.findBySymbol("AAPL"))
+        .thenReturn(Optional.of(instrument("AAPL", "USD")));
     when(instrumentRepository.findBySymbol("MISSING")).thenReturn(Optional.empty());
 
     assertEquals(
@@ -134,7 +135,8 @@ class PortfolioServiceTest {
     var user = new AppUser();
     user.baseCurrency = "sgd";
     when(currentUser.optional()).thenReturn(Optional.of(user));
-    when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument("AAPL", "USD")));
+    when(instrumentRepository.findBySymbol("AAPL"))
+        .thenReturn(Optional.of(instrument("AAPL", "USD")));
 
     service.preflightHistoricalFx(
         List.of(
@@ -212,7 +214,8 @@ class PortfolioServiceTest {
 
     service.createTransactionsTransactional(List.of(missingCurrency, providedCurrency), "manual");
 
-    verify(transactionValidationService).validateBatch(List.of(missingCurrency, providedCurrency), Map.of());
+    verify(transactionValidationService)
+        .validateBatch(List.of(missingCurrency, providedCurrency), Map.of());
 
     var transactionCaptor = ArgumentCaptor.forClass(PortfolioTransaction.class);
     verify(transactionRepository, Mockito.times(2)).persist(transactionCaptor.capture());
@@ -273,8 +276,7 @@ class PortfolioServiceTest {
             });
 
     var dashboard =
-        service.buildDashboard(
-            List.of(transaction("buy", "AAPL", "2", "10", "1", null, "USD")));
+        service.buildDashboard(List.of(transaction("buy", "AAPL", "2", "10", "1", null, "USD")));
 
     assertEquals("SGD", dashboard.summary().baseCurrency());
     assertEquals(40.5, dashboard.summary().totalMarketValue());
@@ -305,15 +307,15 @@ class PortfolioServiceTest {
     when(instrumentRepository.listPriceBars(Set.of("AAPL")))
         .thenReturn(List.of(bar("AAPL", "2026-03-01", "99"), bar("AAPL", "2026-03-02", "101")));
     when(quoteCacheService.cachedBySymbol(Set.of("AAPL"))).thenReturn(Map.of());
-    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+    when(currencyService.convertHolding(
+            any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
         .thenAnswer(
             invocation ->
                 new CurrencyService.Converted(
                     invocation.getArgument(0), invocation.getArgument(3), FxStatus.current));
 
     var dashboard =
-        service.buildDashboard(
-            List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
+        service.buildDashboard(List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
 
     assertEquals(101.0, dashboard.holdings().getFirst().nativePrice());
     assertEquals(2.0, dashboard.holdings().getFirst().dayChange());
@@ -326,7 +328,9 @@ class PortfolioServiceTest {
     user.baseCurrency = "USD";
     when(currentUser.optional()).thenReturn(Optional.of(user));
 
-    var dashboard = service.buildDashboard(List.of(transaction("deposit", null, null, null, null, "10", "USD")));
+    var dashboard =
+        service.buildDashboard(
+            List.of(transaction("deposit", null, null, null, null, "10", "USD")));
 
     assertEquals(0, dashboard.holdings().size());
     assertEquals(0.0, dashboard.summary().totalMarketValue());
@@ -354,13 +358,28 @@ class PortfolioServiceTest {
   void createTransactionsNormalizesAndDelegatesToTransactionalSelf() {
     var request =
         new TransactionRequest(
-            LocalDate.of(2026, 3, 1), " aapl ", " BUY ", new BigDecimal("2.0"), new BigDecimal("10.0"), BigDecimal.ZERO, null, " usd ");
+            LocalDate.of(2026, 3, 1),
+            " aapl ",
+            " BUY ",
+            new BigDecimal("2.0"),
+            new BigDecimal("10.0"),
+            BigDecimal.ZERO,
+            null,
+            " usd ");
     var normalized =
         new TransactionRequest(
-            LocalDate.of(2026, 3, 1), "AAPL", "buy", new BigDecimal("2"), new BigDecimal("10"), BigDecimal.ZERO, null, "USD");
+            LocalDate.of(2026, 3, 1),
+            "AAPL",
+            "buy",
+            new BigDecimal("2"),
+            new BigDecimal("10"),
+            BigDecimal.ZERO,
+            null,
+            "USD");
     when(transactionValidationService.normalize(request)).thenReturn(normalized);
     when(currentUser.optional()).thenReturn(Optional.empty());
-    when(instrumentRepository.findBySymbol("AAPL")).thenReturn(Optional.of(instrument("AAPL", "USD")));
+    when(instrumentRepository.findBySymbol("AAPL"))
+        .thenReturn(Optional.of(instrument("AAPL", "USD")));
 
     service.createTransactions(List.of(request), "manual");
 
@@ -373,8 +392,9 @@ class PortfolioServiceTest {
     when(currentUser.id()).thenReturn(1L);
     when(transactionRepository.findByIdAndUser(99L, 1L)).thenReturn(Optional.empty());
 
-    var error = org.junit.jupiter.api.Assertions.assertThrows(
-        com.stocktracker.api.ApiException.class, () -> service.deleteTransaction(99L));
+    var error =
+        org.junit.jupiter.api.Assertions.assertThrows(
+            com.stocktracker.api.ApiException.class, () -> service.deleteTransaction(99L));
 
     assertEquals("not_found", error.code());
   }
@@ -398,7 +418,9 @@ class PortfolioServiceTest {
   void buildDashboardReturnsEmptySummaryWithoutSymbolsAndFindPositionNullWithoutUser() {
     when(currentUser.optional()).thenReturn(Optional.empty());
 
-    var dashboard = service.buildDashboard(List.of(transaction("deposit", null, null, null, null, "10", "USD")));
+    var dashboard =
+        service.buildDashboard(
+            List.of(transaction("deposit", null, null, null, null, "10", "USD")));
 
     assertEquals("USD", dashboard.summary().baseCurrency());
     assertEquals(0, dashboard.holdings().size());
@@ -420,7 +442,8 @@ class PortfolioServiceTest {
     when(instrumentRepository.listPriceBars(Set.of("AAPL"))).thenReturn(List.of());
     when(quoteCacheService.cachedBySymbol(Set.of("AAPL"))).thenReturn(Map.of("AAPL", quote));
     when(quoteCacheService.effectiveStale(quote)).thenReturn(true);
-    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("SGD"), any(LocalDate.class)))
+    when(currencyService.convertHolding(
+            any(BigDecimal.class), eq("USD"), eq("SGD"), any(LocalDate.class)))
         .thenReturn(new CurrencyService.Converted(BigDecimal.ZERO, null, FxStatus.unavailable));
 
     var dashboard =
@@ -442,12 +465,15 @@ class PortfolioServiceTest {
     user.id = 5L;
     user.baseCurrency = "USD";
     when(currentUser.optional()).thenReturn(Optional.of(user));
-    when(transactionRepository.listAscending(5L)).thenReturn(List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
+    when(transactionRepository.listAscending(5L))
+        .thenReturn(List.of(transaction("buy", "AAPL", "1", "100", "0", null, "USD")));
     when(instrumentRepository.findBySymbols(Set.of("AAPL")))
         .thenReturn(Map.of("AAPL", instrument("AAPL", "USD")));
-    when(instrumentRepository.listPriceBars(Set.of("AAPL"))).thenReturn(List.of(bar("AAPL", "2026-03-01", "100")));
+    when(instrumentRepository.listPriceBars(Set.of("AAPL")))
+        .thenReturn(List.of(bar("AAPL", "2026-03-01", "100")));
     when(quoteCacheService.cachedBySymbol(Set.of("AAPL"))).thenReturn(Map.of());
-    when(currencyService.convertHolding(any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
+    when(currencyService.convertHolding(
+            any(BigDecimal.class), eq("USD"), eq("USD"), any(LocalDate.class)))
         .thenAnswer(
             invocation ->
                 new CurrencyService.Converted(

@@ -82,7 +82,8 @@ class FrankfurterFxRateProviderTest {
         .thenReturn(objectMapper.readTree("{\"date\":\"2025-01-07\",\"rates\":{\"SGD\":1.35}}"));
 
     var rates =
-        provider.rangeRates("USD", List.of("SGD"), LocalDate.of(2025, 1, 6), LocalDate.of(2025, 1, 7));
+        provider.rangeRates(
+            "USD", List.of("SGD"), LocalDate.of(2025, 1, 6), LocalDate.of(2025, 1, 7));
 
     assertEquals(2, rates.size());
     verify(api).onDate("2025-01-06", "USD", "SGD");

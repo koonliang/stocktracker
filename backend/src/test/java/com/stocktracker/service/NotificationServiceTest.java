@@ -46,7 +46,8 @@ class NotificationServiceTest {
   @Test
   void listWithLimitSetsNextCursorWhenPageIsFull() {
     when(currentUser.id()).thenReturn(1L);
-    when(notifications.listForUser(1L, 2)).thenReturn(List.of(notification(7L, false), notification(8L, true)));
+    when(notifications.listForUser(1L, 2))
+        .thenReturn(List.of(notification(7L, false), notification(8L, true)));
     when(notifications.unreadCount(1L)).thenReturn(1L);
 
     var response = service.list(2);
@@ -74,6 +75,41 @@ class NotificationServiceTest {
 
     assertEquals(2, response.updated());
     assertEquals(1, response.unreadCount());
+  }
+
+  @Test
+  void markReadPersistsOwnedNotification() {
+    when(currentUser.id()).thenReturn(1L);
+    var notification = notification(4L, false);
+    when(notifications.findByIdAndUser(4L, 1L)).thenReturn(Optional.of(notification));
+
+    service.markRead(4L);
+
+    assertEquals(true, notification.read);
+    verify(notifications).persist(notification);
+  }
+
+  @Test
+  void markAllReadWithoutIdsUsesBulkReadAll() {
+    when(currentUser.id()).thenReturn(1L);
+    when(notifications.markAllRead(1L)).thenReturn(3L);
+    when(notifications.unreadCount(1L)).thenReturn(0L);
+
+    var response = service.markAllRead(new ReadAllRequest(null));
+
+    assertEquals(3, response.updated());
+    assertEquals(0, response.unreadCount());
+  }
+
+  @Test
+  void listWithLimitOmitsNextCursorWhenPageNotFull() {
+    when(currentUser.id()).thenReturn(1L);
+    when(notifications.listForUser(1L, 3)).thenReturn(List.of(notification(7L, false)));
+    when(notifications.unreadCount(1L)).thenReturn(1L);
+
+    var response = service.list(3);
+
+    assertEquals(null, response.nextCursor());
   }
 
   @Test

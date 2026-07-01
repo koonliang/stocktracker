@@ -9,9 +9,9 @@ import java.util.Set;
 import org.jboss.logging.Logger;
 
 /**
- * Refreshes the quote cache on a fixed cadence for every known instrument symbol. Runs
- * continuously regardless of any single market's hours; per-symbol freshness is governed by
- * {@code fetched_at} (FR-028). Alert evaluation hooks in here in US4.
+ * Refreshes the quote cache on a fixed cadence for every known instrument symbol. Runs continuously
+ * regardless of any single market's hours; per-symbol freshness is governed by {@code fetched_at}
+ * (FR-028). Alert evaluation hooks in here in US4.
  */
 @ApplicationScoped
 public class QuoteRefreshJob {
@@ -35,7 +35,8 @@ public class QuoteRefreshJob {
     return Set.copyOf(
         entityManager
             .createQuery(
-                "select distinct i.symbol from Instrument i where i.symbol is not null", String.class)
+                "select distinct i.symbol from Instrument i where i.symbol is not null",
+                String.class)
             .getResultList());
   }
 }

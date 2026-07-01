@@ -12,7 +12,10 @@ class DevTokenStoreTest {
   void returnsLatestNonExpiredEntryUsingNormalizedKey() {
     var store = new DevTokenStore();
     store.record(
-        "  User@Example.com ", Purpose.PASSWORD_RESET, "raw-token", LocalDateTime.now().plusMinutes(5));
+        "  User@Example.com ",
+        Purpose.PASSWORD_RESET,
+        "raw-token",
+        LocalDateTime.now().plusMinutes(5));
 
     var entry = store.latest("user@example.com", Purpose.PASSWORD_RESET);
 
@@ -24,7 +27,10 @@ class DevTokenStoreTest {
   void ignoresExpiredEntries() {
     var store = new DevTokenStore();
     store.record(
-        "user@example.com", Purpose.EMAIL_VERIFICATION, "expired", LocalDateTime.now().minusSeconds(1));
+        "user@example.com",
+        Purpose.EMAIL_VERIFICATION,
+        "expired",
+        LocalDateTime.now().minusSeconds(1));
 
     assertTrue(store.latest("user@example.com", Purpose.EMAIL_VERIFICATION).isEmpty());
   }

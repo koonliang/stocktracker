@@ -49,7 +49,13 @@ class TransactionExportServiceTest {
   }
 
   private PortfolioTransaction transaction(
-      String type, String symbol, String quantity, String price, String fees, String amount, String currency) {
+      String type,
+      String symbol,
+      String quantity,
+      String price,
+      String fees,
+      String amount,
+      String currency) {
     var tx = new PortfolioTransaction();
     tx.tradeDate = LocalDate.of(2025, 1, 2);
     tx.transactionType = type;

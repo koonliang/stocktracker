@@ -18,6 +18,14 @@ class NonProdAuthConfigTest {
   }
 
   @Test
+  void preservesNormalizedDemoUserPrefix() {
+    var config = new NonProdAuthConfig();
+    config.demoUserPrefix = "  Demo-Users ";
+
+    assertEquals("demo-users", config.demoUserPrefix());
+  }
+
+  @Test
   void validatesRedirectUriAgainstConfiguredValue() {
     var config = new NonProdAuthConfig();
     config.redirectUri = "http://localhost:5173/auth/callback";
@@ -26,6 +34,13 @@ class NonProdAuthConfigTest {
         "http://localhost:5173/auth/callback",
         config.requireRedirectUri(" http://localhost:5173/auth/callback "));
     assertThrows(ApiException.class, () -> config.requireRedirectUri("http://evil.test"));
+  }
+
+  @Test
+  void requiresConfiguredRedirectUri() {
+    var config = new NonProdAuthConfig();
+
+    assertThrows(ApiException.class, () -> config.requireRedirectUri("http://localhost"));
   }
 
   @Test
@@ -40,5 +55,15 @@ class NonProdAuthConfigTest {
     config.facebookClientId = "default";
     config.facebookClientSecret = "secret";
     assertThrows(ApiException.class, () -> config.validateProviderCredentials("facebook"));
+  }
+
+  @Test
+  void rejectsUnknownProviderAndMissingRedirect() {
+    var config = new NonProdAuthConfig();
+    config.googleClientId = "client";
+    config.googleClientSecret = "secret";
+
+    assertThrows(ApiException.class, () -> config.validateProviderCredentials("google"));
+    assertThrows(ApiException.class, () -> config.validateProviderCredentials("github"));
   }
 }

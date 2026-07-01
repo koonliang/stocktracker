@@ -113,5 +113,4 @@ class TransactionsResourceIT extends IntegrationTestSupport {
                 java.time.LocalDate.parse("2025-02-01"))
             > 0);
   }
-
 }

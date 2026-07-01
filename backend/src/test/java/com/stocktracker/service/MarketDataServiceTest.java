@@ -34,7 +34,8 @@ import org.mockito.Mockito;
 
 class MarketDataServiceTest {
   private final MarketDataProvider marketDataProvider = Mockito.mock(MarketDataProvider.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final QuoteRepository quoteRepository = Mockito.mock(QuoteRepository.class);
   private final QuoteCacheService quoteCacheService = Mockito.mock(QuoteCacheService.class);
   private final HistoricalBackfillService historicalBackfillService =
@@ -66,7 +67,8 @@ class MarketDataServiceTest {
   @Test
   void searchMapsProviderResults() {
     when(marketDataProvider.searchSymbols("aapl"))
-        .thenReturn(List.of(new MarketDataProvider.ProviderSymbol("AAPL", "Apple", "NASDAQ", "USD")));
+        .thenReturn(
+            List.of(new MarketDataProvider.ProviderSymbol("AAPL", "Apple", "NASDAQ", "USD")));
 
     var response = service.search("aapl");
 
@@ -99,8 +101,7 @@ class MarketDataServiceTest {
     quote.instrumentSymbol = "SONY";
     quote.price = new BigDecimal("95.5");
     quote.asOf = Instant.parse("2026-06-26T00:00:00Z");
-    when(instrumentRepository.findBySymbol("SONY"))
-        .thenReturn(Optional.empty(), Optional.empty());
+    when(instrumentRepository.findBySymbol("SONY")).thenReturn(Optional.empty(), Optional.empty());
     when(marketDataProvider.searchSymbols("SONY"))
         .thenReturn(List.of(new MarketDataProvider.ProviderSymbol("SONY", "Sony", "NYSE", "JPY")));
     when(providerConfig.isLiveMarketDataProvider()).thenReturn(true);
@@ -134,7 +135,8 @@ class MarketDataServiceTest {
 
     when(instrumentRepository.listPriceBars("AAPL"))
         .thenReturn(List.of(priceBar("2024-07-01", "100"), priceBar("2026-06-25", "110")));
-    var liveRecentEnough = service.buildHistoryRefreshPlan("AAPL", LocalDate.parse("2026-06-26"), true);
+    var liveRecentEnough =
+        service.buildHistoryRefreshPlan("AAPL", LocalDate.parse("2026-06-26"), true);
 
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
     var stubEmpty = service.buildHistoryRefreshPlan("AAPL", LocalDate.parse("2026-06-26"), false);
@@ -219,7 +221,8 @@ class MarketDataServiceTest {
 
   @Test
   void addInstrumentUsesEmptyQuoteSummaryWhenQuoteIsMissing() {
-    when(instrumentRepository.findBySymbol("IBM")).thenReturn(Optional.of(instrument("IBM", "IBM", "NYSE", "USD")));
+    when(instrumentRepository.findBySymbol("IBM"))
+        .thenReturn(Optional.of(instrument("IBM", "IBM", "NYSE", "USD")));
     when(quoteRepository.findBySymbol("IBM")).thenReturn(Optional.empty());
 
     var response = service.addInstrument("IBM");
@@ -231,8 +234,7 @@ class MarketDataServiceTest {
 
   @Test
   void addInstrumentUsesStubHistoryPathAndDefaultsMissingExchangeAndCurrency() {
-    when(instrumentRepository.findBySymbol("MYST"))
-        .thenReturn(Optional.empty(), Optional.empty());
+    when(instrumentRepository.findBySymbol("MYST")).thenReturn(Optional.empty(), Optional.empty());
     when(marketDataProvider.searchSymbols("MYST"))
         .thenReturn(List.of(new MarketDataProvider.ProviderSymbol("MYST", "Mystery", null, null)));
     when(providerConfig.isLiveMarketDataProvider()).thenReturn(false);
@@ -299,7 +301,8 @@ class MarketDataServiceTest {
         .thenReturn(List.of(priceBar("2026-06-25", "198")));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class);
+    try (MockedConstruction<InstrumentPriceBar> bars =
+            Mockito.mockConstruction(InstrumentPriceBar.class);
         MockedConstruction<InstrumentStat> stats = Mockito.mockConstruction(InstrumentStat.class)) {
       service.persistSnapshotArtifacts(
           "AAPL",
@@ -335,7 +338,8 @@ class MarketDataServiceTest {
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class);
+    try (MockedConstruction<InstrumentPriceBar> bars =
+            Mockito.mockConstruction(InstrumentPriceBar.class);
         MockedConstruction<InstrumentStat> stats = Mockito.mockConstruction(InstrumentStat.class)) {
       service.persistSnapshotArtifacts(
           "AAPL",
@@ -373,22 +377,13 @@ class MarketDataServiceTest {
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class);
+    try (MockedConstruction<InstrumentPriceBar> bars =
+            Mockito.mockConstruction(InstrumentPriceBar.class);
         MockedConstruction<InstrumentStat> stats = Mockito.mockConstruction(InstrumentStat.class)) {
       service.persistSnapshotArtifacts(
           "AAPL",
           new MarketDataProvider.ProviderSnapshot(
-              "AAPL",
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null,
-              null));
+              "AAPL", null, null, null, null, null, null, null, null, null, null));
 
       var bar = bars.constructed().getFirst();
       var stat = stats.constructed().getFirst();
@@ -418,7 +413,8 @@ class MarketDataServiceTest {
                 detailedBar("2026-06-25", "190", "210", "180", "200", 999L)));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.empty());
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class);
+    try (MockedConstruction<InstrumentPriceBar> bars =
+            Mockito.mockConstruction(InstrumentPriceBar.class);
         MockedConstruction<InstrumentStat> stats = Mockito.mockConstruction(InstrumentStat.class)) {
       service.persistSnapshotArtifacts(
           "AAPL",
@@ -441,7 +437,8 @@ class MarketDataServiceTest {
     when(quoteRepository.findBySymbol("AAPL")).thenReturn(Optional.empty());
     when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of());
 
-    try (MockedConstruction<InstrumentPriceBar> bars = Mockito.mockConstruction(InstrumentPriceBar.class);
+    try (MockedConstruction<InstrumentPriceBar> bars =
+            Mockito.mockConstruction(InstrumentPriceBar.class);
         MockedConstruction<InstrumentStat> stats = Mockito.mockConstruction(InstrumentStat.class)) {
       service.persistSnapshotArtifacts("AAPL", null);
 
@@ -461,7 +458,8 @@ class MarketDataServiceTest {
     when(quoteRepository.findBySymbol("AAPL")).thenReturn(Optional.of(quote));
     when(instrumentRepository.findPriceBar("AAPL", LocalDate.parse("2026-06-26")))
         .thenReturn(Optional.of(existingBar));
-    when(instrumentRepository.listPriceBars("AAPL")).thenReturn(List.of(detailedBar("2026-06-25", "190", "210", "180", "200", 999L)));
+    when(instrumentRepository.listPriceBars("AAPL"))
+        .thenReturn(List.of(detailedBar("2026-06-25", "190", "210", "180", "200", 999L)));
     when(instrumentRepository.findStat("AAPL")).thenReturn(Optional.of(existingStat));
     when(existingBar.isPersistent()).thenReturn(true);
     when(existingStat.isPersistent()).thenReturn(true);

@@ -21,7 +21,6 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -29,7 +28,8 @@ import org.mockito.Mockito;
 class QuoteCacheServiceTest {
   private final MarketDataProvider marketDataProvider = Mockito.mock(MarketDataProvider.class);
   private final QuoteRepository quoteRepository = Mockito.mock(QuoteRepository.class);
-  private final InstrumentRepository instrumentRepository = Mockito.mock(InstrumentRepository.class);
+  private final InstrumentRepository instrumentRepository =
+      Mockito.mock(InstrumentRepository.class);
   private final AlertEvaluationService alertEvaluationService =
       Mockito.mock(AlertEvaluationService.class);
 
@@ -89,7 +89,9 @@ class QuoteCacheServiceTest {
     instrument.symbol = "AAPL";
     instrument.currency = "USD";
 
-    Mockito.doReturn(List.of("AAPL")).when(service).findKnownStaleOrMissing(List.of("AAPL", "MSFT"));
+    Mockito.doReturn(List.of("AAPL"))
+        .when(service)
+        .findKnownStaleOrMissing(List.of("AAPL", "MSFT"));
     Mockito.doNothing().when(service).refreshSymbols(List.of("AAPL"));
     Mockito.doReturn(new com.stocktracker.dto.QuoteResponse(List.of()))
         .when(service)
@@ -115,12 +117,12 @@ class QuoteCacheServiceTest {
     instrument.symbol = "AAPL";
     instrument.currency = "USD";
     when(quoteRepository.findBySymbols(List.of("AAPL"))).thenReturn(List.of());
-    when(instrumentRepository.findBySymbols(List.of("AAPL"))).thenReturn(Map.of("AAPL", instrument));
+    when(instrumentRepository.findBySymbols(List.of("AAPL")))
+        .thenReturn(Map.of("AAPL", instrument));
     when(instrumentRepository.listPriceBars("AAPL"))
         .thenReturn(
             List.of(
-                priceBar("AAPL", "2026-06-24", "118"),
-                priceBar("AAPL", "2026-06-25", "121.50")));
+                priceBar("AAPL", "2026-06-24", "118"), priceBar("AAPL", "2026-06-25", "121.50")));
 
     var response = service.readCachedQuotes(List.of("AAPL"));
 
@@ -155,7 +157,10 @@ class QuoteCacheServiceTest {
     var existing = new InstrumentQuote();
     existing.instrumentSymbol = "AAPL";
     when(marketDataProvider.latestQuotes(List.of("AAPL", "MSFT")))
-        .thenReturn(List.of(new MarketDataProvider.ProviderQuote("AAPL", new BigDecimal("10"), new BigDecimal("9"), Instant.now())));
+        .thenReturn(
+            List.of(
+                new MarketDataProvider.ProviderQuote(
+                    "AAPL", new BigDecimal("10"), new BigDecimal("9"), Instant.now())));
     when(quoteRepository.findOrNew("AAPL")).thenReturn(existing);
 
     service.refreshSymbols(List.of("AAPL", "MSFT"));
