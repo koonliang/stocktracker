@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { render } from '@/test/utils';
+import { render } from '@tests/utils';
 
 describe('LoginRoute in Cognito mode', () => {
   afterEach(() => {

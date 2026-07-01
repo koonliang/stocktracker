@@ -145,10 +145,14 @@ Frontend:
 ```bash
 cd frontend
 npm test
+npm run test:coverage
 npm run lint
 npm run typecheck
 npm run build
 ```
+
+`npm run test:coverage` enforces a minimum 70% frontend coverage threshold
+across lines, branches, functions, and statements.
 
 Backend:
 

@@ -11,6 +11,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,13 +34,14 @@ public class PerformanceService {
   @Inject CurrencyService currencyService;
   @Inject HistoricalBackfillService historicalBackfillService;
   @Inject FxHistoricalBackfillService fxHistoricalBackfillService;
+  @Inject Clock clock;
 
   public PerformanceResponse performance(String window, String method) {
     var user = currentUser.require();
     var baseCurrency = user.baseCurrency == null ? "USD" : user.baseCurrency;
     var normalizedWindow = normalizeWindow(window);
     var normalizedMethod = normalizeMethod(method);
-    var today = LocalDate.now();
+    var today = LocalDate.now(clock);
     var start = windowStart(normalizedWindow, today);
     var transactions = transactionRepository.listAscending(user.id);
     backfillHistoricalFx(transactions, baseCurrency, start, today);

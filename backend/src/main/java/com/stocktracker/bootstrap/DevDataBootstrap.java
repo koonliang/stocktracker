@@ -86,38 +86,38 @@ public class DevDataBootstrap {
       return;
     }
 
-    PortfolioTransaction.delete("userId", user.id);
+    deleteTransactions(user.id);
     insertTransactions(user.id, user.demoSeedProfile);
   }
 
-  private AppUser ensureLegacySeedUser() {
+  AppUser ensureLegacySeedUser() {
     var seedUser =
         appUserRepository
             .findByNormalizedEmail(LEGACY_SEED_USER_EMAIL)
             .orElseThrow(
                 () -> new IllegalStateException("Seed user missing; V2 migration not applied"));
-    if (AuthCredential.count("userId", seedUser.id) > 0) {
+    if (credentialCount(seedUser.id) > 0) {
       return seedUser;
     }
-    var credential = new AuthCredential();
+    var credential = newCredential();
     credential.userId = seedUser.id;
-    credential.passwordHash = BcryptUtil.bcryptHash(SEED_USER_PASSWORD);
-    credential.persist();
+    credential.passwordHash = hashPassword(SEED_USER_PASSWORD);
+    persistCredential(credential);
     return seedUser;
   }
 
-  private void ensureSeedPortfolio(AppUser user) throws Exception {
+  void ensureSeedPortfolio(AppUser user) throws Exception {
     if (user == null || user.id == null) {
       return;
     }
-    if (PortfolioTransaction.count("userId", user.id) > 0) {
+    if (transactionCount(user.id) > 0) {
       return;
     }
     insertTransactions(user.id, DEFAULT_DEMO_SEED_PROFILE);
   }
 
   /** Finds or creates a verified, sign-in-capable account with the given dev password. */
-  private void ensureVerifiedUser(String email, String password) {
+  void ensureVerifiedUser(String email, String password) {
     var user = appUserRepository.findByNormalizedEmail(email).orElse(null);
     if (user == null) {
       user = new AppUser();
@@ -126,15 +126,15 @@ public class DevDataBootstrap {
       user.emailVerified = true;
       appUserRepository.persist(user);
     }
-    if (AuthCredential.count("userId", user.id) == 0) {
-      var credential = new AuthCredential();
+    if (credentialCount(user.id) == 0) {
+      var credential = newCredential();
       credential.userId = user.id;
-      credential.passwordHash = BcryptUtil.bcryptHash(password);
-      credential.persist();
+      credential.passwordHash = hashPassword(password);
+      persistCredential(credential);
     }
   }
 
-  private List<Map<String, Object>> loadDemoTransactions(String profile) throws Exception {
+  List<Map<String, Object>> loadDemoTransactions(String profile) throws Exception {
     try (InputStream stream =
         Thread.currentThread()
             .getContextClassLoader()
@@ -158,7 +158,7 @@ public class DevDataBootstrap {
     }
   }
 
-  private Set<String> loadSeedSymbols(String profile) throws Exception {
+  Set<String> loadSeedSymbols(String profile) throws Exception {
     var symbols = new LinkedHashSet<String>();
     for (var row : loadDemoTransactions(profile)) {
       symbols.add(row.get("ticker").toString().toUpperCase());
@@ -166,7 +166,7 @@ public class DevDataBootstrap {
     return symbols;
   }
 
-  private Set<String> loadAllSeedSymbols() throws Exception {
+  Set<String> loadAllSeedSymbols() throws Exception {
     var symbols = new LinkedHashSet<>(loadSeedSymbols(DEFAULT_DEMO_SEED_PROFILE));
     for (var demoUser : appUserRepository.listDemoUsers()) {
       symbols.addAll(loadSeedSymbols(demoUser.demoSeedProfile));
@@ -174,7 +174,7 @@ public class DevDataBootstrap {
     return symbols;
   }
 
-  private Set<String> insertTransactions(Long userId, String profile) throws Exception {
+  Set<String> insertTransactions(Long userId, String profile) throws Exception {
     var symbols = new LinkedHashSet<String>();
     for (var row : loadDemoTransactions(profile)) {
       var symbol = row.get("ticker").toString().toUpperCase();
@@ -197,10 +197,34 @@ public class DevDataBootstrap {
     return symbols;
   }
 
-  private void bootstrapSeededMarketData(Set<String> symbols) {
+  void bootstrapSeededMarketData(Set<String> symbols) {
     if (!providerConfig.isLiveMarketDataProvider() || symbols.isEmpty()) {
       return;
     }
     marketDataService.bootstrapTrackedSymbolsAndAnalysis(symbols);
+  }
+
+  long credentialCount(Long userId) {
+    return AuthCredential.count("userId", userId);
+  }
+
+  long transactionCount(Long userId) {
+    return PortfolioTransaction.count("userId", userId);
+  }
+
+  void deleteTransactions(Long userId) {
+    PortfolioTransaction.delete("userId", userId);
+  }
+
+  AuthCredential newCredential() {
+    return new AuthCredential();
+  }
+
+  String hashPassword(String password) {
+    return BcryptUtil.bcryptHash(password);
+  }
+
+  void persistCredential(AuthCredential credential) {
+    credential.persist();
   }
 }

@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router-dom';
 import { LoginRoute } from '@/routes/LoginRoute';
 import { useAuthStore } from '@/stores/authStore';
-import { renderWithProviders } from '@/test/utils';
-import { resetMockApiState, setMockApiState } from '@/test/server';
+import { renderWithProviders } from '@tests/utils';
+import { resetMockApiState, setMockApiState } from '@tests/server';
 
 function reset() {
   sessionStorage.clear();

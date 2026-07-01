@@ -1,137 +1,144 @@
 package com.stocktracker.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
 import com.stocktracker.domain.FxRate;
 import com.stocktracker.dto.ConversionDtos.FxStatus;
-import com.stocktracker.support.IntegrationTestSupport;
-import com.stocktracker.support.MySqlTestResource;
-import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.junit.QuarkusTest;
-import jakarta.inject.Inject;
+import com.stocktracker.persistence.FxRateRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
-@QuarkusTest
-@QuarkusTestResource(MySqlTestResource.class)
-class CurrencyServiceTest extends IntegrationTestSupport {
-  @Inject CurrencyService currencyService;
-
-  private static final LocalDate TODAY = LocalDate.now();
+class CurrencyServiceTest {
+  private final FxRateRepository fxRates = Mockito.mock(FxRateRepository.class);
+  private CurrencyService service;
 
   @BeforeEach
-  void clearRates() throws Exception {
-    inTransaction(() -> FxRate.deleteAll());
-  }
-
-  private void persistRate(String base, String quote, LocalDate date, String rate)
-      throws Exception {
-    inTransaction(
-        () -> {
-          var row = new FxRate();
-          row.baseCurrency = base;
-          row.quoteCurrency = quote;
-          row.rateDate = date;
-          row.rate = new BigDecimal(rate);
-          row.source = "test";
-          row.stale = false;
-          row.persist();
-        });
+  void setUp() {
+    service = new CurrencyService();
+    service.fxRates = fxRates;
   }
 
   @Test
-  void sameCurrencyConvertsUnchangedAndNotStale() {
-    var result = currencyService.convert(new BigDecimal("100"), "USD", "USD", TODAY);
-    assertEquals(0, result.value().compareTo(new BigDecimal("100")));
-    assertFalse(result.stale());
-    assertEquals(TODAY, result.fxDate());
-    assertEquals(FxStatus.current, result.fxStatus());
+  void returnsExactDirectRateAsCurrent() {
+    var date = LocalDate.of(2025, 1, 2);
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
+
+    var converted = service.convert(new BigDecimal("10"), "USD", "SGD", date);
+
+    assertEquals(new BigDecimal("13.5000"), converted.value());
+    assertEquals(FxStatus.current, converted.fxStatus());
   }
 
   @Test
-  void convertsNativeToBaseUsingDailyRate() throws Exception {
-    persistRate("USD", "SGD", TODAY, "1.35");
+  void usesInverseFallbackAndMarksStale() {
+    var requestedDate = LocalDate.of(2025, 2, 10);
+    when(fxRates.find("JPY", "USD", requestedDate)).thenReturn(Optional.empty());
+    when(fxRates.find("USD", "JPY", requestedDate)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("JPY", "USD", requestedDate)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("USD", "JPY", requestedDate))
+        .thenReturn(Optional.of(rate("USD", "JPY", requestedDate.minusDays(2), "150.0", false)));
 
-    var result = currencyService.convert(new BigDecimal("100"), "USD", "SGD", TODAY);
+    var converted = service.rate("JPY", "USD", requestedDate);
 
-    assertEquals(0, result.value().compareTo(new BigDecimal("135.0000")));
-    assertFalse(result.stale());
-    assertEquals(TODAY, result.fxDate());
-    assertEquals(FxStatus.current, result.fxStatus());
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.stale, converted.get().fxStatus());
+    assertEquals(0, converted.get().value().compareTo(new BigDecimal("0.00666667")));
   }
 
   @Test
-  void mixedCurrencyTotalReconcilesToNativeTimesFx() throws Exception {
-    persistRate("USD", "SGD", TODAY, "1.35");
+  void crossConvertsThroughUsdPivot() {
+    var date = LocalDate.of(2025, 3, 3);
+    when(fxRates.find("EUR", "SGD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("SGD", "EUR", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("EUR", "SGD", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("SGD", "EUR", date)).thenReturn(Optional.empty());
+    when(fxRates.find("EUR", "USD", date))
+        .thenReturn(Optional.of(rate("EUR", "USD", date, "1.10", false)));
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", false)));
 
-    // 1000 USD + 1000 SGD, reported in SGD: 1000*1.35 + 1000 = 2350 SGD.
-    var usdLeg = currencyService.convert(new BigDecimal("1000"), "USD", "SGD", TODAY);
-    var sgdLeg = currencyService.convert(new BigDecimal("1000"), "SGD", "SGD", TODAY);
-    var total = usdLeg.value().add(sgdLeg.value());
+    var converted = service.rate("EUR", "SGD", date);
 
-    assertEquals(0, total.compareTo(new BigDecimal("2350.0000")));
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.current, converted.get().fxStatus());
+    assertEquals(0, converted.get().value().compareTo(new BigDecimal("1.48500000")));
   }
 
   @Test
-  void valuationDateFallsBackToLastKnownRateMarkedStale() throws Exception {
-    // Only yesterday's rate exists; converting for today must use it and keep it current.
-    persistRate("USD", "SGD", TODAY.minusDays(1), "1.35");
+  void returnsUnavailableWhenNoRateExists() {
+    var date = LocalDate.of(2025, 4, 1);
+    when(fxRates.find("CHF", "JPY", date)).thenReturn(Optional.empty());
+    when(fxRates.find("JPY", "CHF", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("CHF", "JPY", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("JPY", "CHF", date)).thenReturn(Optional.empty());
+    when(fxRates.find("CHF", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("USD", "CHF", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("CHF", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("USD", "CHF", date)).thenReturn(Optional.empty());
+    when(fxRates.find("USD", "JPY", date)).thenReturn(Optional.empty());
+    when(fxRates.find("JPY", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("USD", "JPY", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("JPY", "USD", date)).thenReturn(Optional.empty());
 
-    var result = currencyService.convertHolding(new BigDecimal("100"), "USD", "SGD", TODAY);
+    var converted = service.convert(new BigDecimal("5"), "CHF", "JPY", date);
 
-    assertEquals(0, result.value().compareTo(new BigDecimal("135.0000")));
-    assertFalse(result.stale());
-    assertEquals(TODAY.minusDays(1), result.fxDate());
-    assertEquals(FxStatus.current, result.fxStatus());
+    assertEquals(FxStatus.unavailable, converted.fxStatus());
+    assertEquals(0, converted.value().compareTo(BigDecimal.ZERO));
   }
 
   @Test
-  void valuationDateOlderThanOneDayFallsBackMarkedStale() throws Exception {
-    persistRate("USD", "SGD", TODAY.minusDays(2), "1.35");
+  void convertHandlesNullAmountAndSameCurrency() {
+    var date = LocalDate.of(2025, 5, 1);
 
-    var result = currencyService.convertHolding(new BigDecimal("100"), "USD", "SGD", TODAY);
+    var nullAmount = service.convert(null, "USD", "SGD", date);
+    var sameCurrency = service.convert(new BigDecimal("5"), "usd", "USD", date);
 
-    assertEquals(0, result.value().compareTo(new BigDecimal("135.0000")));
-    assertTrue(result.stale());
-    assertEquals(TODAY.minusDays(2), result.fxDate());
-    assertEquals(FxStatus.stale, result.fxStatus());
+    assertEquals(new BigDecimal("0"), nullAmount.value());
+    assertEquals(FxStatus.current, nullAmount.fxStatus());
+    assertEquals(new BigDecimal("5"), sameCurrency.value());
   }
 
   @Test
-  void transactionDateUsesTransactionDayRate() throws Exception {
-    var transactionDate = TODAY.minusDays(10);
-    persistRate("USD", "SGD", transactionDate, "1.40");
-    persistRate("USD", "SGD", TODAY, "1.35");
+  void usesInverseExactAndHonorsExplicitStaleFlag() {
+    var date = LocalDate.of(2025, 2, 10);
+    when(fxRates.find("SGD", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date, "1.35", true)));
 
-    var result =
-        currencyService.convertTransaction(new BigDecimal("100"), "USD", "SGD", transactionDate);
+    var converted = service.rate("SGD", "USD", date);
 
-    assertEquals(0, result.value().compareTo(new BigDecimal("140.0000")));
-    assertEquals(transactionDate, result.fxDate());
-    assertEquals(FxStatus.current, result.fxStatus());
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.stale, converted.get().fxStatus());
   }
 
   @Test
-  void exactInverseRateBeatsOlderDirectFallback() throws Exception {
-    persistRate("USD", "SGD", TODAY.minusDays(10), "1.40");
-    persistRate("SGD", "USD", TODAY, "0.740741");
+  void usesDirectFallbackAsCurrentWhenRecent() {
+    var date = LocalDate.of(2025, 2, 10);
+    when(fxRates.find("USD", "SGD", date)).thenReturn(Optional.empty());
+    when(fxRates.find("SGD", "USD", date)).thenReturn(Optional.empty());
+    when(fxRates.findLatestOnOrBefore("USD", "SGD", date))
+        .thenReturn(Optional.of(rate("USD", "SGD", date.minusDays(1), "1.34", false)));
 
-    var result = currencyService.convertTransaction(new BigDecimal("100"), "USD", "SGD", TODAY);
+    var converted = service.rate("USD", "SGD", date);
 
-    assertEquals(TODAY, result.fxDate());
-    assertEquals(FxStatus.current, result.fxStatus());
+    assertTrue(converted.isPresent());
+    assertEquals(FxStatus.current, converted.get().fxStatus());
   }
 
-  @Test
-  void absentPairReturnsUnavailableWithoutPassThroughAmount() {
-    var result = currencyService.convert(new BigDecimal("100"), "USD", "EUR", TODAY);
-
-    assertEquals(0, result.value().compareTo(BigDecimal.ZERO));
-    assertEquals(FxStatus.unavailable, result.fxStatus());
-    assertTrue(result.unavailable());
+  private FxRate rate(String base, String quote, LocalDate date, String value, boolean stale) {
+    var row = new FxRate();
+    row.baseCurrency = base;
+    row.quoteCurrency = quote;
+    row.rateDate = date;
+    row.rate = new BigDecimal(value);
+    row.stale = stale;
+    return row;
   }
 }

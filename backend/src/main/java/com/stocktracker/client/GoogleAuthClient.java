@@ -30,7 +30,7 @@ public class GoogleAuthClient {
   @Inject NonProdAuthConfig config;
   @Inject ObjectMapper objectMapper;
 
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  HttpClient httpClient = HttpClient.newHttpClient();
 
   public ProviderProfile exchange(String code, String redirectUri) {
     config.validateProviderCredentials("google");
@@ -57,7 +57,7 @@ public class GoogleAuthClient {
             });
 
     var request =
-        HttpRequest.newBuilder(TOKEN_URI)
+        HttpRequest.newBuilder(tokenUri())
             .timeout(TIMEOUT)
             .header(HttpHeaders.CONTENT_TYPE, "application/x-www-form-urlencoded")
             .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -79,7 +79,7 @@ public class GoogleAuthClient {
 
   private ProviderProfile fetchUserProfile(String accessToken) {
     var request =
-        HttpRequest.newBuilder(USERINFO_URI)
+        HttpRequest.newBuilder(userInfoUri())
             .timeout(TIMEOUT)
             .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
             .GET()
@@ -140,6 +140,14 @@ public class GoogleAuthClient {
 
   private String blankToNull(String value) {
     return value == null || value.isBlank() ? null : value;
+  }
+
+  URI tokenUri() {
+    return TOKEN_URI;
+  }
+
+  URI userInfoUri() {
+    return USERINFO_URI;
   }
 
   public record ProviderProfile(String subject, String email, boolean emailVerified) {}

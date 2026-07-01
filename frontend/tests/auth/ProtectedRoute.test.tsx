@@ -3,7 +3,7 @@ import { act, screen } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { useAuthStore } from '@/stores/authStore';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 
 function reset() {
   sessionStorage.clear();

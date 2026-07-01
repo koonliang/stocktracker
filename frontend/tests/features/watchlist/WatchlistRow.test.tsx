@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Routes, Route } from 'react-router-dom';
 import { WatchlistRow } from '@/features/watchlist/WatchlistRow';
-import { renderWithProviders } from '@/test/utils';
+import { renderWithProviders } from '@tests/utils';
 
 function renderRow(overrides: Partial<React.ComponentProps<typeof WatchlistRow>> = {}) {
   const onRemove = overrides.onRemove ?? vi.fn();

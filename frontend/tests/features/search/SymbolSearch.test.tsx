@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders, screen, waitFor } from '@/test/utils';
+import { renderWithProviders, screen, waitFor } from '@tests/utils';
 import { SymbolSearch } from '@/features/search/SymbolSearch';
 
 describe('SymbolSearch', () => {

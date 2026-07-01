@@ -80,7 +80,8 @@ public class TransactionValidationService {
       if (currencyIssue != null) {
         return currencyIssue;
       }
-      var fxIssue = validateFxAvailability(instrument.currency, effectiveBaseCurrency(), request.date());
+      var fxIssue =
+          validateFxAvailability(instrument.currency, effectiveBaseCurrency(), request.date());
       if (fxIssue != null) {
         return fxIssue;
       }
@@ -148,7 +149,8 @@ public class TransactionValidationService {
   }
 
   private String effectiveBaseCurrency() {
-    return currentUser.optional()
+    return currentUser
+        .optional()
         .map(user -> user.baseCurrency)
         .filter(currency -> currency != null && !currency.isBlank())
         .orElse(defaultBaseCurrency)

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { screen } from '@testing-library/react';
 import { axe } from 'vitest-axe';
 import { DashboardRoute } from '@/routes/DashboardRoute';
-import { renderWithProviders } from '@/test/utils';
-import { seedMockPortfolio, setMockApiState } from '@/test/server';
+import { renderWithProviders } from '@tests/utils';
+import { seedMockPortfolio, setMockApiState } from '@tests/server';
 
 describe('DashboardRoute', () => {
   beforeEach(() => {

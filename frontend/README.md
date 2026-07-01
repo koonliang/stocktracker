@@ -79,10 +79,16 @@ Run all frontend gates:
 
 ```sh
 npm test
+npm run test:coverage
 npm run lint
 npm run typecheck
 npm run build
 ```
+
+`npm run test:coverage` runs the Vitest suite with V8 coverage enabled and writes
+reports to `frontend/coverage/`. Open `frontend/coverage/index.html` in a browser
+for the HTML report; the command also prints a text summary in the terminal.
+The run fails if line, branch, function, or statement coverage drops below 70%.
 
 Frontend-only dev server:
 

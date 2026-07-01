@@ -21,7 +21,8 @@
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@tests/*": ["tests/support/*"]
     },
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom", "node"]
   },

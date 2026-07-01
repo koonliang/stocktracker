@@ -7,7 +7,7 @@ import { WatchlistsRoute } from '@/routes/WatchlistsRoute';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
 import { AnalysisRoute } from '@/routes/AnalysisRoute';
 import { loadTickers } from '@/lib/seed';
-import { seedMockPortfolio, setMockApiState } from '@/test/server';
+import { seedMockPortfolio, setMockApiState } from '@tests/server';
 
 const known = loadTickers()[0]!.symbol;
 

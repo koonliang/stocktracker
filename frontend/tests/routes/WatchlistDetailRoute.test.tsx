@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { WatchlistDetailRoute } from '@/routes/WatchlistDetailRoute';
 import { useWatchlistStore } from '@/stores/watchlistStore';
 import { loadTickers } from '@/lib/seed';
-import { setMockApiState } from '@/test/server';
+import { setMockApiState } from '@tests/server';
 
 function reset() {
   localStorage.clear();

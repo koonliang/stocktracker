@@ -35,11 +35,11 @@ public class PriceHistoryRefreshJob {
     try {
       marketDataService.refreshTrackedSymbolsAndAnalysis(symbols);
     } finally {
-      var elapsedMillis = java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
+      var elapsedMillis =
+          java.util.concurrent.TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startedAtNanos);
       LOG.infof(
           "Price history refresh finished for %d tracked symbols in %d ms",
-          symbols.size(),
-          elapsedMillis);
+          symbols.size(), elapsedMillis);
     }
   }
 }

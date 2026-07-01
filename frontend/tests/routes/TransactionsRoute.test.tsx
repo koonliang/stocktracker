@@ -3,8 +3,8 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { axe } from 'vitest-axe';
 import { TransactionsRoute } from '@/routes/TransactionsRoute';
-import { renderWithProviders } from '@/test/utils';
-import { setMockApiState } from '@/test/server';
+import { renderWithProviders } from '@tests/utils';
+import { setMockApiState } from '@tests/server';
 import type { Transaction } from '@/lib/types';
 
 function reset() {
