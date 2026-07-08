@@ -1,0 +1,126 @@
+name: Rollback Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type the literal word ROLLBACK to proceed'
+        required: true
+        type: string
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate inputs
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [[ "${CONFIRM}" != "ROLLBACK" ]]; then
+            echo "::error::confirm must equal ROLLBACK (got '${CONFIRM}')"
+            exit 1
+          fi
+
+  fetch-targets:
+    name: fetch-targets
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
+      lambda_alias_name: ${{ steps.outputs.outputs.lambda_alias_name }}
+    defaults:
+      run:
+        working-directory: infra/envs/production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+          terraform_wrapper: false
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Read outputs (no apply)
+        id: outputs
+        run: |
+          set -euo pipefail
+          for k in lambda_function_name lambda_alias_name; do
+            v=$(terraform output -raw "$k")
+            echo "$k=$v" >> "$GITHUB_OUTPUT"
+          done
+
+  rollback:
+    name: rollback
+    needs: fetch-targets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Roll back canary traffic to current primary
+        env:
+          FUNCTION_NAME: ${{ needs.fetch-targets.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ needs.fetch-targets.outputs.lambda_alias_name }}
+        run: |
+          set -euo pipefail
+
+          aws lambda get-alias \
+            --function-name "$FUNCTION_NAME" \
+            --name "$ALIAS_NAME" > /tmp/alias.json
+
+          primary_version=$(jq -r '.FunctionVersion' /tmp/alias.json)
+          candidate_count=$(jq -r '(.RoutingConfig.AdditionalVersionWeights // {}) | to_entries | length' /tmp/alias.json)
+
+          if [ "$candidate_count" -ne 1 ]; then
+            echo "::error::Expected exactly one canary target on alias ${ALIAS_NAME}; found ${candidate_count}."
+            cat /tmp/alias.json
+            exit 1
+          fi
+
+          candidate_version=$(jq -r '(.RoutingConfig.AdditionalVersionWeights // {}) | to_entries[0].key' /tmp/alias.json)
+          candidate_weight=$(jq -r '(.RoutingConfig.AdditionalVersionWeights // {}) | to_entries[0].value' /tmp/alias.json)
+
+          aws lambda update-alias \
+            --function-name "$FUNCTION_NAME" \
+            --name "$ALIAS_NAME" \
+            --function-version "$primary_version" \
+            --routing-config '{"AdditionalVersionWeights":{}}' >/dev/null
+
+          {
+            echo "### Canary rolled back"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| function_name | \`${FUNCTION_NAME}\` |"
+            echo "| alias_name | \`${ALIAS_NAME}\` |"
+            echo "| retained_primary_version | \`${primary_version}\` |"
+            echo "| removed_candidate_version | \`${candidate_version}\` |"
+            echo "| removed_candidate_weight | \`${candidate_weight}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
