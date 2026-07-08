@@ -10,6 +10,11 @@ on:
         required: false
         type: string
         default: ''
+      canary_weight:
+        description: 'Decimal traffic weight for the new version on the production alias (0 = full cutover, 0 < weight < 1 for canary, example: 0.10)'
+        required: false
+        type: string
+        default: '0'
 
 concurrency:
   group: cd-production
@@ -67,6 +72,7 @@ jobs:
       id-token: write
     outputs:
       lambda_function_name: ${{ steps.outputs.outputs.lambda_function_name }}
+      lambda_alias_name: ${{ steps.outputs.outputs.lambda_alias_name }}
       migrator_function_name: ${{ steps.outputs.outputs.migrator_function_name }}
       api_invoke_url: ${{ steps.outputs.outputs.api_invoke_url }}
       cloudfront_domain_name: ${{ steps.outputs.outputs.cloudfront_domain_name }}
@@ -108,7 +114,7 @@ jobs:
         id: outputs
         run: |
           set -euo pipefail
-          for k in lambda_function_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name migrator_function_name cognito_hosted_ui_domain cognito_user_pool_client_id; do
+          for k in lambda_function_name lambda_alias_name api_invoke_url cloudfront_domain_name cloudfront_distribution_id frontend_bucket_name migrator_function_name cognito_hosted_ui_domain cognito_user_pool_client_id; do
             v=$(terraform output -raw "$k" 2>/dev/null || true)
             echo "$k=$v" >> "$GITHUB_OUTPUT"
           done
@@ -185,6 +191,9 @@ jobs:
       id-token: write
     outputs:
       function_version: ${{ steps.publish.outputs.version }}
+      previous_version: ${{ steps.switch-alias.outputs.previous_version }}
+      deployment_mode: ${{ steps.switch-alias.outputs.deployment_mode }}
+      canary_weight: ${{ steps.switch-alias.outputs.canary_weight }}
     steps:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -221,14 +230,51 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - name: Update production alias
+        id: switch-alias
         env:
           FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ needs.terraform-apply.outputs.lambda_alias_name }}
           VERSION: ${{ steps.publish.outputs.version }}
+          CANARY_WEIGHT: ${{ inputs.canary_weight || '0' }}
         run: |
-          aws lambda update-alias \
+          set -euo pipefail
+
+          if ! [[ "$CANARY_WEIGHT" =~ ^0(\.[0-9]+)?$ ]]; then
+            echo "::error::canary_weight must be 0 or a decimal less than 1 (got '$CANARY_WEIGHT')."
+            exit 1
+          fi
+
+          aws lambda get-alias \
             --function-name "$FUNCTION_NAME" \
-            --name production \
-            --function-version "$VERSION" >/dev/null
+            --name "$ALIAS_NAME" \
+            > /tmp/alias.json
+
+          previous_version=$(jq -r '.FunctionVersion' /tmp/alias.json)
+          existing_canary_count=$(jq -r '(.RoutingConfig.AdditionalVersionWeights // {}) | to_entries | length' /tmp/alias.json)
+
+          if [ "$CANARY_WEIGHT" = "0" ] || [ "$CANARY_WEIGHT" = "0.0" ]; then
+            deployment_mode=full-cutover
+            aws lambda update-alias \
+              --function-name "$FUNCTION_NAME" \
+              --name "$ALIAS_NAME" \
+              --function-version "$VERSION" \
+              --routing-config '{"AdditionalVersionWeights":{}}' >/dev/null
+          else
+            if [ "$existing_canary_count" != "0" ]; then
+              echo "::error::Alias ${ALIAS_NAME} already has canary routing configured. Promote or roll it back before starting another canary."
+              exit 1
+            fi
+            deployment_mode=canary
+            aws lambda update-alias \
+              --function-name "$FUNCTION_NAME" \
+              --name "$ALIAS_NAME" \
+              --function-version "$previous_version" \
+              --routing-config "{\"AdditionalVersionWeights\":{\"$VERSION\":$CANARY_WEIGHT}}" >/dev/null
+          fi
+
+          echo "previous_version=$previous_version" >> "$GITHUB_OUTPUT"
+          echo "deployment_mode=$deployment_mode" >> "$GITHUB_OUTPUT"
+          echo "canary_weight=$CANARY_WEIGHT" >> "$GITHUB_OUTPUT"
 
   frontend-deploy:
     name: frontend-deploy
@@ -325,10 +371,14 @@ jobs:
           STATUS_SMOKE: ${{ needs.smoke.result }}
           DEPLOY_SHA: ${{ env.DEPLOY_SHA }}
           BACKEND_VERSION: ${{ needs.backend-deploy.outputs.function_version }}
+          PREVIOUS_VERSION: ${{ needs.backend-deploy.outputs.previous_version }}
+          DEPLOYMENT_MODE: ${{ needs.backend-deploy.outputs.deployment_mode }}
+          CANARY_WEIGHT: ${{ needs.backend-deploy.outputs.canary_weight }}
           API_URL: ${{ needs.terraform-apply.outputs.api_invoke_url }}
           PUBLIC_URL: ${{ needs.terraform-apply.outputs.public_frontend_url }}
           BUCKET: ${{ needs.terraform-apply.outputs.frontend_bucket_name }}
           FUNCTION_NAME: ${{ needs.terraform-apply.outputs.lambda_function_name }}
+          ALIAS_NAME: ${{ needs.terraform-apply.outputs.lambda_alias_name }}
           DIST_ID: ${{ needs.terraform-apply.outputs.cloudfront_distribution_id }}
         run: |
           {
@@ -340,8 +390,12 @@ jobs:
             echo "| trigger | ${GITHUB_EVENT_NAME} |"
             echo "| run_id | [${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}) |"
             echo "| environment | production |"
+            echo "| deployment_mode | \`${DEPLOYMENT_MODE:-n/a}\` |"
+            echo "| canary_weight | \`${CANARY_WEIGHT:-n/a}\` |"
+            echo "| previous_alias_version | \`${PREVIOUS_VERSION:-n/a}\` |"
             echo "| backend_artifact_version | \`${BACKEND_VERSION:-n/a}\` |"
             echo "| lambda_function_name | \`${FUNCTION_NAME:-n/a}\` |"
+            echo "| lambda_alias_name | \`${ALIAS_NAME:-n/a}\` |"
             echo "| api_invoke_url | ${API_URL:-n/a} |"
             echo "| frontend_bucket_name | \`${BUCKET:-n/a}\` |"
             echo "| cloudfront_distribution_id | \`${DIST_ID:-n/a}\` |"

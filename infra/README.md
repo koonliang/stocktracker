@@ -205,6 +205,12 @@ Workflows live in `.github/workflows/`:
   and `terraform-plan` (matrix across both stacks) when `infra/**` files
   change. Aggregated by a single required `gates` check. No AWS write access.
 - `cd.yml` — applies the **ephemeral** stack and deploys the application.
+- `promote-canary.yml` — `workflow_dispatch` only. Finalizes a manual Lambda
+  alias canary by promoting the single weighted candidate version on the
+  `production` alias to 100% traffic.
+- `rollback-canary.yml` — `workflow_dispatch` only. Aborts a manual Lambda
+  alias canary by removing the weighted candidate version and keeping the
+  current primary alias target at 100% traffic.
 - `cd-persistent.yml` — applies the **persistent** stack. Triggered only when
   files under `infra/envs/production-persistent/**`,
   `infra/modules/cloudfront/**`, or `infra/modules/frontend_bucket/**`
@@ -237,6 +243,13 @@ Terraform checkout, the `aws lambda publish-version` description, and the
 smoke-test checkout — so app code, infra code, and the smoke script are all
 from the same commit.
 
+`cd.yml` also accepts an optional `canary_weight` input. `0` keeps the current
+behavior and swings the alias fully to the new version. A positive decimal such
+as `0.10` publishes the new version and starts a Lambda alias canary by keeping
+the current alias target as primary and routing that fraction of traffic to the
+new version. Use `promote-canary.yml` or `rollback-canary.yml` to finish or
+abort that canary later; do not rerun `cd.yml` for promotion or rollback.
+
 The `concurrency: cd-production` group with `cancel-in-progress: false` means
 overlapping manual runs **queue** rather than race; you'll never get two
 parallel CD runs for production.
@@ -252,7 +265,7 @@ flowchart TD
     BUILD["build · package Lambda artifact"]:::job
     APPLY["terraform-apply · ephemeral stack"]:::job
     MIG["db-migrate · Flyway via migrator Lambda"]:::aws
-    BE["backend-deploy · publish version + swing alias"]:::aws
+    BE["backend-deploy · publish version + full cutover or weighted canary"]:::aws
     FE["frontend-deploy · build + S3 sync + invalidate"]:::aws
     SMOKE["smoke · health checks"]:::job
     SUM["summary · always"]:::terminal
